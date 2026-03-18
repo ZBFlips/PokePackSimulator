@@ -543,6 +543,164 @@ const PACK_CONFIG = [
       },
     ],
   },
+  {
+    key: "astral-radiance",
+    setId: "swsh10",
+    displayName: "Astral Radiance",
+    shortCode: "ASR",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 4.49,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Astral Radiance", "Sword & Shield-Astral Radiance", "Sword & Shield-Astral-Radiance"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "aceSpec", probability: 0.02 }],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "illustrationRare", probability: 0.118 }],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.166 },
+          { tier: "ultraRare", probability: 0.071 },
+          { tier: "hyperRare", probability: 0.02 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.35,
+      tierExponents: {
+        reverseFoil: 0.05,
+        aceSpec: 0.18,
+        illustrationRare: 0.31,
+        doubleRare: 0.23,
+        ultraRare: 0.3,
+        hyperRare: 0.5,
+      },
+    },
+    oddsHighlights: [
+      { label: "Trainer Gallery", probability: 0.118 },
+      { label: "Radiant Slot", probability: 0.02 },
+      { label: "V Slot Hits", probability: 0.166 },
+      { label: "VSTAR / Full Art Hits", probability: 0.071 },
+      { label: "Secret Rare Hits", probability: 0.02 },
+    ],
+    sources: [
+      {
+        label: "Community pull-rate sample",
+        url: "https://www.pokepatch.com/articles/pokemon-astral-radiance-pull-rates",
+      },
+    ],
+  },
+  {
+    key: "silver-tempest",
+    setId: "swsh12",
+    displayName: "Silver Tempest",
+    shortCode: "SIT",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 4.49,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Silver Tempest", "Sword & Shield-Silver Tempest", "Sword & Shield-Silver-Tempest"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "aceSpec", probability: 0.02 }],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "illustrationRare", probability: 0.124 }],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.164 },
+          { tier: "ultraRare", probability: 0.071 },
+          { tier: "hyperRare", probability: 0.02 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.35,
+      tierExponents: {
+        reverseFoil: 0.05,
+        aceSpec: 0.18,
+        illustrationRare: 0.31,
+        doubleRare: 0.23,
+        ultraRare: 0.3,
+        hyperRare: 0.5,
+      },
+    },
+    oddsHighlights: [
+      { label: "Trainer Gallery", probability: 0.124 },
+      { label: "Radiant Slot", probability: 0.02 },
+      { label: "V Slot Hits", probability: 0.164 },
+      { label: "VSTAR / Full Art Hits", probability: 0.071 },
+      { label: "Secret Rare Hits", probability: 0.02 },
+    ],
+    sources: [
+      {
+        label: "Community pull-rate sample",
+        url: "https://www.pokepatch.com/articles/pokemon-silver-tempest-pull-rates",
+      },
+    ],
+  },
+  {
+    key: "crown-zenith",
+    setId: "swsh12pt5",
+    displayName: "Crown Zenith",
+    shortCode: "CRZ",
+    releaseLabel: "Sword & Shield Special Set",
+    packPrice: 5.29,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Crown Zenith", "Sword & Shield-Crown Zenith", "Sword & Shield-Crown-Zenith"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "illustrationRare", probability: 0.245 }],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "illustrationRare", probability: 0.11 }],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.185 },
+          { tier: "ultraRare", probability: 0.082 },
+          { tier: "hyperRare", probability: 0.024 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.35,
+      tierExponents: {
+        reverseFoil: 0.05,
+        illustrationRare: 0.34,
+        doubleRare: 0.23,
+        ultraRare: 0.31,
+        hyperRare: 0.5,
+      },
+    },
+    oddsHighlights: [
+      { label: "Galarian Gallery Slot A", probability: 0.245 },
+      { label: "Galarian Gallery Slot B", probability: 0.11 },
+      { label: "V / VMAX / VSTAR Hits", probability: 0.185 },
+      { label: "Full Art / Alt-Art Style Hits", probability: 0.082 },
+      { label: "Secret Rare Hits", probability: 0.024 },
+    ],
+    sources: [
+      {
+        label: "Community pull-rate sample",
+        url: "https://www.pokepatch.com/articles/pokemon-crown-zenith-pull-rates",
+      },
+    ],
+  },
 ];
 
 const SLOT_TIER_TO_POOL_KEY = {
