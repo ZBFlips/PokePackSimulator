@@ -38,6 +38,50 @@ body {
   pointer-events: none;
 }
 
+.toast-stack {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 80;
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+  max-width: min(420px, calc(100vw - 28px));
+}
+
+.toast {
+  border-radius: 12px;
+  border: 1px solid rgba(140, 208, 255, 0.34);
+  background: rgba(7, 20, 37, 0.95);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.36);
+  color: #e9f6ff;
+  padding: 9px 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transform: translateY(-8px);
+  opacity: 0;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.toast-warn {
+  border-color: rgba(255, 180, 120, 0.5);
+}
+
+.toast.toast-achievement {
+  border-color: rgba(255, 216, 92, 0.6);
+  background: linear-gradient(150deg, rgba(45, 29, 6, 0.95), rgba(12, 27, 45, 0.97));
+}
+
+.toast.toast-epic {
+  border-color: rgba(255, 131, 194, 0.68);
+  background: linear-gradient(150deg, rgba(50, 17, 64, 0.95), rgba(16, 29, 60, 0.97));
+}
+
 .app-shell {
   position: relative;
   z-index: 1;
@@ -70,12 +114,46 @@ body {
   font-size: 1rem;
 }
 
+.status-stack {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
 .load-status {
   font-weight: 700;
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: rgba(16, 32, 56, 0.8);
+}
+
+.sync-status {
+  font-size: 0.88rem;
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 198, 255, 0.2);
+  background: rgba(10, 24, 41, 0.6);
+}
+
+.sync-status.running {
+  color: #bfeaff;
+}
+
+.sync-status.done {
+  color: var(--ok);
+}
+
+.sync-status.warn {
+  color: #ffcf95;
+}
+
+.install-btn {
+  width: 100%;
+  max-width: 180px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
 }
 
 .load-status.ready {
@@ -144,6 +222,24 @@ body {
   width: 16px;
   height: 16px;
   accent-color: var(--glow);
+}
+
+.sound-panel {
+  border: 1px solid rgba(150, 216, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(8, 20, 35, 0.75);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sound-panel input[type="range"] {
+  width: 100%;
+  accent-color: #7ad5ff;
+}
+
+.test-sound-btn {
+  padding: 9px;
 }
 
 label {
@@ -617,6 +713,113 @@ select {
   gap: 8px;
 }
 
+.economy-panel {
+  margin-top: 10px;
+  border: 1px solid rgba(150, 216, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(10, 23, 39, 0.82);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.economy-head strong {
+  display: block;
+}
+
+.economy-head span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.economy-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.economy-stat {
+  border: 1px solid rgba(150, 216, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(9, 22, 37, 0.8);
+  padding: 8px;
+}
+
+.economy-stat strong {
+  display: block;
+}
+
+.economy-stat span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.economy-stat.good strong {
+  color: #9df1b6;
+}
+
+.economy-stat.bad strong {
+  color: #ffb6b6;
+}
+
+.economy-chart-wrap {
+  border: 1px solid rgba(150, 216, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(7, 19, 33, 0.84);
+  padding: 8px;
+}
+
+.economy-chart {
+  min-height: 56px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.economy-bar {
+  width: 8px;
+  border-radius: 4px 4px 2px 2px;
+}
+
+.economy-bar.gain {
+  background: linear-gradient(180deg, #9af0b3, #3fbf73);
+}
+
+.economy-bar.loss {
+  background: linear-gradient(180deg, #ffb8b8, #da6363);
+}
+
+.economy-empty {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.economy-set-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.economy-set-list li {
+  border: 1px solid rgba(150, 216, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(8, 20, 35, 0.76);
+  padding: 7px 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.economy-set-list li span {
+  color: #d5ebfe;
+}
+
+.economy-set-list li strong {
+  color: #ffe180;
+}
+
 .achievement-head {
   display: flex;
   justify-content: space-between;
@@ -934,6 +1137,10 @@ select {
 }
 
 @media (max-width: 1080px) {
+  .status-stack {
+    justify-items: start;
+  }
+
   .layout {
     grid-template-columns: 1fr;
   }

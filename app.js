@@ -2,6 +2,7 @@ const API_BASE = "https://api.pokemontcg.io/v2";
 const BINDER_STORAGE_KEY = "pokemon-pack-sim-binder-v2";
 const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
 const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
+const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v1-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
@@ -10,6 +11,7 @@ const IMAGE_FALLBACK_TIMEOUT_MS = 4500;
 const SHARE_RENDER_TIMEOUT_MS = 9000;
 const CHASE_SLOT_COUNT = 2;
 const CHASE_CANDIDATE_LIMIT = 40;
+const DEFAULT_PACK_PRICE = 4.99;
 
 const PACK_CONFIG = [
   {
@@ -18,6 +20,7 @@ const PACK_CONFIG = [
     displayName: "Paldean Fates",
     shortCode: "PAF",
     releaseLabel: "Scarlet & Violet Special Set",
+    packPrice: 5.49,
     localPackImage: "assets/packs/paldean-fates.png",
     packImage: "",
     setAliases: ["Paldean Fates", "Scarlet & Violet-Paldean Fates", "Scarlet & Violet-Paldean-Fates"],
@@ -77,6 +80,7 @@ const PACK_CONFIG = [
     displayName: "Prismatic Evolutions",
     shortCode: "PRE",
     releaseLabel: "Scarlet & Violet Special Set",
+    packPrice: 5.49,
     localPackImage: "assets/packs/prismatic-evolutions.png",
     packImage: "",
     setAliases: ["Prismatic Evolutions", "Scarlet & Violet-Prismatic Evolutions", "Scarlet & Violet-Prismatic-Evolutions"],
@@ -142,6 +146,7 @@ const PACK_CONFIG = [
     displayName: "Surging Sparks",
     shortCode: "SSP",
     releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 4.99,
     localPackImage: "assets/packs/surging-sparks.png",
     packImage: "",
     setAliases: ["Surging Sparks", "Scarlet & Violet-Surging Sparks", "Scarlet & Violet-Surging-Sparks"],
@@ -199,6 +204,7 @@ const PACK_CONFIG = [
     displayName: "Obsidian Flames",
     shortCode: "OBF",
     releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 4.99,
     localPackImage: "assets/packs/obsidian-flames.png",
     packImage: "",
     setAliases: ["Obsidian Flames", "Scarlet & Violet-Obsidian Flames", "Scarlet & Violet-Obsidian-Flames"],
@@ -254,6 +260,7 @@ const PACK_CONFIG = [
     displayName: "Temporal Forces",
     shortCode: "TEF",
     releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 4.99,
     localPackImage: "assets/packs/temporal-forces.png",
     packImage: "",
     setAliases: ["Temporal Forces", "Scarlet & Violet-Temporal Forces", "Scarlet & Violet-Temporal-Forces"],
@@ -311,6 +318,7 @@ const PACK_CONFIG = [
     displayName: "Twilight Masquerade",
     shortCode: "TWM",
     releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 4.99,
     localPackImage: "assets/packs/twilight-masquerade.png",
     packImage: "",
     setAliases: ["Twilight Masquerade", "Scarlet & Violet-Twilight Masquerade", "Scarlet & Violet-Twilight-Masquerade"],
@@ -368,6 +376,7 @@ const PACK_CONFIG = [
     displayName: "Evolving Skies",
     shortCode: "EVS",
     releaseLabel: "Sword & Shield Expansion",
+    packPrice: 4.49,
     localPackImage: "assets/packs/evolving-skies.jpg",
     packImage: "",
     setAliases: ["Evolving Skies", "Sword & Shield-Evolving Skies", "Sword & Shield-Evolving-Skies"],
@@ -418,6 +427,7 @@ const PACK_CONFIG = [
     displayName: "Brilliant Stars",
     shortCode: "BRS",
     releaseLabel: "Sword & Shield Expansion",
+    packPrice: 4.49,
     localPackImage: "assets/packs/brilliant-stars.jpg",
     packImage: "",
     setAliases: ["Brilliant Stars", "Sword & Shield-Brilliant Stars", "Sword & Shield-Brilliant-Stars"],
@@ -469,6 +479,7 @@ const PACK_CONFIG = [
     displayName: "Lost Origin",
     shortCode: "LOR",
     releaseLabel: "Sword & Shield Expansion",
+    packPrice: 4.49,
     localPackImage: "assets/packs/lost-origin.jpg",
     packImage: "",
     setAliases: ["Lost Origin", "Sword & Shield-Lost Origin", "Sword & Shield-Lost-Origin"],
@@ -619,7 +630,8 @@ const state = {
   selectedPackKey: PACK_CONFIG[0].key,
   revealMode: "all",
   sortMode: "standard",
-  soundEnabled: true,
+  soundEnabled: loadSoundEnabledFromStorage(),
+  soundSettings: loadSoundSettingsFromStorage(),
   setData: {},
   currentPack: null,
   revealedInstanceIds: new Set(),
@@ -627,6 +639,14 @@ const state = {
   loadErrors: [],
   loadingPackKeys: new Set(),
   liveLoadedPackKeys: new Set(),
+  backgroundPreloadStarted: false,
+  backgroundSync: {
+    running: false,
+    total: PACK_CONFIG.length,
+    done: 0,
+    warnings: 0,
+  },
+  installPromptEvent: null,
   chaseTargetsBySet: loadChaseTargetsFromStorage(),
   profile: loadProfileFromStorage(),
   inspectCard: null,
@@ -636,6 +656,10 @@ const state = {
     totalCards: 0,
     biggestHit: null,
     xpEarned: 0,
+    totalSpent: 0,
+    profitablePacks: 0,
+    packValueHistory: [],
+    setEconomy: {},
     unlockedAchievements: [],
     pity: {
       ultraPlus: 0,
@@ -648,7 +672,11 @@ const state = {
 };
 
 const dom = {
+  toastStack: document.getElementById("toastStack"),
   loadStatus: document.getElementById("loadStatus"),
+  syncStatus: document.getElementById("syncStatus"),
+  networkStatus: document.getElementById("networkStatus"),
+  installAppBtn: document.getElementById("installAppBtn"),
   packSelector: document.getElementById("packSelector"),
   revealMode: document.getElementById("revealMode"),
   sortMode: document.getElementById("sortMode"),
@@ -657,6 +685,7 @@ const dom = {
   resetBinderBtn: document.getElementById("resetBinderBtn"),
   openPackBtn: document.getElementById("openPackBtn"),
   sharePullBtn: document.getElementById("sharePullBtn"),
+  soundPanel: document.getElementById("soundPanel"),
   chasePanel: document.getElementById("chasePanel"),
   oddsPanel: document.getElementById("oddsPanel"),
   playPanel: document.querySelector(".play-panel"),
@@ -670,6 +699,7 @@ const dom = {
   cardsGrid: document.getElementById("cardsGrid"),
   openedPackSummary: document.getElementById("openedPackSummary"),
   sessionStats: document.getElementById("sessionStats"),
+  economyPanel: document.getElementById("economyPanel"),
   achievementPanel: document.getElementById("achievementPanel"),
   binderGrid: document.getElementById("binderGrid"),
   inspectModal: document.getElementById("inspectModal"),
@@ -691,23 +721,33 @@ init().catch((error) => {
 
 async function init() {
   wireControls();
+  syncSoundControlState();
   seedFallbackData();
   const cachedSets = hydrateLiveSetCache();
   setStatus(cachedSets ? `Ready from cache (${cachedSets} sets).` : "Ready in fallback mode. Loading live card data...");
   renderPackSelector();
+  renderSoundPanel();
   renderChasePanel();
   renderOddsPanel();
   renderPackHeader();
   renderCards();
   renderSessionStats();
+  renderEconomyPanel();
   renderAchievements();
   renderBinder();
+  renderBackgroundSyncStatus();
+  updateNetworkStatus();
   updateButtons();
+  wirePwaInstallPrompt();
+  registerServiceWorker();
+  window.addEventListener("online", updateNetworkStatus);
+  window.addEventListener("offline", updateNetworkStatus);
   if (state.liveLoadedPackKeys.has(state.selectedPackKey)) {
     setStatus("Ready to rip packs.", "ready");
   } else {
     loadPackLiveData(state.selectedPackKey);
   }
+  startBackgroundPreload();
 }
 
 function wireControls() {
@@ -731,6 +771,9 @@ function wireControls() {
 
   dom.soundToggle.addEventListener("change", () => {
     state.soundEnabled = dom.soundToggle.checked;
+    persistSoundSettings();
+    syncSoundControlState();
+    renderSoundPanel();
   });
 
   dom.resetSessionBtn.addEventListener("click", () => {
@@ -742,6 +785,10 @@ function wireControls() {
       totalCards: 0,
       biggestHit: null,
       xpEarned: 0,
+      totalSpent: 0,
+      profitablePacks: 0,
+      packValueHistory: [],
+      setEconomy: {},
       unlockedAchievements: [],
       pity: {
         ultraPlus: 0,
@@ -752,6 +799,7 @@ function wireControls() {
     closeInspectModal();
     renderChasePanel();
     renderSessionStats();
+    renderEconomyPanel();
     renderAchievements();
     renderCards();
     updateButtons();
@@ -818,6 +866,207 @@ function setStatus(message, type = "") {
     dom.loadStatus.classList.add(type);
   }
 }
+
+function renderBackgroundSyncStatus() {
+  if (!dom.syncStatus) {
+    return;
+  }
+  const { running, total, done, warnings } = state.backgroundSync;
+  dom.syncStatus.classList.remove("running", "done", "warn");
+
+  if (running) {
+    dom.syncStatus.classList.add("running");
+    dom.syncStatus.textContent = `Background sync: ${done}/${total} sets`;
+    return;
+  }
+
+  if (done === 0) {
+    dom.syncStatus.textContent = "Background sync idle.";
+    return;
+  }
+
+  if (warnings > 0) {
+    dom.syncStatus.classList.add("warn");
+    dom.syncStatus.textContent = `Background sync done: ${done}/${total}, ${warnings} warning${warnings === 1 ? "" : "s"}`;
+    return;
+  }
+
+  dom.syncStatus.classList.add("done");
+  dom.syncStatus.textContent = `Background sync done: ${done}/${total} sets`;
+}
+
+function createDefaultSoundSettings() {
+  return {
+    masterVolume: 80,
+    sfxVolume: 85,
+    hitIntensity: "normal",
+  };
+}
+
+function loadSoundSettingsFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(SOUND_SETTINGS_STORAGE_KEY);
+    if (!raw) return createDefaultSoundSettings();
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return createDefaultSoundSettings();
+    const defaults = createDefaultSoundSettings();
+    const masterVolume = clamp(Number(parsed.masterVolume ?? defaults.masterVolume), 0, 100);
+    const sfxVolume = clamp(Number(parsed.sfxVolume ?? defaults.sfxVolume), 0, 100);
+    const hitIntensity = ["soft", "normal", "cinematic"].includes(parsed.hitIntensity) ? parsed.hitIntensity : defaults.hitIntensity;
+    return { masterVolume, sfxVolume, hitIntensity };
+  } catch {
+    return createDefaultSoundSettings();
+  }
+}
+
+function loadSoundEnabledFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(SOUND_SETTINGS_STORAGE_KEY);
+    if (!raw) return true;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return true;
+    if (typeof parsed.enabled === "boolean") {
+      return parsed.enabled;
+    }
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+function persistSoundSettings() {
+  try {
+    window.localStorage.setItem(SOUND_SETTINGS_STORAGE_KEY, JSON.stringify({
+      masterVolume: state.soundSettings.masterVolume,
+      sfxVolume: state.soundSettings.sfxVolume,
+      hitIntensity: state.soundSettings.hitIntensity,
+      enabled: state.soundEnabled,
+    }));
+  } catch {
+    // Ignore storage failures in private windows.
+  }
+}
+
+function syncSoundControlState() {
+  if (dom.soundToggle) {
+    dom.soundToggle.checked = state.soundEnabled;
+  }
+}
+
+function renderSoundPanel() {
+  if (!dom.soundPanel) return;
+  const disabled = state.soundEnabled ? "" : "disabled";
+  const settings = state.soundSettings;
+  dom.soundPanel.innerHTML = `
+    <div class="control-group">
+      <label for="masterVolume">Master volume (${Math.round(settings.masterVolume)}%)</label>
+      <input id="masterVolume" type="range" min="0" max="100" step="1" value="${Math.round(settings.masterVolume)}" ${disabled} />
+    </div>
+    <div class="control-group">
+      <label for="sfxVolume">SFX volume (${Math.round(settings.sfxVolume)}%)</label>
+      <input id="sfxVolume" type="range" min="0" max="100" step="1" value="${Math.round(settings.sfxVolume)}" ${disabled} />
+    </div>
+    <div class="control-group">
+      <label for="hitIntensity">Hit intensity</label>
+      <select id="hitIntensity" ${disabled}>
+        <option value="soft"${settings.hitIntensity === "soft" ? " selected" : ""}>Soft</option>
+        <option value="normal"${settings.hitIntensity === "normal" ? " selected" : ""}>Normal</option>
+        <option value="cinematic"${settings.hitIntensity === "cinematic" ? " selected" : ""}>Cinematic</option>
+      </select>
+    </div>
+    <button id="testSoundBtn" class="btn test-sound-btn" type="button" ${disabled}>Test Sound</button>
+  `;
+
+  const masterInput = dom.soundPanel.querySelector("#masterVolume");
+  const sfxInput = dom.soundPanel.querySelector("#sfxVolume");
+  const intensityInput = dom.soundPanel.querySelector("#hitIntensity");
+  const testSoundBtn = dom.soundPanel.querySelector("#testSoundBtn");
+
+  masterInput?.addEventListener("input", () => {
+    state.soundSettings.masterVolume = clamp(Number(masterInput.value), 0, 100);
+    persistSoundSettings();
+    renderSoundPanel();
+  });
+  sfxInput?.addEventListener("input", () => {
+    state.soundSettings.sfxVolume = clamp(Number(sfxInput.value), 0, 100);
+    persistSoundSettings();
+    renderSoundPanel();
+  });
+  intensityInput?.addEventListener("change", () => {
+    state.soundSettings.hitIntensity = intensityInput.value;
+    persistSoundSettings();
+  });
+  testSoundBtn?.addEventListener("click", () => {
+    playPackOpenSound();
+    window.setTimeout(() => {
+      playRevealSound({ pulledTier: "ultraRare", value: 12 });
+    }, 150);
+  });
+}
+
+function getVolumeMultiplier() {
+  if (!state.soundEnabled) return 0;
+  const master = clamp(Number(state.soundSettings.masterVolume), 0, 100) / 100;
+  const sfx = clamp(Number(state.soundSettings.sfxVolume), 0, 100) / 100;
+  const intensity =
+    state.soundSettings.hitIntensity === "soft"
+      ? 0.8
+      : state.soundSettings.hitIntensity === "cinematic"
+        ? 1.2
+        : 1;
+  return master * sfx * intensity;
+}
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, value));
+}
+
+function updateNetworkStatus() {
+  if (!dom.networkStatus) return;
+  const online = window.navigator.onLine;
+  dom.networkStatus.textContent = online ? "Online" : "Offline mode";
+  dom.networkStatus.classList.remove("running", "done", "warn");
+  dom.networkStatus.classList.add(online ? "done" : "warn");
+}
+
+function wirePwaInstallPrompt() {
+  if (!dom.installAppBtn) return;
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    state.installPromptEvent = event;
+    dom.installAppBtn.hidden = false;
+  });
+
+  dom.installAppBtn.addEventListener("click", async () => {
+    if (!state.installPromptEvent) return;
+    state.installPromptEvent.prompt();
+    try {
+      await state.installPromptEvent.userChoice;
+    } catch {
+      // Ignore prompt dismissal.
+    }
+    state.installPromptEvent = null;
+    dom.installAppBtn.hidden = true;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    state.installPromptEvent = null;
+    dom.installAppBtn.hidden = true;
+    showToast("App installed. You can launch it from your home screen.", "info", 4200);
+  });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+      console.warn("Service worker registration failed:", error);
+    });
+  });
+}
 function seedFallbackData() {
   for (const packDef of PACK_CONFIG) {
     if (!state.setData[packDef.key]) {
@@ -826,7 +1075,8 @@ function seedFallbackData() {
   }
 }
 
-async function loadPackLiveData(packKey) {
+async function loadPackLiveData(packKey, options = {}) {
+  const { silentStatus = false } = options;
   const packDef = PACK_CONFIG.find((pack) => pack.key === packKey);
   if (!packDef) {
     return;
@@ -836,7 +1086,9 @@ async function loadPackLiveData(packKey) {
   }
 
   state.loadingPackKeys.add(packKey);
-  setStatus(`Loading live data for ${packDef.displayName}...`);
+  if (!silentStatus) {
+    setStatus(`Loading live data for ${packDef.displayName}...`);
+  }
 
   try {
     let setMeta = state.setData[packKey]?.setMeta ?? null;
@@ -865,10 +1117,14 @@ async function loadPackLiveData(packKey) {
     state.liveLoadedPackKeys.add(packKey);
     persistLiveSetCache(packKey, setMeta, cards);
 
-    setStatus("Ready to rip packs.", "ready");
+    if (!silentStatus) {
+      setStatus("Ready to rip packs.", "ready");
+    }
   } catch (error) {
     state.loadErrors.push(`${packDef.displayName}: ${error.message}`);
-    setStatus(`Using fallback data for ${packDef.displayName}.`, "error");
+    if (!silentStatus) {
+      setStatus(`Using fallback data for ${packDef.displayName}.`, "error");
+    }
   } finally {
     state.loadingPackKeys.delete(packKey);
     renderPackSelector();
@@ -877,10 +1133,64 @@ async function loadPackLiveData(packKey) {
     renderOddsPanel();
     renderCards();
     renderSessionStats();
+    renderEconomyPanel();
     renderAchievements();
     renderBinder();
     updateButtons();
   }
+}
+
+function startBackgroundPreload() {
+  if (state.backgroundPreloadStarted) {
+    return;
+  }
+  state.backgroundPreloadStarted = true;
+  state.backgroundSync.running = true;
+  state.backgroundSync.total = PACK_CONFIG.length;
+  state.backgroundSync.done = 0;
+  state.backgroundSync.warnings = 0;
+  renderBackgroundSyncStatus();
+  window.setTimeout(() => {
+    preloadAllPacksInBackground().catch((error) => {
+      console.error(error);
+      state.backgroundSync.running = false;
+      state.backgroundSync.warnings += 1;
+      renderBackgroundSyncStatus();
+      showToast("Background sync hit an issue.", "warn");
+    });
+  }, 0);
+}
+
+async function preloadAllPacksInBackground() {
+  const orderedKeys = [
+    state.selectedPackKey,
+    ...PACK_CONFIG.map((pack) => pack.key).filter((key) => key !== state.selectedPackKey),
+  ];
+
+  for (const packKey of orderedKeys) {
+    const hadLiveData = state.liveLoadedPackKeys.has(packKey);
+    const errorCountBefore = state.loadErrors.length;
+
+    if (!hadLiveData) {
+      await loadPackLiveData(packKey, { silentStatus: true });
+    }
+
+    const hasLiveDataNow = state.liveLoadedPackKeys.has(packKey);
+    if (!hasLiveDataNow && state.loadErrors.length > errorCountBefore) {
+      state.backgroundSync.warnings += 1;
+    }
+
+    state.backgroundSync.done += 1;
+    renderBackgroundSyncStatus();
+  }
+
+  state.backgroundSync.running = false;
+  renderBackgroundSyncStatus();
+  const loaded = state.liveLoadedPackKeys.size;
+  const warnings = state.backgroundSync.warnings;
+  const tone = warnings ? "warn" : "info";
+  const detail = warnings ? ` with ${warnings} warning${warnings === 1 ? "" : "s"}` : "";
+  showToast(`Background sync complete: ${loaded}/${PACK_CONFIG.length} sets ready${detail}.`, tone, 4600);
 }
 
 async function fetchSetMetaById(setId) {
@@ -1279,6 +1589,7 @@ function renderPackSelector() {
     renderOddsPanel();
     renderCards();
     renderSessionStats();
+    renderEconomyPanel();
     renderAchievements();
     updateButtons();
     loadPackLiveData(nextPack.key);
@@ -1322,6 +1633,7 @@ function renderPackHeader() {
   } else {
     stats.push("<span class=\"pack-stat\">Set data unavailable</span>");
   }
+  stats.push(`<span class="pack-stat">Pack price ${formatUsd(packDef.packPrice || DEFAULT_PACK_PRICE)}</span>`);
   stats.push(`<span class="pack-stat">${packDef.shortCode}</span>`);
   dom.packStats.innerHTML = stats.join("");
 }
@@ -1502,7 +1814,7 @@ function openPack() {
       : new Set();
   state.justRevealedInstanceId = "";
 
-  registerOpenedPack(state.currentPack);
+  registerOpenedPack(state.currentPack, packDef);
 
   if (state.revealMode === "all") {
     const topCard = [...state.currentPack].sort((a, b) => b.value - a.value)[0];
@@ -1515,6 +1827,7 @@ function openPack() {
   renderOddsPanel();
   renderCards();
   renderSessionStats();
+  renderEconomyPanel();
   renderAchievements();
   renderBinder();
   updateButtons();
@@ -1630,11 +1943,30 @@ function drawFromWeightedPool(weightedPool, usedIds) {
 
   return drawPool[drawPool.length - 1]?.card || null;
 }
-function registerOpenedPack(cards) {
+function registerOpenedPack(cards, packDef) {
   const packValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
+  const packCost = Number(packDef?.packPrice || DEFAULT_PACK_PRICE);
   state.session.packsOpened += 1;
   state.session.totalCards += cards.length;
   state.session.totalValue += packValue;
+  state.session.totalSpent += packCost;
+  if (packValue >= packCost) {
+    state.session.profitablePacks += 1;
+  }
+  state.session.packValueHistory.unshift(packValue - packCost);
+  state.session.packValueHistory = state.session.packValueHistory.slice(0, 40);
+
+  const setEconomyKey = packDef?.key || "unknown";
+  if (!state.session.setEconomy[setEconomyKey]) {
+    state.session.setEconomy[setEconomyKey] = {
+      packs: 0,
+      value: 0,
+      spent: 0,
+    };
+  }
+  state.session.setEconomy[setEconomyKey].packs += 1;
+  state.session.setEconomy[setEconomyKey].value += packValue;
+  state.session.setEconomy[setEconomyKey].spent += packCost;
 
   for (const card of cards) {
     if (!state.session.biggestHit || (card.value || 0) > state.session.biggestHit.value) {
@@ -1715,6 +2047,64 @@ function renderSessionStats() {
     .join("");
 }
 
+function renderEconomyPanel() {
+  if (!dom.economyPanel) return;
+
+  const spent = state.session.totalSpent || 0;
+  const value = state.session.totalValue || 0;
+  const net = value - spent;
+  const roi = spent > 0 ? (net / spent) * 100 : 0;
+  const hitRate = state.session.packsOpened > 0 ? (state.session.profitablePacks / state.session.packsOpened) * 100 : 0;
+  const avgNet = state.session.packsOpened > 0 ? net / state.session.packsOpened : 0;
+  const history = state.session.packValueHistory || [];
+  const maxAbs = Math.max(1, ...history.map((entry) => Math.abs(entry)));
+
+  const bars = history
+    .slice(0, 20)
+    .reverse()
+    .map((entry) => {
+      const h = Math.max(12, Math.round((Math.abs(entry) / maxAbs) * 42));
+      const cls = entry >= 0 ? "gain" : "loss";
+      return `<span class="economy-bar ${cls}" style="height:${h}px" title="${formatUsd(entry)}"></span>`;
+    })
+    .join("");
+
+  const setRows = Object.entries(state.session.setEconomy || {})
+    .map(([setKey, stats]) => {
+      const packDef = PACK_CONFIG.find((pack) => pack.key === setKey);
+      const setName = packDef?.displayName || setKey;
+      const setNet = (stats.value || 0) - (stats.spent || 0);
+      const setRoi = stats.spent > 0 ? (setNet / stats.spent) * 100 : 0;
+      return { setName, packs: stats.packs || 0, setNet, setRoi };
+    })
+    .sort((a, b) => b.setNet - a.setNet)
+    .slice(0, 4)
+    .map(
+      (row) =>
+        `<li><span>${escapeHtml(row.setName)} (${row.packs})</span><strong>${formatUsd(row.setNet)} (${row.setRoi.toFixed(1)}%)</strong></li>`,
+    )
+    .join("");
+
+  dom.economyPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Economy Dashboard + ROI</strong>
+      <span>Tracks spend vs pull value in real time.</span>
+    </div>
+    <div class="economy-grid">
+      <article class="economy-stat"><strong>${formatUsd(spent)}</strong><span>Total Spent</span></article>
+      <article class="economy-stat"><strong>${formatUsd(value)}</strong><span>Total Value</span></article>
+      <article class="economy-stat ${net >= 0 ? "good" : "bad"}"><strong>${formatUsd(net)}</strong><span>Net</span></article>
+      <article class="economy-stat"><strong>${roi.toFixed(1)}%</strong><span>ROI</span></article>
+      <article class="economy-stat"><strong>${hitRate.toFixed(1)}%</strong><span>Profitable Packs</span></article>
+      <article class="economy-stat"><strong>${formatUsd(avgNet)}</strong><span>Avg Net / Pack</span></article>
+    </div>
+    <div class="economy-chart-wrap">
+      <div class="economy-chart">${bars || '<span class="economy-empty">Open packs to build ROI trend.</span>'}</div>
+    </div>
+    <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
+  `;
+}
+
 function renderAchievements() {
   if (!dom.achievementPanel) return;
   const unlockedIds = new Set(Object.keys(state.profile.achievements || {}));
@@ -1759,6 +2149,7 @@ function renderAchievements() {
 }
 
 function evaluateAchievements(cards, packValue) {
+  const beforeLevel = getLevelFromXp(state.profile.xp).level;
   const binderUnique = Object.keys(state.binder.cards || {}).length;
   const unlockedNow = [];
 
@@ -1788,6 +2179,15 @@ function evaluateAchievements(cards, packValue) {
     state.session.unlockedAchievements = state.session.unlockedAchievements.slice(0, 6);
     persistProfile();
     playAchievementSound(unlockedNow.length);
+    unlockedNow.forEach((achievement, index) => {
+      window.setTimeout(() => {
+        showToast(`Achievement: ${achievement.title} (+${achievement.xp} XP)`, "achievement", 4200);
+      }, index * 280);
+    });
+    const afterLevel = getLevelFromXp(state.profile.xp).level;
+    if (afterLevel > beforeLevel) {
+      showToast(`Level Up! Trainer Lv ${afterLevel}`, "epic", 4200);
+    }
     const names = unlockedNow.map((item) => item.title).join(", ");
     setStatus(`Achievement unlocked: ${names}`, "ready");
   }
@@ -2046,6 +2446,8 @@ function playAchievementSound(unlockCount = 1) {
 }
 
 function playTone(ctx, startTime, startFreq, duration, gainPeak, type, endFreq = startFreq) {
+  const gainScale = getVolumeMultiplier();
+  if (gainScale <= 0) return;
   const oscillator = ctx.createOscillator();
   const gainNode = ctx.createGain();
 
@@ -2054,7 +2456,7 @@ function playTone(ctx, startTime, startFreq, duration, gainPeak, type, endFreq =
   oscillator.frequency.exponentialRampToValueAtTime(Math.max(endFreq, 1), startTime + duration);
 
   gainNode.gain.setValueAtTime(0.0001, startTime);
-  gainNode.gain.exponentialRampToValueAtTime(gainPeak, startTime + 0.02);
+  gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainPeak * gainScale), startTime + 0.02);
   gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
   oscillator.connect(gainNode);
@@ -2567,6 +2969,27 @@ function loadImageForShare(src, timeoutMs) {
     };
     image.src = src;
   });
+}
+
+function showToast(message, tone = "info", durationMs = 3400) {
+  if (!dom.toastStack) {
+    return;
+  }
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${tone}`;
+  toast.textContent = message;
+  dom.toastStack.appendChild(toast);
+
+  window.requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  window.setTimeout(() => {
+    toast.classList.remove("show");
+    window.setTimeout(() => {
+      toast.remove();
+    }, 260);
+  }, durationMs);
 }
 
 function createPackPlaceholderDataUri(packDef) {

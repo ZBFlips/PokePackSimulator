@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1d33" />
   <title>Pokemon Pack Simulator</title>
+  <link rel="manifest" href="manifest.webmanifest" />
   <link href="https://fonts.cdnfonts.com/css/pokemon-solid" rel="stylesheet" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,13 +14,19 @@
 </head>
 <body>
   <div class="bg-grid"></div>
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
   <div class="app-shell">
     <header class="app-header">
       <div>
         <h1>Pokemon Pack Simulator</h1>
         <p>Open packs with high-fidelity pull-rate simulation and live market value sorting.</p>
       </div>
-      <div id="loadStatus" class="load-status">Loading set data...</div>
+      <div class="status-stack">
+        <div id="loadStatus" class="load-status">Loading set data...</div>
+        <div id="syncStatus" class="sync-status">Background sync idle.</div>
+        <div id="networkStatus" class="sync-status">Online</div>
+        <button id="installAppBtn" class="btn install-btn" hidden>Install App</button>
+      </div>
     </header>
 
     <main class="layout">
@@ -47,6 +55,7 @@
           <input id="soundToggle" type="checkbox" checked />
           <span>Sound effects enabled</span>
         </label>
+        <div id="soundPanel" class="sound-panel"></div>
 
         <div class="button-row">
           <button id="openPackBtn" class="btn btn-primary" disabled>Open Pack</button>
@@ -87,6 +96,7 @@
             <p>Tracks this session's progress and your saved pulls.</p>
           </div>
           <div id="sessionStats" class="session-stats"></div>
+          <div id="economyPanel" class="economy-panel"></div>
           <div id="achievementPanel" class="achievement-panel"></div>
           <div id="binderGrid" class="binder-grid"></div>
         </section>
@@ -129,6 +139,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260318-11"></script>
+  <script src="app.js?v=20260318-14"></script>
 </body>
 </html>
