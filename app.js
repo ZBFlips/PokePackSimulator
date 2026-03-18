@@ -701,6 +701,205 @@ const PACK_CONFIG = [
       },
     ],
   },
+  {
+    key: "ascended-heroes",
+    setId: "me2pt5",
+    displayName: "Ascended Heroes",
+    shortCode: "ASC",
+    releaseLabel: "Mega Evolution Special Set",
+    packPrice: 5.49,
+    localPackImage: "assets/packs/ascended-heroes.png",
+    packImage: "",
+    setAliases: ["Ascended Heroes", "Mega Evolution-Ascended Heroes", "Mega Evolution-Ascended-Heroes"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [
+          { tier: "shinyRare", probability: 0.22 },
+          { tier: "aceSpec", probability: 0.04 },
+        ],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [
+          { tier: "shinyUltraRare", probability: 0.055 },
+          { tier: "illustrationRare", probability: 0.088 },
+          { tier: "specialIllustrationRare", probability: 0.024 },
+          { tier: "hyperRare", probability: 0.007 },
+        ],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.171 },
+          { tier: "ultraRare", probability: 0.078 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.4,
+      tierExponents: {
+        reverseFoil: 0.07,
+        shinyRare: 0.3,
+        shinyUltraRare: 0.37,
+        aceSpec: 0.22,
+        doubleRare: 0.25,
+        ultraRare: 0.32,
+        illustrationRare: 0.36,
+        specialIllustrationRare: 0.54,
+        hyperRare: 0.48,
+      },
+    },
+    oddsHighlights: [
+      { label: "Shiny Rare", probability: 0.22 },
+      { label: "ACE SPEC", probability: 0.04 },
+      { label: "Shiny Ultra Rare", probability: 0.055 },
+      { label: "Illustration Rare", probability: 0.088 },
+      { label: "Special Illustration Rare", probability: 0.024 },
+      { label: "Ultra Rare", probability: 0.078 },
+    ],
+    sources: [
+      {
+        label: "PokemonTCG API set metadata",
+        url: "https://api.pokemontcg.io/v2/sets/me2pt5",
+      },
+    ],
+  },
+  {
+    key: "base-set-1999",
+    setId: "base1",
+    displayName: "Base Set (1999)",
+    shortCode: "BS",
+    releaseLabel: "Original 1999 Era",
+    packPrice: 499.99,
+    localPackImage: "assets/packs/base-set-1999.png",
+    packImage: "",
+    setAliases: ["Base", "Base Set", "Pokemon Base Set"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "common",
+        options: [{ tier: "uncommon", probability: 0.38 }],
+      },
+      reverseB: {
+        defaultTier: "uncommon",
+        options: [{ tier: "common", probability: 0.3 }],
+      },
+      rare: {
+        defaultTier: "rare",
+        options: [{ tier: "rareHolo", probability: 0.33 }],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: {
+        common: 0.08,
+        uncommon: 0.1,
+        rare: 0.16,
+        rareHolo: 0.31,
+      },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+      { label: "Bonus slot uncommon", probability: 0.38 },
+    ],
+    sources: [
+      {
+        label: "PokemonTCG API set metadata",
+        url: "https://api.pokemontcg.io/v2/sets/base1",
+      },
+    ],
+  },
+  {
+    key: "jungle-1999",
+    setId: "base2",
+    displayName: "Jungle (1999)",
+    shortCode: "JU",
+    releaseLabel: "Original 1999 Era",
+    packPrice: 249.99,
+    localPackImage: "assets/packs/jungle-1999.png",
+    packImage: "",
+    setAliases: ["Jungle", "Pokemon Jungle"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "common",
+        options: [{ tier: "uncommon", probability: 0.36 }],
+      },
+      reverseB: {
+        defaultTier: "uncommon",
+        options: [{ tier: "common", probability: 0.28 }],
+      },
+      rare: {
+        defaultTier: "rare",
+        options: [{ tier: "rareHolo", probability: 0.33 }],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: {
+        common: 0.08,
+        uncommon: 0.1,
+        rare: 0.16,
+        rareHolo: 0.31,
+      },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+      { label: "Bonus slot uncommon", probability: 0.36 },
+    ],
+    sources: [
+      {
+        label: "PokemonTCG API set metadata",
+        url: "https://api.pokemontcg.io/v2/sets/base2",
+      },
+    ],
+  },
+  {
+    key: "fossil-1999",
+    setId: "base3",
+    displayName: "Fossil (1999)",
+    shortCode: "FO",
+    releaseLabel: "Original 1999 Era",
+    packPrice: 219.99,
+    localPackImage: "assets/packs/fossil-1999.png",
+    packImage: "",
+    setAliases: ["Fossil", "Pokemon Fossil"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "common",
+        options: [{ tier: "uncommon", probability: 0.36 }],
+      },
+      reverseB: {
+        defaultTier: "uncommon",
+        options: [{ tier: "common", probability: 0.28 }],
+      },
+      rare: {
+        defaultTier: "rare",
+        options: [{ tier: "rareHolo", probability: 0.33 }],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: {
+        common: 0.08,
+        uncommon: 0.1,
+        rare: 0.16,
+        rareHolo: 0.31,
+      },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+      { label: "Bonus slot uncommon", probability: 0.36 },
+    ],
+    sources: [
+      {
+        label: "PokemonTCG API set metadata",
+        url: "https://api.pokemontcg.io/v2/sets/base3",
+      },
+    ],
+  },
 ];
 
 const SLOT_TIER_TO_POOL_KEY = {
