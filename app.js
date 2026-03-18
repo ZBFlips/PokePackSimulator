@@ -6,6 +6,7 @@ const REQUEST_RETRIES = 2;
 const PACK_CONFIG = [
   {
     key: "paldean-fates",
+    setId: "sv4pt5",
     displayName: "Paldean Fates",
     shortCode: "PAF",
     releaseLabel: "Scarlet & Violet Special Set",
@@ -64,6 +65,7 @@ const PACK_CONFIG = [
   },
   {
     key: "prismatic-evolutions",
+    setId: "sv8pt5",
     displayName: "Prismatic Evolutions",
     shortCode: "PRE",
     releaseLabel: "Scarlet & Violet Special Set",
@@ -128,6 +130,7 @@ const PACK_CONFIG = [
   },
   {
     key: "surging-sparks",
+    setId: "sv8",
     displayName: "Surging Sparks",
     shortCode: "SSP",
     releaseLabel: "Scarlet & Violet Expansion",
@@ -184,6 +187,7 @@ const PACK_CONFIG = [
   },
   {
     key: "obsidian-flames",
+    setId: "sv3",
     displayName: "Obsidian Flames",
     shortCode: "OBF",
     releaseLabel: "Scarlet & Violet Expansion",
@@ -238,6 +242,7 @@ const PACK_CONFIG = [
   },
   {
     key: "temporal-forces",
+    setId: "sv5",
     displayName: "Temporal Forces",
     shortCode: "TEF",
     releaseLabel: "Scarlet & Violet Expansion",
@@ -294,6 +299,7 @@ const PACK_CONFIG = [
   },
   {
     key: "twilight-masquerade",
+    setId: "sv6",
     displayName: "Twilight Masquerade",
     shortCode: "TWM",
     releaseLabel: "Scarlet & Violet Expansion",
@@ -350,6 +356,7 @@ const PACK_CONFIG = [
   },
   {
     key: "evolving-skies",
+    setId: "swsh7",
     displayName: "Evolving Skies",
     shortCode: "EVS",
     releaseLabel: "Sword & Shield Expansion",
@@ -399,6 +406,7 @@ const PACK_CONFIG = [
   },
   {
     key: "brilliant-stars",
+    setId: "swsh9",
     displayName: "Brilliant Stars",
     shortCode: "BRS",
     releaseLabel: "Sword & Shield Expansion",
@@ -449,6 +457,7 @@ const PACK_CONFIG = [
   },
   {
     key: "lost-origin",
+    setId: "swsh11",
     displayName: "Lost Origin",
     shortCode: "LOR",
     releaseLabel: "Sword & Shield Expansion",
@@ -567,6 +576,9 @@ const state = {
   revealedInstanceIds: new Set(),
   justRevealedInstanceId: "",
   loadErrors: [],
+  loadingPackKeys: new Set(),
+  liveLoadedPackKeys: new Set(),
+  allSetsCache: null,
   session: {
     packsOpened: 0,
     totalValue: 0,
@@ -608,20 +620,16 @@ init().catch((error) => {
 
 async function init() {
   wireControls();
+  seedFallbackData();
+  setStatus("Ready in fallback mode. Loading live card data...");
   renderPackSelector();
   renderOddsPanel();
   renderPackHeader();
   renderCards();
   renderSessionStats();
   renderBinder();
-
-  await loadAllSetData();
-  renderPackSelector();
-  renderPackHeader();
-  renderOddsPanel();
-  renderSessionStats();
-  renderBinder();
   updateButtons();
+  loadPackLiveData(state.selectedPackKey);
 }
 
 function wireControls() {
@@ -681,52 +689,64 @@ function setStatus(message, type = "") {
     dom.loadStatus.classList.add(type);
   }
 }
-async function loadAllSetData() {
-  setStatus("Loading card pools, values, and weighted odds...");
-  let allSets = [];
-  try {
-    allSets = await fetchAllSets();
-  } catch (error) {
-    state.loadErrors.push(`Set lookup failed: ${error.message}`);
-    for (const packDef of PACK_CONFIG) {
+function seedFallbackData() {
+  for (const packDef of PACK_CONFIG) {
+    if (!state.setData[packDef.key]) {
       state.setData[packDef.key] = buildSyntheticSetData(packDef);
     }
-    setStatus(`Offline mode: ${error.message}`, "error");
+  }
+}
+
+async function loadPackLiveData(packKey) {
+  const packDef = PACK_CONFIG.find((pack) => pack.key === packKey);
+  if (!packDef) {
+    return;
+  }
+  if (state.loadingPackKeys.has(packKey) || state.liveLoadedPackKeys.has(packKey)) {
     return;
   }
 
-  const loadTasks = PACK_CONFIG.map(async (packDef) => {
-    try {
-      const setMeta = matchSet(packDef.setAliases, allSets);
-      if (!setMeta) {
-        throw new Error(`Set not found in API: ${packDef.displayName}`);
-      }
+  state.loadingPackKeys.add(packKey);
+  setStatus(`Loading live data for ${packDef.displayName}...`);
 
-      const rawCards = await fetchSetCards(setMeta.id);
-      const cards = rawCards.map(normalizeCard).filter((card) => card.image);
-      const pools = buildPools(cards);
-      const weightedPools = buildWeightedPools(packDef, pools);
-      const approxCardOdds = buildApproxPackOdds(packDef, weightedPools);
-
-      state.setData[packDef.key] = {
-        setMeta,
-        cards,
-        pools,
-        weightedPools,
-        approxCardOdds,
-      };
-    } catch (error) {
-      state.loadErrors.push(`${packDef.displayName}: ${error.message}`);
-      state.setData[packDef.key] = buildSyntheticSetData(packDef);
+  try {
+    if (!state.allSetsCache) {
+      state.allSetsCache = await fetchAllSets();
     }
-  });
 
-  await Promise.all(loadTasks);
+    const setMeta = matchSet(packDef.setAliases, state.allSetsCache, packDef.setId);
+    if (!setMeta) {
+      throw new Error(`Set not found in API for ${packDef.displayName}`);
+    }
 
-  if (state.loadErrors.length) {
-    setStatus(`Loaded with warnings (${state.loadErrors.length} set issue(s)).`, "error");
-  } else {
+    const rawCards = await fetchSetCards(setMeta.id);
+    const cards = rawCards.map(normalizeCard).filter((card) => card.image);
+    const pools = buildPools(cards);
+    const weightedPools = buildWeightedPools(packDef, pools);
+    const approxCardOdds = buildApproxPackOdds(packDef, weightedPools);
+
+    state.setData[packKey] = {
+      setMeta,
+      cards,
+      pools,
+      weightedPools,
+      approxCardOdds,
+    };
+    state.liveLoadedPackKeys.add(packKey);
+
     setStatus("Ready to rip packs.", "ready");
+  } catch (error) {
+    state.loadErrors.push(`${packDef.displayName}: ${error.message}`);
+    setStatus(`Using fallback data for ${packDef.displayName}.`, "error");
+  } finally {
+    state.loadingPackKeys.delete(packKey);
+    renderPackSelector();
+    renderPackHeader();
+    renderOddsPanel();
+    renderCards();
+    renderSessionStats();
+    renderBinder();
+    updateButtons();
   }
 }
 
@@ -807,7 +827,13 @@ function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-function matchSet(aliases, allSets) {
+function matchSet(aliases, allSets, preferredSetId = "") {
+  if (preferredSetId) {
+    const byId = allSets.find((set) => set.id === preferredSetId);
+    if (byId) {
+      return byId;
+    }
+  }
   const cleanedAliases = aliases.map(cleanName);
   return (
     allSets.find((set) => cleanedAliases.includes(cleanName(set.name))) ??
@@ -1126,6 +1152,7 @@ function renderPackSelector() {
       renderCards();
       renderSessionStats();
       updateButtons();
+      loadPackLiveData(packDef.key);
     });
 
     dom.packSelector.appendChild(packButton);
