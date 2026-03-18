@@ -10,8 +10,8 @@ const PACK_CONFIG = [
     displayName: "Paldean Fates",
     shortCode: "PAF",
     releaseLabel: "Scarlet & Violet Special Set",
-    localPackImage: "assets/packs/paldean-fates.png",
-    packImage: "https://tcgplayer-cdn.tcgplayer.com/product/528038_in_400x400.jpg",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/2/2e/Paldean_Fates_Booster_Pikachu.png",
     setAliases: ["Paldean Fates", "Scarlet & Violet-Paldean Fates", "Scarlet & Violet-Paldean-Fates"],
     slotOdds: {
       reverseA: {
@@ -69,8 +69,8 @@ const PACK_CONFIG = [
     displayName: "Prismatic Evolutions",
     shortCode: "PRE",
     releaseLabel: "Scarlet & Violet Special Set",
-    localPackImage: "assets/packs/prismatic-evolutions.png",
-    packImage: "https://tcgplayer-cdn.tcgplayer.com/product/593294_in_400x400.jpg",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/5/53/Prismatic_Evolutions_Booster_Eevee_Sylveon.png",
     setAliases: ["Prismatic Evolutions", "Scarlet & Violet-Prismatic Evolutions", "Scarlet & Violet-Prismatic-Evolutions"],
     slotOdds: {
       reverseA: {
@@ -134,8 +134,8 @@ const PACK_CONFIG = [
     displayName: "Surging Sparks",
     shortCode: "SSP",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "assets/packs/surging-sparks.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/8/8b/SV8_Booster_Pikachu.png",
     setAliases: ["Surging Sparks", "Scarlet & Violet-Surging Sparks", "Scarlet & Violet-Surging-Sparks"],
     slotOdds: {
       reverseA: {
@@ -191,8 +191,8 @@ const PACK_CONFIG = [
     displayName: "Obsidian Flames",
     shortCode: "OBF",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "assets/packs/obsidian-flames.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/5/52/SV3_Booster_Charizard.png",
     setAliases: ["Obsidian Flames", "Scarlet & Violet-Obsidian Flames", "Scarlet & Violet-Obsidian-Flames"],
     slotOdds: {
       reverseA: {
@@ -246,8 +246,8 @@ const PACK_CONFIG = [
     displayName: "Temporal Forces",
     shortCode: "TEF",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "assets/packs/temporal-forces.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/d/d7/SV5_Booster_Walking_Wake.png",
     setAliases: ["Temporal Forces", "Scarlet & Violet-Temporal Forces", "Scarlet & Violet-Temporal-Forces"],
     slotOdds: {
       reverseA: {
@@ -303,8 +303,8 @@ const PACK_CONFIG = [
     displayName: "Twilight Masquerade",
     shortCode: "TWM",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "assets/packs/twilight-masquerade.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/a/a0/SV6_Booster_Ogerpon.png",
     setAliases: ["Twilight Masquerade", "Scarlet & Violet-Twilight Masquerade", "Scarlet & Violet-Twilight-Masquerade"],
     slotOdds: {
       reverseA: {
@@ -360,8 +360,8 @@ const PACK_CONFIG = [
     displayName: "Evolving Skies",
     shortCode: "EVS",
     releaseLabel: "Sword & Shield Expansion",
-    localPackImage: "assets/packs/evolving-skies.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/5/5b/SWSH7_Booster_Umbreon.jpg",
     setAliases: ["Evolving Skies", "Sword & Shield-Evolving Skies", "Sword & Shield-Evolving-Skies"],
     slotOdds: {
       reverseA: {
@@ -410,8 +410,8 @@ const PACK_CONFIG = [
     displayName: "Brilliant Stars",
     shortCode: "BRS",
     releaseLabel: "Sword & Shield Expansion",
-    localPackImage: "assets/packs/brilliant-stars.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/4/4f/SWSH9_Booster_Charizard.jpg",
     setAliases: ["Brilliant Stars", "Sword & Shield-Brilliant Stars", "Sword & Shield-Brilliant-Stars"],
     slotOdds: {
       reverseA: {
@@ -461,8 +461,8 @@ const PACK_CONFIG = [
     displayName: "Lost Origin",
     shortCode: "LOR",
     releaseLabel: "Sword & Shield Expansion",
-    localPackImage: "assets/packs/lost-origin.png",
-    packImage: "",
+    localPackImage: "",
+    packImage: "https://archives.bulbagarden.net/media/upload/7/78/SWSH11_Booster_Enamorus.jpg",
     setAliases: ["Lost Origin", "Sword & Shield-Lost Origin", "Sword & Shield-Lost-Origin"],
     slotOdds: {
       reverseA: {
@@ -1115,48 +1115,45 @@ function createSyntheticCards(packDef) {
 }
 function renderPackSelector() {
   dom.packSelector.innerHTML = "";
+  const selectedPack = getCurrentPackDef();
+  const select = document.createElement("select");
+  select.id = "packSelect";
+  select.setAttribute("aria-label", "Choose a pack");
 
   for (const packDef of PACK_CONFIG) {
-    const setData = state.setData[packDef.key];
-    const packButton = document.createElement("button");
-    packButton.className = `pack-option ${state.selectedPackKey === packDef.key ? "active" : ""}`;
-    packButton.type = "button";
+    const option = document.createElement("option");
+    option.value = packDef.key;
 
-    const thumb = document.createElement("div");
-    thumb.className = "pack-thumb";
+    const isLive = state.liveLoadedPackKeys.has(packDef.key);
+    const isLoading = state.loadingPackKeys.has(packDef.key);
+    const loadLabel = isLoading ? "loading..." : isLive ? "live" : "fallback";
 
-    const thumbImage = document.createElement("img");
-    thumbImage.alt = `${packDef.displayName} pack art`;
-    applyImageWithFallback(thumbImage, [
-      packDef.localPackImage,
-      packDef.packImage,
-      setData?.setMeta?.images?.symbol,
-      setData?.setMeta?.images?.logo,
-      createPackPlaceholderDataUri(packDef),
-    ]);
-    thumb.appendChild(thumbImage);
-
-    const copy = document.createElement("div");
-    copy.className = "pack-copy";
-    copy.innerHTML = `<h3>${packDef.displayName}</h3><p>${packDef.releaseLabel}</p>`;
-
-    packButton.append(thumb, copy);
-    packButton.addEventListener("click", () => {
-      state.selectedPackKey = packDef.key;
-      state.currentPack = null;
-      state.revealedInstanceIds = new Set();
-      state.justRevealedInstanceId = "";
-      renderPackSelector();
-      renderPackHeader();
-      renderOddsPanel();
-      renderCards();
-      renderSessionStats();
-      updateButtons();
-      loadPackLiveData(packDef.key);
-    });
-
-    dom.packSelector.appendChild(packButton);
+    option.textContent = `${packDef.displayName} (${loadLabel})`;
+    select.appendChild(option);
   }
+
+  select.value = state.selectedPackKey;
+  select.addEventListener("change", () => {
+    const nextPack = PACK_CONFIG.find((pack) => pack.key === select.value);
+    if (!nextPack) return;
+    state.selectedPackKey = nextPack.key;
+    state.currentPack = null;
+    state.revealedInstanceIds = new Set();
+    state.justRevealedInstanceId = "";
+    renderPackSelector();
+    renderPackHeader();
+    renderOddsPanel();
+    renderCards();
+    renderSessionStats();
+    updateButtons();
+    loadPackLiveData(nextPack.key);
+  });
+
+  const helper = document.createElement("p");
+  helper.className = "pack-select-meta";
+  helper.textContent = selectedPack.releaseLabel;
+
+  dom.packSelector.append(select, helper);
 }
 
 function renderPackHeader() {
