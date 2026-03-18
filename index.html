@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260318-3" />
 </head>
 <body>
   <div class="bg-grid"></div>
@@ -83,6 +83,8 @@
             <h2 id="selectedPackName">Select a pack</h2>
             <p id="selectedPackSub">Pick one of the three sets to start ripping packs.</p>
             <div id="packStats" class="pack-stats"></div>
+            <button id="sessionStatsToggleBtn" class="btn session-stats-toggle" type="button" aria-expanded="false">Show Session Stats</button>
+            <div id="sessionStats" class="session-stats session-stats-side"></div>
           </div>
         </div>
 
@@ -111,10 +113,9 @@
 
         <section class="binder-section">
           <div class="binder-head">
-            <h2>Collection Binder + Session Stats</h2>
-            <p>Tracks this session's progress and your saved pulls.</p>
+            <h2>Collection Binder + Progress</h2>
+            <p>Tracks your saved pulls, achievements, and economy trends.</p>
           </div>
-          <div id="sessionStats" class="session-stats"></div>
           <div id="economyPanel" class="economy-panel"></div>
           <div id="achievementPanel" class="achievement-panel"></div>
           <div id="binderFilters" class="binder-filters"></div>
@@ -159,6 +160,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260318-15"></script>
+  <script src="app.js?v=20260318-16"></script>
 </body>
 </html>

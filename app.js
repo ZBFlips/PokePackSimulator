@@ -667,6 +667,8 @@ const state = {
     done: 0,
     warnings: 0,
   },
+  sessionStatsExpandedMobile: false,
+  sessionStatsCollapseBound: false,
   installPromptEvent: null,
   analyticsOpen: false,
   binderFilters: {
@@ -733,6 +735,7 @@ const dom = {
   selectedPackName: document.getElementById("selectedPackName"),
   selectedPackSub: document.getElementById("selectedPackSub"),
   packStats: document.getElementById("packStats"),
+  sessionStatsToggleBtn: document.getElementById("sessionStatsToggleBtn"),
   cardsGrid: document.getElementById("cardsGrid"),
   openedPackSummary: document.getElementById("openedPackSummary"),
   historyTimeline: document.getElementById("historyTimeline"),
@@ -773,6 +776,7 @@ async function init() {
   renderHistoryTimeline();
   renderAnalyticsOverlay();
   renderSessionStats();
+  initSessionStatsCollapse();
   renderEconomyPanel();
   renderAchievements();
   renderBinder();
@@ -815,6 +819,14 @@ function wireControls() {
     persistSoundSettings();
     syncSoundControlState();
     renderSoundPanel();
+  });
+
+  dom.sessionStatsToggleBtn?.addEventListener("click", () => {
+    if (!window.matchMedia("(max-width: 1080px)").matches) {
+      return;
+    }
+    state.sessionStatsExpandedMobile = !state.sessionStatsExpandedMobile;
+    applySessionStatsCollapseState();
   });
 
   dom.resetSessionBtn.addEventListener("click", () => {
@@ -927,6 +939,35 @@ function setStatus(message, type = "") {
   if (type) {
     dom.loadStatus.classList.add(type);
   }
+}
+
+function initSessionStatsCollapse() {
+  if (!dom.sessionStats || !dom.sessionStatsToggleBtn) {
+    return;
+  }
+  const mediaQuery = window.matchMedia("(max-width: 1080px)");
+  state.sessionStatsExpandedMobile = !mediaQuery.matches;
+  applySessionStatsCollapseState();
+
+  if (!state.sessionStatsCollapseBound) {
+    mediaQuery.addEventListener("change", (event) => {
+      state.sessionStatsExpandedMobile = !event.matches;
+      applySessionStatsCollapseState();
+    });
+    state.sessionStatsCollapseBound = true;
+  }
+}
+
+function applySessionStatsCollapseState() {
+  if (!dom.sessionStats || !dom.sessionStatsToggleBtn) {
+    return;
+  }
+  const isMobile = window.matchMedia("(max-width: 1080px)").matches;
+  const expanded = isMobile ? state.sessionStatsExpandedMobile : true;
+  dom.sessionStats.classList.toggle("expanded", expanded);
+  dom.sessionStatsToggleBtn.classList.toggle("is-mobile", isMobile);
+  dom.sessionStatsToggleBtn.setAttribute("aria-expanded", String(expanded));
+  dom.sessionStatsToggleBtn.textContent = expanded ? "Hide Session Stats" : "Show Session Stats";
 }
 
 function renderBackgroundSyncStatus() {
@@ -2347,6 +2388,7 @@ function renderSessionStats() {
   dom.sessionStats.innerHTML = cards
     .map((item) => `<div class="session-stat-card"><strong>${item.value}</strong><span>${item.label}</span></div>`)
     .join("");
+  applySessionStatsCollapseState();
 }
 
 function renderEconomyPanel() {
