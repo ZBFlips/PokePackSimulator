@@ -578,7 +578,6 @@ const state = {
   loadErrors: [],
   loadingPackKeys: new Set(),
   liveLoadedPackKeys: new Set(),
-  allSetsCache: null,
   session: {
     packsOpened: 0,
     totalValue: 0,
@@ -710,16 +709,17 @@ async function loadPackLiveData(packKey) {
   setStatus(`Loading live data for ${packDef.displayName}...`);
 
   try {
-    if (!state.allSetsCache) {
-      state.allSetsCache = await fetchAllSets();
+    let setMeta = state.setData[packKey]?.setMeta ?? null;
+    try {
+      setMeta = await fetchSetMetaById(packDef.setId);
+    } catch (metaError) {
+      console.warn(`Set meta lookup failed for ${packDef.displayName}:`, metaError);
     }
 
-    const setMeta = matchSet(packDef.setAliases, state.allSetsCache, packDef.setId);
-    if (!setMeta) {
-      throw new Error(`Set not found in API for ${packDef.displayName}`);
+    const rawCards = await fetchSetCards(packDef.setId);
+    if (!rawCards.length) {
+      throw new Error(`No cards returned for ${packDef.displayName}`);
     }
-
-    const rawCards = await fetchSetCards(setMeta.id);
     const cards = rawCards.map(normalizeCard).filter((card) => card.image);
     const pools = buildPools(cards);
     const weightedPools = buildWeightedPools(packDef, pools);
@@ -750,10 +750,9 @@ async function loadPackLiveData(packKey) {
   }
 }
 
-async function fetchAllSets() {
-  const url = `${API_BASE}/sets?pageSize=300`;
-  const payload = await fetchJsonWithTimeout(url, REQUEST_TIMEOUT_MS, "Set lookup");
-  return payload.data ?? [];
+async function fetchSetMetaById(setId) {
+  const payload = await fetchJsonWithTimeout(`${API_BASE}/sets/${setId}`, REQUEST_TIMEOUT_MS, `Set lookup (${setId})`);
+  return payload.data ?? null;
 }
 
 async function fetchSetCards(setId) {
@@ -1166,12 +1165,18 @@ function renderPackHeader() {
   applyImageWithFallback(dom.packImage, [
     packDef.localPackImage,
     packDef.packImage,
+    getSetSymbolUrl(packDef.setId),
+    getSetLogoUrl(packDef.setId),
     setData?.setMeta?.images?.symbol,
     setData?.setMeta?.images?.logo,
     createPackPlaceholderDataUri(packDef),
   ]);
 
-  applyImageWithFallback(dom.packLogo, [setData?.setMeta?.images?.logo]);
+  applyImageWithFallback(dom.packLogo, [
+    setData?.setMeta?.images?.logo,
+    getSetLogoUrl(packDef.setId),
+    createPackLogoPlaceholderDataUri(packDef),
+  ]);
 
   const stats = [];
   if (setData) {
@@ -1722,6 +1727,14 @@ function makeEnergyFallbackCard() {
 
 function getCurrentPackDef() {
   return PACK_CONFIG.find((pack) => pack.key === state.selectedPackKey) || PACK_CONFIG[0];
+}
+
+function getSetSymbolUrl(setId) {
+  return setId ? `https://images.pokemontcg.io/${setId}/symbol.png` : "";
+}
+
+function getSetLogoUrl(setId) {
+  return setId ? `https://images.pokemontcg.io/${setId}/logo.png` : "";
 }
 
 function applyImageWithFallback(imgEl, candidates) {
