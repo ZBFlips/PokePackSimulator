@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260318-3" />
+  <link rel="stylesheet" href="styles.css?v=20260318-4" />
 </head>
 <body>
   <div class="bg-grid"></div>
@@ -31,39 +31,46 @@
 
     <main class="layout">
       <section class="panel controls-panel">
-        <h2>Choose A Pack</h2>
-        <div id="packSelector" class="pack-selector"></div>
-
-        <h2>Open Settings</h2>
-        <div class="control-group">
-          <label for="revealMode">Reveal mode</label>
-          <select id="revealMode">
-            <option value="all">Reveal all at once</option>
-            <option value="step">Reveal one card at a time</option>
-          </select>
+        <div class="control-section">
+          <h2>1. Choose a set</h2>
+          <div id="packSelector" class="pack-selector"></div>
         </div>
 
-        <div class="control-group">
-          <label for="sortMode">Display order</label>
-          <select id="sortMode">
-            <option value="standard">Standard pack order</option>
-            <option value="value">Highest value first</option>
-          </select>
+        <div class="control-section">
+          <h2>2. Open settings</h2>
+          <div class="control-group">
+            <label for="revealMode">Reveal mode</label>
+            <select id="revealMode">
+              <option value="all">Reveal all at once</option>
+              <option value="step">Click cards to reveal</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="sortMode">Display order</label>
+            <select id="sortMode">
+              <option value="standard">Standard pack order</option>
+              <option value="value">Highest value first</option>
+            </select>
+          </div>
+
+          <label class="toggle-control" for="soundToggle">
+            <input id="soundToggle" type="checkbox" checked />
+            <span>Sound effects enabled</span>
+          </label>
+          <div id="soundPanel" class="sound-panel"></div>
         </div>
 
-        <label class="toggle-control" for="soundToggle">
-          <input id="soundToggle" type="checkbox" checked />
-          <span>Sound effects enabled</span>
-        </label>
-        <div id="soundPanel" class="sound-panel"></div>
+        <div class="button-row primary-row">
+          <button id="openPackBtn" class="btn btn-primary" disabled>Generate Pack</button>
+        </div>
 
         <div class="button-row">
-          <button id="openPackBtn" class="btn btn-primary" disabled>Open Pack</button>
           <button id="sharePullBtn" class="btn" disabled>Share Top Pull</button>
+          <button id="resetSessionBtn" class="btn">Reset Session</button>
         </div>
 
         <div class="button-row">
-          <button id="resetSessionBtn" class="btn">Reset Session</button>
           <button id="resetBinderBtn" class="btn">Reset Binder</button>
         </div>
 
@@ -81,10 +88,8 @@
           </div>
           <div class="pack-meta">
             <h2 id="selectedPackName">Select a pack</h2>
-            <p id="selectedPackSub">Pick one of the three sets to start ripping packs.</p>
+            <p id="selectedPackSub">Pick one of the available sets to start ripping packs.</p>
             <div id="packStats" class="pack-stats"></div>
-            <button id="sessionStatsToggleBtn" class="btn session-stats-toggle" type="button" aria-expanded="false">Show Session Stats</button>
-            <div id="sessionStats" class="session-stats session-stats-side"></div>
           </div>
         </div>
 
@@ -116,12 +121,25 @@
             <h2>Collection Binder + Progress</h2>
             <p>Tracks your saved pulls, achievements, and economy trends.</p>
           </div>
-          <div id="economyPanel" class="economy-panel"></div>
-          <div id="achievementPanel" class="achievement-panel"></div>
           <div id="binderFilters" class="binder-filters"></div>
           <div id="binderGrid" class="binder-grid"></div>
         </section>
       </section>
+
+      <aside class="panel sidebar-panel">
+        <section class="sidebar-section">
+          <h2>Main Stats</h2>
+          <button id="sessionStatsToggleBtn" class="btn session-stats-toggle" type="button" aria-expanded="false">Show Session Stats</button>
+          <div id="sessionStats" class="session-stats session-stats-side"></div>
+        </section>
+
+        <section id="economyPanel" class="sidebar-section economy-panel"></section>
+        <section id="achievementPanel" class="sidebar-section achievement-panel"></section>
+        <section class="sidebar-section info-panel">
+          <h3>About This Simulator</h3>
+          <p>Weighted per-card pull odds, live market values, and session tracking are designed to mirror the thrill of ripping real packs.</p>
+        </section>
+      </aside>
     </main>
   </div>
 
@@ -160,6 +178,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260318-16"></script>
+  <script src="app.js?v=20260318-17"></script>
 </body>
 </html>
