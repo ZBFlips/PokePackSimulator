@@ -87,8 +87,27 @@
         </div>
 
         <div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
+        <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+        <div class="play-tools">
+          <button id="analyticsToggleBtn" class="btn analytics-btn" type="button">Analytics Overlay</button>
+        </div>
+        <div id="analyticsOverlay" class="analytics-overlay" hidden>
+          <div class="analytics-head">
+            <h3>Pull Analytics</h3>
+            <button id="analyticsCloseBtn" class="btn analytics-close-btn" type="button">Close</button>
+          </div>
+          <p id="analyticsSummary" class="analytics-summary"></p>
+          <div id="analyticsRows" class="analytics-rows"></div>
+        </div>
         <div id="openedPackSummary" class="opened-pack-summary"></div>
         <div id="cardsGrid" class="cards-grid"></div>
+        <section class="history-section">
+          <div class="history-head">
+            <h2>Opening History</h2>
+            <p>Replay your best recent packs instantly.</p>
+          </div>
+          <div id="historyTimeline" class="history-timeline"></div>
+        </section>
 
         <section class="binder-section">
           <div class="binder-head">
@@ -98,6 +117,7 @@
           <div id="sessionStats" class="session-stats"></div>
           <div id="economyPanel" class="economy-panel"></div>
           <div id="achievementPanel" class="achievement-panel"></div>
+          <div id="binderFilters" class="binder-filters"></div>
           <div id="binderGrid" class="binder-grid"></div>
         </section>
       </section>
@@ -139,6 +159,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260318-14"></script>
+  <script src="app.js?v=20260318-15"></script>
 </body>
 </html>

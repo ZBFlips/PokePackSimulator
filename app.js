@@ -12,6 +12,24 @@ const SHARE_RENDER_TIMEOUT_MS = 9000;
 const CHASE_SLOT_COUNT = 2;
 const CHASE_CANDIDATE_LIMIT = 40;
 const DEFAULT_PACK_PRICE = 4.99;
+const HISTORY_LIMIT = 30;
+const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
+const ANALYTICS_TIER_ORDER = [
+  "common",
+  "uncommon",
+  "rare",
+  "rareHolo",
+  "doubleRare",
+  "ultraRare",
+  "illustrationRare",
+  "specialIllustrationRare",
+  "hyperRare",
+  "shinyRare",
+  "shinyUltraRare",
+  "aceSpec",
+  "reverseFoil",
+  "energy",
+];
 
 const PACK_CONFIG = [
   {
@@ -547,6 +565,9 @@ const SLOT_TIER_TO_POOL_KEY = {
 };
 
 const TIER_LABEL = {
+  common: "Common",
+  uncommon: "Uncommon",
+  rare: "Rare",
   reverseFoil: "Reverse Foil",
   rareHolo: "Rare / Holo Rare",
   doubleRare: "Double Rare",
@@ -647,6 +668,14 @@ const state = {
     warnings: 0,
   },
   installPromptEvent: null,
+  analyticsOpen: false,
+  binderFilters: {
+    setKey: "all",
+    tier: "all",
+    minValue: 0,
+    maxValue: 0,
+    newestFirst: false,
+  },
   chaseTargetsBySet: loadChaseTargetsFromStorage(),
   profile: loadProfileFromStorage(),
   inspectCard: null,
@@ -660,6 +689,8 @@ const state = {
     profitablePacks: 0,
     packValueHistory: [],
     setEconomy: {},
+    openHistory: [],
+    analyticsBySet: {},
     unlockedAchievements: [],
     pity: {
       ultraPlus: 0,
@@ -691,6 +722,12 @@ const dom = {
   playPanel: document.querySelector(".play-panel"),
   packArt: document.getElementById("packArt"),
   fxLayer: document.getElementById("fxLayer"),
+  confettiLayer: document.getElementById("confettiLayer"),
+  analyticsToggleBtn: document.getElementById("analyticsToggleBtn"),
+  analyticsCloseBtn: document.getElementById("analyticsCloseBtn"),
+  analyticsOverlay: document.getElementById("analyticsOverlay"),
+  analyticsSummary: document.getElementById("analyticsSummary"),
+  analyticsRows: document.getElementById("analyticsRows"),
   packImage: document.getElementById("packImage"),
   packLogo: document.getElementById("packLogo"),
   selectedPackName: document.getElementById("selectedPackName"),
@@ -698,9 +735,11 @@ const dom = {
   packStats: document.getElementById("packStats"),
   cardsGrid: document.getElementById("cardsGrid"),
   openedPackSummary: document.getElementById("openedPackSummary"),
+  historyTimeline: document.getElementById("historyTimeline"),
   sessionStats: document.getElementById("sessionStats"),
   economyPanel: document.getElementById("economyPanel"),
   achievementPanel: document.getElementById("achievementPanel"),
+  binderFilters: document.getElementById("binderFilters"),
   binderGrid: document.getElementById("binderGrid"),
   inspectModal: document.getElementById("inspectModal"),
   inspectCloseBtn: document.getElementById("inspectCloseBtn"),
@@ -731,6 +770,8 @@ async function init() {
   renderOddsPanel();
   renderPackHeader();
   renderCards();
+  renderHistoryTimeline();
+  renderAnalyticsOverlay();
   renderSessionStats();
   renderEconomyPanel();
   renderAchievements();
@@ -789,6 +830,8 @@ function wireControls() {
       profitablePacks: 0,
       packValueHistory: [],
       setEconomy: {},
+      openHistory: [],
+      analyticsBySet: {},
       unlockedAchievements: [],
       pity: {
         ultraPlus: 0,
@@ -796,11 +839,14 @@ function wireControls() {
       },
       chaseStats: {},
     };
+    state.analyticsOpen = false;
     closeInspectModal();
     renderChasePanel();
     renderSessionStats();
     renderEconomyPanel();
     renderAchievements();
+    renderHistoryTimeline();
+    renderAnalyticsOverlay();
     renderCards();
     updateButtons();
   });
@@ -812,6 +858,7 @@ function wireControls() {
     persistBinder();
     renderPackHeader();
     renderSessionStats();
+    renderEconomyPanel();
     renderAchievements();
     renderBinder();
   });
@@ -828,6 +875,16 @@ function wireControls() {
       });
     });
   }
+
+  dom.analyticsToggleBtn?.addEventListener("click", () => {
+    state.analyticsOpen = !state.analyticsOpen;
+    renderAnalyticsOverlay();
+  });
+
+  dom.analyticsCloseBtn?.addEventListener("click", () => {
+    state.analyticsOpen = false;
+    renderAnalyticsOverlay();
+  });
 
   if (dom.inspectCloseBtn) {
     dom.inspectCloseBtn.addEventListener("click", () => {
@@ -847,6 +904,11 @@ function wireControls() {
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !dom.inspectModal.hidden) {
         closeInspectModal();
+        return;
+      }
+      if (event.key === "Escape" && state.analyticsOpen) {
+        state.analyticsOpen = false;
+        renderAnalyticsOverlay();
       }
     });
   }
@@ -1132,8 +1194,10 @@ async function loadPackLiveData(packKey, options = {}) {
     renderPackHeader();
     renderOddsPanel();
     renderCards();
+    renderHistoryTimeline();
     renderSessionStats();
     renderEconomyPanel();
+    renderAnalyticsOverlay();
     renderAchievements();
     renderBinder();
     updateButtons();
@@ -1794,6 +1858,235 @@ function getChaseStatKey(setKey, cardId) {
   return `${setKey}::${cardId}`;
 }
 
+function appendHistoryEntry(cards, packDef, packValue, packCost) {
+  const openedAt = Date.now();
+  const topCard = [...cards].sort((a, b) => (b.value || 0) - (a.value || 0))[0] || null;
+  const historyItem = {
+    id: `${packDef.key}-${openedAt}-${Math.random().toString(16).slice(2)}`,
+    packKey: packDef.key,
+    packName: packDef.displayName,
+    openedAt,
+    packValue,
+    packCost,
+    net: packValue - packCost,
+    topCard: topCard
+      ? {
+          id: topCard.id,
+          name: topCard.name,
+          image: topCard.image,
+          value: topCard.value || 0,
+          pulledTier: topCard.pulledTier || topCard.tier || "",
+        }
+      : null,
+    cards: cards.map((card, index) => ({
+      ...card,
+      instanceId: `${card.id}-history-${openedAt}-${index}`,
+    })),
+  };
+
+  state.session.openHistory.unshift(historyItem);
+  state.session.openHistory = state.session.openHistory.slice(0, HISTORY_LIMIT);
+}
+
+function renderHistoryTimeline() {
+  if (!dom.historyTimeline) return;
+  const history = state.session.openHistory || [];
+  if (!history.length) {
+    dom.historyTimeline.innerHTML = `<div class="history-empty">No packs in history yet. Open one to start building your timeline.</div>`;
+    return;
+  }
+
+  dom.historyTimeline.innerHTML = history
+    .map((item) => {
+      const timeLabel = new Date(item.openedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const topCard = item.topCard;
+      return `
+        <article class="history-item" data-history-id="${item.id}">
+          <div class="history-thumb">
+            <img src="${topCard?.image || createPackPlaceholderDataUri(getPackDefByKey(item.packKey) || getCurrentPackDef())}" alt="${escapeHtml(topCard?.name || item.packName)}" loading="lazy" />
+          </div>
+          <div class="history-copy">
+            <strong>${escapeHtml(item.packName)}</strong>
+            <span>${timeLabel}</span>
+            <span>Value ${formatUsd(item.packValue)} | Cost ${formatUsd(item.packCost)}</span>
+            <span class="${item.net >= 0 ? "history-net-good" : "history-net-bad"}">Net ${formatUsd(item.net)}</span>
+            <button class="btn history-replay-btn" type="button" data-replay-pack="${item.id}">Replay Pack</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  dom.historyTimeline.querySelectorAll("[data-replay-pack]").forEach((buttonEl) => {
+    buttonEl.addEventListener("click", () => {
+      replayHistoryPack(buttonEl.getAttribute("data-replay-pack") || "");
+    });
+  });
+}
+
+function replayHistoryPack(historyId) {
+  const historyItem = (state.session.openHistory || []).find((item) => item.id === historyId);
+  if (!historyItem) return;
+
+  state.selectedPackKey = historyItem.packKey;
+  state.currentPack = historyItem.cards.map((card, index) => ({
+    ...card,
+    instanceId: `${card.id}-replay-${Date.now()}-${index}`,
+  }));
+  state.revealedInstanceIds = new Set(state.currentPack.map((card) => card.instanceId));
+  state.justRevealedInstanceId = "";
+  state.analyticsOpen = false;
+
+  renderPackSelector();
+  renderChasePanel();
+  renderPackHeader();
+  renderOddsPanel();
+  renderCards();
+  renderHistoryTimeline();
+  renderSessionStats();
+  renderEconomyPanel();
+  renderAnalyticsOverlay();
+  renderAchievements();
+  renderBinder();
+  updateButtons();
+  loadPackLiveData(historyItem.packKey, { silentStatus: true });
+  setStatus(`Replaying ${historyItem.packName} from history.`, "ready");
+}
+
+function renderAnalyticsOverlay() {
+  if (!dom.analyticsOverlay || !dom.analyticsRows || !dom.analyticsSummary) return;
+
+  const analytics = state.session.analyticsBySet[state.selectedPackKey];
+  dom.analyticsOverlay.hidden = !state.analyticsOpen;
+  if (dom.analyticsToggleBtn) {
+    dom.analyticsToggleBtn.textContent = state.analyticsOpen ? "Hide Analytics" : "Analytics Overlay";
+  }
+
+  if (!analytics || analytics.packs === 0) {
+    dom.analyticsSummary.textContent = "Open packs to compare observed pull distribution against expected odds.";
+    dom.analyticsRows.innerHTML = `<div class="analytics-empty">No analytics data yet for this set.</div>`;
+    return;
+  }
+
+  const totalObserved = Object.values(analytics.observedCounts).reduce((sum, value) => sum + value, 0) || 1;
+  const totalExpected = Object.values(analytics.expectedCounts).reduce((sum, value) => sum + value, 0) || 1;
+
+  dom.analyticsSummary.textContent = `${analytics.packs} packs analyzed for ${getPackDefByKey(state.selectedPackKey)?.displayName || "this set"}.`;
+
+  const rows = ANALYTICS_TIER_ORDER
+    .map((tier) => {
+      const observedCount = analytics.observedCounts[tier] || 0;
+      const expectedCount = analytics.expectedCounts[tier] || 0;
+      if (observedCount <= 0 && expectedCount <= 0) return null;
+      const observedPct = (observedCount / totalObserved) * 100;
+      const expectedPct = (expectedCount / totalExpected) * 100;
+      const delta = observedPct - expectedPct;
+      const deltaClass = delta >= 0 ? "analytics-up" : "analytics-down";
+      return `
+        <article class="analytics-row">
+          <strong>${escapeHtml(formatTierName(tier))}</strong>
+          <span>Obs ${observedPct.toFixed(1)}% (${observedCount})</span>
+          <span>Exp ${expectedPct.toFixed(1)}%</span>
+          <span class="${deltaClass}">${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%</span>
+        </article>
+      `;
+    })
+    .filter(Boolean)
+    .join("");
+
+  dom.analyticsRows.innerHTML = rows || `<div class="analytics-empty">No tier rows to display.</div>`;
+}
+
+function updateAnalyticsForPack(cards, packDef) {
+  const analytics = ensureSetAnalytics(packDef.key);
+  analytics.packs += 1;
+
+  for (const card of cards) {
+    const tier = card.pulledTier || card.tier || "unknown";
+    analytics.observedCounts[tier] = (analytics.observedCounts[tier] || 0) + 1;
+  }
+
+  const expected = getExpectedTierCountsForPack(packDef);
+  for (const [tier, expectedCount] of Object.entries(expected)) {
+    analytics.expectedCounts[tier] = (analytics.expectedCounts[tier] || 0) + expectedCount;
+  }
+}
+
+function ensureSetAnalytics(setKey) {
+  if (!state.session.analyticsBySet[setKey]) {
+    state.session.analyticsBySet[setKey] = {
+      packs: 0,
+      observedCounts: {},
+      expectedCounts: {},
+    };
+  }
+  return state.session.analyticsBySet[setKey];
+}
+
+function getExpectedTierCountsForPack(packDef) {
+  const expected = {
+    common: 4,
+    uncommon: 3,
+    energy: 1,
+  };
+
+  addExpectedSlotOutcomes(expected, packDef.slotOdds.reverseA);
+  addExpectedSlotOutcomes(expected, packDef.slotOdds.reverseB);
+  addExpectedSlotOutcomes(expected, packDef.slotOdds.rare);
+
+  return expected;
+}
+
+function addExpectedSlotOutcomes(expectedMap, slotConfig) {
+  if (!slotConfig) return;
+  const outcomes = expandSlotOutcomes(slotConfig);
+  for (const outcome of outcomes) {
+    expectedMap[outcome.tier] = (expectedMap[outcome.tier] || 0) + outcome.probability;
+  }
+}
+
+function checkSetCompletionMilestones(setKey) {
+  const completion = getSetCompletion(setKey);
+  const unlocked = state.profile.setMilestones?.[setKey] || [];
+  const newlyUnlocked = MILESTONE_THRESHOLDS.filter((threshold) => completion.percent >= threshold && !unlocked.includes(threshold));
+  if (!newlyUnlocked.length) {
+    return;
+  }
+
+  if (!state.profile.setMilestones) {
+    state.profile.setMilestones = {};
+  }
+  state.profile.setMilestones[setKey] = [...unlocked, ...newlyUnlocked].sort((a, b) => a - b);
+  persistProfile();
+
+  const packName = getPackDefByKey(setKey)?.displayName || "Set";
+  newlyUnlocked.forEach((threshold, index) => {
+    window.setTimeout(() => {
+      showToast(`${packName} milestone: ${threshold}% complete`, threshold >= 100 ? "epic" : "achievement", 4200);
+    }, index * 280);
+  });
+
+  const strongest = Math.max(...newlyUnlocked);
+  triggerConfettiBurst(strongest >= 100 ? 1.8 : strongest >= 75 ? 1.4 : 1);
+  triggerHapticMilestone(strongest >= 100 ? "max" : "normal");
+  triggerBinderMilestoneGlow();
+}
+
+function triggerBinderMilestoneGlow() {
+  const binderSection = document.querySelector(".binder-section");
+  if (!binderSection) return;
+  binderSection.classList.remove("milestone-glow");
+  void binderSection.offsetWidth;
+  binderSection.classList.add("milestone-glow");
+  window.setTimeout(() => {
+    binderSection.classList.remove("milestone-glow");
+  }, 1300);
+}
+
+function getPackDefByKey(setKey) {
+  return PACK_CONFIG.find((pack) => pack.key === setKey) || null;
+}
+
 function openPack() {
   const packDef = getCurrentPackDef();
   const setData = state.setData[packDef.key];
@@ -1826,8 +2119,10 @@ function openPack() {
   renderChasePanel();
   renderOddsPanel();
   renderCards();
+  renderHistoryTimeline();
   renderSessionStats();
   renderEconomyPanel();
+  renderAnalyticsOverlay();
   renderAchievements();
   renderBinder();
   updateButtons();
@@ -1985,7 +2280,6 @@ function registerOpenedPack(cards, packDef) {
   state.session.pity.ultraPlus = hasUltraPlus ? 0 : state.session.pity.ultraPlus + 1;
   state.session.pity.sirPlus = hasSirPlus ? 0 : state.session.pity.sirPlus + 1;
 
-  const packDef = getCurrentPackDef();
   const chaseTargets = getChaseTargetsForSet(packDef.key).filter(Boolean);
   for (const cardId of chaseTargets) {
     const key = getChaseStatKey(packDef.key, cardId);
@@ -1998,8 +2292,12 @@ function registerOpenedPack(cards, packDef) {
     }
   }
 
+  updateAnalyticsForPack(cards, packDef);
+  appendHistoryEntry(cards, packDef, packValue, packCost);
+
   ingestCardsIntoBinder(cards);
   evaluateAchievements(cards, packValue);
+  checkSetCompletionMilestones(packDef.key);
   persistBinder();
 }
 
@@ -2010,12 +2308,16 @@ function ingestCardsIntoBinder(cards) {
       existing.count += 1;
       existing.bestValue = Math.max(existing.bestValue, card.value || 0);
       existing.lastPulledAt = Date.now();
+      if (!existing.tier) {
+        existing.tier = card.pulledTier || card.tier || rarityToTier(card.rarity);
+      }
     } else {
       state.binder.cards[card.id] = {
         id: card.id,
         name: card.name,
         image: card.image,
         rarity: card.rarity,
+        tier: card.pulledTier || card.tier || rarityToTier(card.rarity),
         setKey: card.setKey,
         setCode: card.setCode || "",
         count: 1,
@@ -2187,6 +2489,9 @@ function evaluateAchievements(cards, packValue) {
     const afterLevel = getLevelFromXp(state.profile.xp).level;
     if (afterLevel > beforeLevel) {
       showToast(`Level Up! Trainer Lv ${afterLevel}`, "epic", 4200);
+      triggerHapticMilestone("max");
+    } else {
+      triggerHapticMilestone("normal");
     }
     const names = unlockedNow.map((item) => item.title).join(", ");
     setStatus(`Achievement unlocked: ${names}`, "ready");
@@ -2198,23 +2503,39 @@ function renderBinder() {
     state.binder = createEmptyBinder();
   }
 
-  const entries = Object.values(state.binder.cards)
-    .sort((a, b) => b.bestValue - a.bestValue || b.count - a.count || b.lastPulledAt - a.lastPulledAt);
+  const entries = Object.values(state.binder.cards).map((entry) => ({
+    ...entry,
+    tier: entry.tier || rarityToTier(entry.rarity),
+  }));
 
-  if (!entries.length) {
+  renderBinderFilters(entries);
+
+  const filtered = applyBinderFilters(entries);
+  const sorted = [...filtered].sort((a, b) => {
+    if (state.binderFilters.newestFirst) {
+      return b.lastPulledAt - a.lastPulledAt || b.bestValue - a.bestValue;
+    }
+    return b.bestValue - a.bestValue || b.count - a.count || b.lastPulledAt - a.lastPulledAt;
+  });
+
+  if (!sorted.length) {
     dom.binderGrid.classList.add("empty");
-    dom.binderGrid.innerHTML = "No cards in the binder yet. Open a pack to start your collection.";
+    const baseEmpty = entries.length
+      ? "No cards match your current binder filters."
+      : "No cards in the binder yet. Open a pack to start your collection.";
+    dom.binderGrid.innerHTML = baseEmpty;
     return;
   }
 
   dom.binderGrid.classList.remove("empty");
-  dom.binderGrid.innerHTML = entries
+  dom.binderGrid.innerHTML = sorted
     .map(
       (entry) => `
       <article class="binder-entry">
         <img src="${entry.image}" alt="${entry.name}" loading="lazy" onerror="this.src='https://images.pokemontcg.io/base1/4_hires.png'" />
         <div class="binder-entry-copy">
           <h3>${entry.name}</h3>
+          <p>${formatTierName(entry.tier)}</p>
           <p>x${entry.count} pulled</p>
           <p>Best value: ${formatUsd(entry.bestValue)}</p>
         </div>
@@ -2222,6 +2543,92 @@ function renderBinder() {
     `,
     )
     .join("");
+}
+
+function renderBinderFilters(entries) {
+  if (!dom.binderFilters) return;
+
+  const setOptions = [
+    `<option value="all"${state.binderFilters.setKey === "all" ? " selected" : ""}>All sets</option>`,
+    ...PACK_CONFIG.map(
+      (pack) =>
+        `<option value="${pack.key}"${state.binderFilters.setKey === pack.key ? " selected" : ""}>${escapeHtml(pack.displayName)}</option>`,
+    ),
+  ].join("");
+
+  const tierSet = new Set(entries.map((entry) => entry.tier).filter(Boolean));
+  const tierOptions = [
+    `<option value="all"${state.binderFilters.tier === "all" ? " selected" : ""}>All rarities</option>`,
+    ...[...tierSet]
+      .sort((a, b) => formatTierName(a).localeCompare(formatTierName(b)))
+      .map((tier) => `<option value="${tier}"${state.binderFilters.tier === tier ? " selected" : ""}>${escapeHtml(formatTierName(tier))}</option>`),
+  ].join("");
+
+  dom.binderFilters.innerHTML = `
+    <div class="binder-filter-grid">
+      <div class="control-group">
+        <label for="binderSetFilter">Set filter</label>
+        <select id="binderSetFilter">${setOptions}</select>
+      </div>
+      <div class="control-group">
+        <label for="binderTierFilter">Rarity filter</label>
+        <select id="binderTierFilter">${tierOptions}</select>
+      </div>
+      <div class="control-group">
+        <label for="binderMinValue">Min value</label>
+        <input id="binderMinValue" type="number" min="0" step="0.01" value="${state.binderFilters.minValue}" />
+      </div>
+      <div class="control-group">
+        <label for="binderMaxValue">Max value (0 = no max)</label>
+        <input id="binderMaxValue" type="number" min="0" step="0.01" value="${state.binderFilters.maxValue}" />
+      </div>
+    </div>
+    <label class="toggle-control binder-newest-toggle" for="binderNewestFirst">
+      <input id="binderNewestFirst" type="checkbox"${state.binderFilters.newestFirst ? " checked" : ""} />
+      <span>Newest first</span>
+    </label>
+  `;
+
+  dom.binderFilters.querySelector("#binderSetFilter")?.addEventListener("change", (event) => {
+    state.binderFilters.setKey = event.target.value;
+    renderBinder();
+  });
+  dom.binderFilters.querySelector("#binderTierFilter")?.addEventListener("change", (event) => {
+    state.binderFilters.tier = event.target.value;
+    renderBinder();
+  });
+  dom.binderFilters.querySelector("#binderMinValue")?.addEventListener("input", (event) => {
+    state.binderFilters.minValue = Math.max(0, Number(event.target.value) || 0);
+    renderBinder();
+  });
+  dom.binderFilters.querySelector("#binderMaxValue")?.addEventListener("input", (event) => {
+    state.binderFilters.maxValue = Math.max(0, Number(event.target.value) || 0);
+    renderBinder();
+  });
+  dom.binderFilters.querySelector("#binderNewestFirst")?.addEventListener("change", (event) => {
+    state.binderFilters.newestFirst = Boolean(event.target.checked);
+    renderBinder();
+  });
+}
+
+function applyBinderFilters(entries) {
+  const minValue = Math.max(0, Number(state.binderFilters.minValue) || 0);
+  const maxValue = Math.max(0, Number(state.binderFilters.maxValue) || 0);
+  return entries.filter((entry) => {
+    if (state.binderFilters.setKey !== "all" && entry.setKey !== state.binderFilters.setKey) {
+      return false;
+    }
+    if (state.binderFilters.tier !== "all" && entry.tier !== state.binderFilters.tier) {
+      return false;
+    }
+    if ((entry.bestValue || 0) < minValue) {
+      return false;
+    }
+    if (maxValue > 0 && (entry.bestValue || 0) > maxValue) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function getSetCompletion(setKey) {
@@ -2373,6 +2780,7 @@ function triggerPackAnimation() {
 
 function triggerRevealCinematic(card) {
   const impact = getRevealImpact(card);
+  triggerHapticForImpact(impact);
   dom.fxLayer.classList.remove("burst-cool", "burst-warm", "burst-hot", "burst-epic");
   dom.playPanel.classList.remove("screen-shake");
 
@@ -2519,6 +2927,7 @@ function createEmptyProfile() {
   return {
     xp: 0,
     achievements: {},
+    setMilestones: {},
   };
 }
 
@@ -2530,9 +2939,11 @@ function loadProfileFromStorage() {
     if (!parsed || typeof parsed !== "object") return createEmptyProfile();
     const xp = Number(parsed.xp || 0);
     const achievements = parsed.achievements && typeof parsed.achievements === "object" ? parsed.achievements : {};
+    const setMilestones = parsed.setMilestones && typeof parsed.setMilestones === "object" ? parsed.setMilestones : {};
     return {
       xp: Number.isFinite(xp) ? Math.max(0, Math.round(xp)) : 0,
       achievements,
+      setMilestones,
     };
   } catch {
     return createEmptyProfile();
@@ -2990,6 +3401,49 @@ function showToast(message, tone = "info", durationMs = 3400) {
       toast.remove();
     }, 260);
   }, durationMs);
+}
+
+function triggerHapticForImpact(impact) {
+  if (!("vibrate" in navigator)) return;
+  if (impact === "epic") {
+    navigator.vibrate([18, 32, 22, 40, 26]);
+    return;
+  }
+  if (impact === "hot") {
+    navigator.vibrate([14, 24, 16]);
+    return;
+  }
+  if (impact === "warm") {
+    navigator.vibrate(10);
+  }
+}
+
+function triggerHapticMilestone(mode = "normal") {
+  if (!("vibrate" in navigator)) return;
+  if (mode === "max") {
+    navigator.vibrate([28, 44, 34, 50, 40]);
+    return;
+  }
+  navigator.vibrate([16, 22, 18]);
+}
+
+function triggerConfettiBurst(power = 1) {
+  if (!dom.confettiLayer) return;
+  const totalPieces = Math.max(18, Math.round(28 * power));
+  const colors = ["#ffd45c", "#5dc7ff", "#9ef2b0", "#ff9acb", "#b8b5ff", "#ffb86e"];
+
+  for (let i = 0; i < totalPieces; i += 1) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = `${Math.round(Math.random() * 100)}%`;
+    piece.style.setProperty("--drift", `${Math.round((Math.random() - 0.5) * 180)}px`);
+    piece.style.setProperty("--rot", `${Math.round((Math.random() - 0.5) * 720)}deg`);
+    piece.style.animationDuration = `${(1.1 + Math.random() * 0.9).toFixed(2)}s`;
+    piece.style.animationDelay = `${(Math.random() * 0.25).toFixed(2)}s`;
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    dom.confettiLayer.appendChild(piece);
+    window.setTimeout(() => piece.remove(), 2200);
+  }
 }
 
 function createPackPlaceholderDataUri(packDef) {
