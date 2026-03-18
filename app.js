@@ -1,10 +1,15 @@
 const API_BASE = "https://api.pokemontcg.io/v2";
 const BINDER_STORAGE_KEY = "pokemon-pack-sim-binder-v2";
+const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
+const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v1-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
 const REQUEST_RETRIES = 2;
 const IMAGE_FALLBACK_TIMEOUT_MS = 4500;
+const SHARE_RENDER_TIMEOUT_MS = 9000;
+const CHASE_SLOT_COUNT = 2;
+const CHASE_CANDIDATE_LIMIT = 40;
 
 const PACK_CONFIG = [
   {
@@ -13,8 +18,8 @@ const PACK_CONFIG = [
     displayName: "Paldean Fates",
     shortCode: "PAF",
     releaseLabel: "Scarlet & Violet Special Set",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/2/2e/Paldean_Fates_Booster_Pikachu.png",
+    localPackImage: "assets/packs/paldean-fates.png",
+    packImage: "",
     setAliases: ["Paldean Fates", "Scarlet & Violet-Paldean Fates", "Scarlet & Violet-Paldean-Fates"],
     slotOdds: {
       reverseA: {
@@ -72,8 +77,8 @@ const PACK_CONFIG = [
     displayName: "Prismatic Evolutions",
     shortCode: "PRE",
     releaseLabel: "Scarlet & Violet Special Set",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/5/53/Prismatic_Evolutions_Booster_Eevee_Sylveon.png",
+    localPackImage: "assets/packs/prismatic-evolutions.png",
+    packImage: "",
     setAliases: ["Prismatic Evolutions", "Scarlet & Violet-Prismatic Evolutions", "Scarlet & Violet-Prismatic-Evolutions"],
     slotOdds: {
       reverseA: {
@@ -137,8 +142,8 @@ const PACK_CONFIG = [
     displayName: "Surging Sparks",
     shortCode: "SSP",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/8/8b/SV8_Booster_Pikachu.png",
+    localPackImage: "assets/packs/surging-sparks.png",
+    packImage: "",
     setAliases: ["Surging Sparks", "Scarlet & Violet-Surging Sparks", "Scarlet & Violet-Surging-Sparks"],
     slotOdds: {
       reverseA: {
@@ -194,8 +199,8 @@ const PACK_CONFIG = [
     displayName: "Obsidian Flames",
     shortCode: "OBF",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/5/52/SV3_Booster_Charizard.png",
+    localPackImage: "assets/packs/obsidian-flames.png",
+    packImage: "",
     setAliases: ["Obsidian Flames", "Scarlet & Violet-Obsidian Flames", "Scarlet & Violet-Obsidian-Flames"],
     slotOdds: {
       reverseA: {
@@ -249,8 +254,8 @@ const PACK_CONFIG = [
     displayName: "Temporal Forces",
     shortCode: "TEF",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/d/d7/SV5_Booster_Walking_Wake.png",
+    localPackImage: "assets/packs/temporal-forces.png",
+    packImage: "",
     setAliases: ["Temporal Forces", "Scarlet & Violet-Temporal Forces", "Scarlet & Violet-Temporal-Forces"],
     slotOdds: {
       reverseA: {
@@ -306,8 +311,8 @@ const PACK_CONFIG = [
     displayName: "Twilight Masquerade",
     shortCode: "TWM",
     releaseLabel: "Scarlet & Violet Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/a/a0/SV6_Booster_Ogerpon.png",
+    localPackImage: "assets/packs/twilight-masquerade.png",
+    packImage: "",
     setAliases: ["Twilight Masquerade", "Scarlet & Violet-Twilight Masquerade", "Scarlet & Violet-Twilight-Masquerade"],
     slotOdds: {
       reverseA: {
@@ -363,8 +368,8 @@ const PACK_CONFIG = [
     displayName: "Evolving Skies",
     shortCode: "EVS",
     releaseLabel: "Sword & Shield Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/5/5b/SWSH7_Booster_Umbreon.jpg",
+    localPackImage: "assets/packs/evolving-skies.jpg",
+    packImage: "",
     setAliases: ["Evolving Skies", "Sword & Shield-Evolving Skies", "Sword & Shield-Evolving-Skies"],
     slotOdds: {
       reverseA: {
@@ -413,8 +418,8 @@ const PACK_CONFIG = [
     displayName: "Brilliant Stars",
     shortCode: "BRS",
     releaseLabel: "Sword & Shield Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/4/4f/SWSH9_Booster_Charizard.jpg",
+    localPackImage: "assets/packs/brilliant-stars.jpg",
+    packImage: "",
     setAliases: ["Brilliant Stars", "Sword & Shield-Brilliant Stars", "Sword & Shield-Brilliant-Stars"],
     slotOdds: {
       reverseA: {
@@ -464,8 +469,8 @@ const PACK_CONFIG = [
     displayName: "Lost Origin",
     shortCode: "LOR",
     releaseLabel: "Sword & Shield Expansion",
-    localPackImage: "",
-    packImage: "https://archives.bulbagarden.net/media/upload/7/78/SWSH11_Booster_Enamorus.jpg",
+    localPackImage: "assets/packs/lost-origin.jpg",
+    packImage: "",
     setAliases: ["Lost Origin", "Sword & Shield-Lost Origin", "Sword & Shield-Lost-Origin"],
     slotOdds: {
       reverseA: {
@@ -546,15 +551,56 @@ const TIER_LABEL = {
   energy: "Basic Energy",
 };
 
-const HIT_TIER_ORDER = [
-  "specialIllustrationRare",
-  "hyperRare",
-  "shinyUltraRare",
-  "illustrationRare",
-  "ultraRare",
-  "doubleRare",
-  "shinyRare",
-  "aceSpec",
+const ACHIEVEMENTS = [
+  {
+    id: "first-pack",
+    title: "First Rip",
+    description: "Open your first pack.",
+    xp: 20,
+    condition: ({ session }) => session.packsOpened >= 1,
+  },
+  {
+    id: "value-spike",
+    title: "Value Spike",
+    description: "Open a pack worth $12 or more.",
+    xp: 35,
+    condition: ({ packValue }) => packValue >= 12,
+  },
+  {
+    id: "ultra-hunter",
+    title: "Ultra Hunter",
+    description: "Pull an Ultra Rare, IR, SIR, or better.",
+    xp: 45,
+    condition: ({ cards }) => cards.some((card) => isUltraPlusTier(card.pulledTier)),
+  },
+  {
+    id: "sir-sniper",
+    title: "SIR Sniper",
+    description: "Pull a Special Illustration Rare / Hyper Rare tier card.",
+    xp: 80,
+    condition: ({ cards }) => cards.some((card) => isSirPlusTier(card.pulledTier)),
+  },
+  {
+    id: "binder-builder",
+    title: "Binder Builder",
+    description: "Collect 50 unique cards in your binder.",
+    xp: 60,
+    condition: ({ binderUnique }) => binderUnique >= 50,
+  },
+  {
+    id: "big-hit",
+    title: "Big Hit",
+    description: "Pull a single card worth $25 or more.",
+    xp: 70,
+    condition: ({ cards }) => cards.some((card) => (card.value || 0) >= 25),
+  },
+  {
+    id: "grinder",
+    title: "Grinder",
+    description: "Open 25 packs this session.",
+    xp: 75,
+    condition: ({ session }) => session.packsOpened >= 25,
+  },
 ];
 
 const PACK_PLACEHOLDER_COLORS = {
@@ -581,11 +627,21 @@ const state = {
   loadErrors: [],
   loadingPackKeys: new Set(),
   liveLoadedPackKeys: new Set(),
+  chaseTargetsBySet: loadChaseTargetsFromStorage(),
+  profile: loadProfileFromStorage(),
+  inspectCard: null,
   session: {
     packsOpened: 0,
     totalValue: 0,
     totalCards: 0,
     biggestHit: null,
+    xpEarned: 0,
+    unlockedAchievements: [],
+    pity: {
+      ultraPlus: 0,
+      sirPlus: 0,
+    },
+    chaseStats: {},
   },
   binder: loadBinderFromStorage(),
   audioContext: null,
@@ -600,7 +656,10 @@ const dom = {
   resetSessionBtn: document.getElementById("resetSessionBtn"),
   resetBinderBtn: document.getElementById("resetBinderBtn"),
   openPackBtn: document.getElementById("openPackBtn"),
+  sharePullBtn: document.getElementById("sharePullBtn"),
+  chasePanel: document.getElementById("chasePanel"),
   oddsPanel: document.getElementById("oddsPanel"),
+  playPanel: document.querySelector(".play-panel"),
   packArt: document.getElementById("packArt"),
   fxLayer: document.getElementById("fxLayer"),
   packImage: document.getElementById("packImage"),
@@ -611,7 +670,17 @@ const dom = {
   cardsGrid: document.getElementById("cardsGrid"),
   openedPackSummary: document.getElementById("openedPackSummary"),
   sessionStats: document.getElementById("sessionStats"),
+  achievementPanel: document.getElementById("achievementPanel"),
   binderGrid: document.getElementById("binderGrid"),
+  inspectModal: document.getElementById("inspectModal"),
+  inspectCloseBtn: document.getElementById("inspectCloseBtn"),
+  inspectCardTilt: document.getElementById("inspectCardTilt"),
+  inspectCardImage: document.getElementById("inspectCardImage"),
+  inspectCardName: document.getElementById("inspectCardName"),
+  inspectCardRarity: document.getElementById("inspectCardRarity"),
+  inspectCardSlot: document.getElementById("inspectCardSlot"),
+  inspectCardOdds: document.getElementById("inspectCardOdds"),
+  inspectCardValue: document.getElementById("inspectCardValue"),
   cardTemplate: document.getElementById("cardTemplate"),
 };
 
@@ -626,10 +695,12 @@ async function init() {
   const cachedSets = hydrateLiveSetCache();
   setStatus(cachedSets ? `Ready from cache (${cachedSets} sets).` : "Ready in fallback mode. Loading live card data...");
   renderPackSelector();
+  renderChasePanel();
   renderOddsPanel();
   renderPackHeader();
   renderCards();
   renderSessionStats();
+  renderAchievements();
   renderBinder();
   updateButtons();
   if (state.liveLoadedPackKeys.has(state.selectedPackKey)) {
@@ -670,8 +741,20 @@ function wireControls() {
       totalValue: 0,
       totalCards: 0,
       biggestHit: null,
+      xpEarned: 0,
+      unlockedAchievements: [],
+      pity: {
+        ultraPlus: 0,
+        sirPlus: 0,
+      },
+      chaseStats: {},
     };
+    closeInspectModal();
+    renderChasePanel();
     renderSessionStats();
+    renderAchievements();
+    renderCards();
+    updateButtons();
   });
 
   dom.resetBinderBtn.addEventListener("click", () => {
@@ -681,12 +764,51 @@ function wireControls() {
     persistBinder();
     renderPackHeader();
     renderSessionStats();
+    renderAchievements();
     renderBinder();
   });
 
   dom.openPackBtn.addEventListener("click", () => {
     openPack();
   });
+
+  if (dom.sharePullBtn) {
+    dom.sharePullBtn.addEventListener("click", () => {
+      shareTopPull().catch((error) => {
+        console.error(error);
+        setStatus("Unable to share that pull right now.", "error");
+      });
+    });
+  }
+
+  if (dom.inspectCloseBtn) {
+    dom.inspectCloseBtn.addEventListener("click", () => {
+      closeInspectModal();
+    });
+  }
+
+  if (dom.inspectModal) {
+    dom.inspectModal.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.dataset.closeInspect === "") {
+        closeInspectModal();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !dom.inspectModal.hidden) {
+        closeInspectModal();
+      }
+    });
+  }
+
+  if (dom.inspectCardTilt) {
+    dom.inspectCardTilt.addEventListener("pointermove", handleInspectPointerMove);
+    dom.inspectCardTilt.addEventListener("pointerleave", resetInspectTilt);
+    dom.inspectCardTilt.addEventListener("pointerup", resetInspectTilt);
+    dom.inspectCardTilt.addEventListener("pointercancel", resetInspectTilt);
+  }
 }
 
 function setStatus(message, type = "") {
@@ -750,10 +872,12 @@ async function loadPackLiveData(packKey) {
   } finally {
     state.loadingPackKeys.delete(packKey);
     renderPackSelector();
+    renderChasePanel();
     renderPackHeader();
     renderOddsPanel();
     renderCards();
     renderSessionStats();
+    renderAchievements();
     renderBinder();
     updateButtons();
   }
@@ -1148,11 +1272,14 @@ function renderPackSelector() {
     state.currentPack = null;
     state.revealedInstanceIds = new Set();
     state.justRevealedInstanceId = "";
+    closeInspectModal();
     renderPackSelector();
+    renderChasePanel();
     renderPackHeader();
     renderOddsPanel();
     renderCards();
     renderSessionStats();
+    renderAchievements();
     updateButtons();
     loadPackLiveData(nextPack.key);
   });
@@ -1241,6 +1368,120 @@ function renderOddsPanel() {
   `;
 }
 
+function renderChasePanel() {
+  if (!dom.chasePanel) return;
+  const packDef = getCurrentPackDef();
+  const setData = state.setData[packDef.key];
+  const targets = getChaseTargetsForSet(packDef.key);
+  const candidates = getChaseCandidates(setData);
+
+  const selectMarkup = [];
+  for (let i = 0; i < CHASE_SLOT_COUNT; i += 1) {
+    const selectedId = targets[i] || "";
+    const optionMarkup = [
+      `<option value="">No chase selected</option>`,
+      ...candidates.map((card) => {
+        const selected = card.id === selectedId ? " selected" : "";
+        return `<option value="${card.id}"${selected}>${escapeHtml(card.name)} (${formatUsd(card.marketValue || 0)})</option>`;
+      }),
+    ].join("");
+    selectMarkup.push(`
+      <div class="control-group">
+        <label for="chaseSelect${i}">Chase Slot ${i + 1}</label>
+        <select id="chaseSelect${i}" data-chase-slot="${i}">
+          ${optionMarkup}
+        </select>
+      </div>
+    `);
+  }
+
+  const pityUltra = state.session.pity.ultraPlus;
+  const pitySir = state.session.pity.sirPlus;
+  const selectedCards = targets
+    .map((id) => setData?.cards?.find((card) => card.id === id))
+    .filter(Boolean);
+
+  const trackerRows = selectedCards.length
+    ? selectedCards
+        .map((card) => {
+          const stat = state.session.chaseStats[getChaseStatKey(packDef.key, card.id)] || { hits: 0, lastHitPack: 0 };
+          const since = stat.lastHitPack > 0 ? state.session.packsOpened - stat.lastHitPack : state.session.packsOpened;
+          const approxOdds = setData?.approxCardOdds?.get(card.id) || 0;
+          return `
+            <li>
+              <span>${escapeHtml(card.name)}</span>
+              <strong>${stat.hits} hits</strong>
+              <em>${stat.lastHitPack ? `${since} packs since` : "Not hit yet"}</em>
+              <em>${approxOdds > 0 ? `~1 in ${Math.max(1, Math.round(1 / approxOdds)).toLocaleString()}` : "Odds n/a"}</em>
+            </li>
+          `;
+        })
+        .join("")
+    : `<li><span>Select chase cards to track exact pull streaks.</span></li>`;
+
+  dom.chasePanel.innerHTML = `
+    <div class="odds-title">Chase Tracker + Pity</div>
+    <div class="chase-controls">
+      ${selectMarkup.join("")}
+    </div>
+    <div class="pity-grid">
+      ${buildPityMeter("Ultra+ pity", pityUltra, 6)}
+      ${buildPityMeter("SIR+ pity", pitySir, 18)}
+    </div>
+    <ul class="chase-tracker-list">${trackerRows}</ul>
+  `;
+
+  dom.chasePanel.querySelectorAll("select[data-chase-slot]").forEach((selectEl) => {
+    selectEl.addEventListener("change", () => {
+      const slot = Number(selectEl.getAttribute("data-chase-slot"));
+      upsertChaseTarget(packDef.key, slot, selectEl.value || "");
+      renderChasePanel();
+    });
+  });
+}
+
+function buildPityMeter(label, count, target) {
+  const pct = Math.min(100, Math.round((count / target) * 100));
+  const tone = count >= target ? "hot" : count >= Math.round(target * 0.6) ? "warm" : "cool";
+  return `
+    <div class="pity-meter ${tone}">
+      <div class="pity-row">
+        <span>${label}</span>
+        <strong>${count} packs</strong>
+      </div>
+      <div class="pity-bar"><span style="width:${pct}%"></span></div>
+    </div>
+  `;
+}
+
+function getChaseCandidates(setData) {
+  if (!setData?.cards?.length) return [];
+  return [...setData.cards]
+    .sort((a, b) => (b.marketValue || 0) - (a.marketValue || 0))
+    .slice(0, CHASE_CANDIDATE_LIMIT);
+}
+
+function getChaseTargetsForSet(setKey) {
+  const existing = state.chaseTargetsBySet[setKey];
+  if (Array.isArray(existing)) {
+    const trimmed = existing.slice(0, CHASE_SLOT_COUNT).map((id) => String(id || ""));
+    while (trimmed.length < CHASE_SLOT_COUNT) trimmed.push("");
+    return trimmed;
+  }
+  return new Array(CHASE_SLOT_COUNT).fill("");
+}
+
+function upsertChaseTarget(setKey, slot, cardId) {
+  const targets = getChaseTargetsForSet(setKey);
+  targets[slot] = cardId;
+  state.chaseTargetsBySet[setKey] = targets;
+  persistChaseTargets();
+}
+
+function getChaseStatKey(setKey, cardId) {
+  return `${setKey}::${cardId}`;
+}
+
 function openPack() {
   const packDef = getCurrentPackDef();
   const setData = state.setData[packDef.key];
@@ -1252,6 +1493,7 @@ function openPack() {
 
   triggerPackAnimation();
   playPackOpenSound();
+  closeInspectModal();
 
   state.currentPack = simulatePack(packDef, setData);
   state.revealedInstanceIds =
@@ -1265,12 +1507,15 @@ function openPack() {
   if (state.revealMode === "all") {
     const topCard = [...state.currentPack].sort((a, b) => b.value - a.value)[0];
     playRevealSound(topCard);
+    triggerRevealCinematic(topCard);
   }
 
   renderPackHeader();
+  renderChasePanel();
   renderOddsPanel();
   renderCards();
   renderSessionStats();
+  renderAchievements();
   renderBinder();
   updateButtons();
 }
@@ -1403,7 +1648,26 @@ function registerOpenedPack(cards) {
     }
   }
 
+  const hasUltraPlus = cards.some((card) => isUltraPlusTier(card.pulledTier));
+  const hasSirPlus = cards.some((card) => isSirPlusTier(card.pulledTier));
+  state.session.pity.ultraPlus = hasUltraPlus ? 0 : state.session.pity.ultraPlus + 1;
+  state.session.pity.sirPlus = hasSirPlus ? 0 : state.session.pity.sirPlus + 1;
+
+  const packDef = getCurrentPackDef();
+  const chaseTargets = getChaseTargetsForSet(packDef.key).filter(Boolean);
+  for (const cardId of chaseTargets) {
+    const key = getChaseStatKey(packDef.key, cardId);
+    if (!state.session.chaseStats[key]) {
+      state.session.chaseStats[key] = { hits: 0, lastHitPack: 0 };
+    }
+    if (cards.some((card) => card.id === cardId)) {
+      state.session.chaseStats[key].hits += 1;
+      state.session.chaseStats[key].lastHitPack = state.session.packsOpened;
+    }
+  }
+
   ingestCardsIntoBinder(cards);
+  evaluateAchievements(cards, packValue);
   persistBinder();
 }
 
@@ -1434,12 +1698,14 @@ function renderSessionStats() {
   const completion = getSetCompletion(state.selectedPackKey);
   const averagePackValue = state.session.packsOpened ? state.session.totalValue / state.session.packsOpened : 0;
   const biggest = state.session.biggestHit;
+  const level = getLevelFromXp(state.profile.xp);
 
   const cards = [
     { label: "Packs Opened", value: state.session.packsOpened.toLocaleString() },
     { label: "Cards Pulled", value: state.session.totalCards.toLocaleString() },
     { label: "Session Value", value: formatUsd(state.session.totalValue) },
     { label: "Avg / Pack", value: formatUsd(averagePackValue) },
+    { label: "Trainer Level", value: `Lv ${level.level}` },
     { label: "Set Completion", value: `${completion.percent}%` },
     { label: "Biggest Hit", value: biggest ? `${biggest.name} (${formatUsd(biggest.value)})` : "None yet" },
   ];
@@ -1447,6 +1713,84 @@ function renderSessionStats() {
   dom.sessionStats.innerHTML = cards
     .map((item) => `<div class="session-stat-card"><strong>${item.value}</strong><span>${item.label}</span></div>`)
     .join("");
+}
+
+function renderAchievements() {
+  if (!dom.achievementPanel) return;
+  const unlockedIds = new Set(Object.keys(state.profile.achievements || {}));
+  const levelInfo = getLevelFromXp(state.profile.xp);
+  const xpForNext = levelInfo.nextLevelXp - state.profile.xp;
+  const progress = levelInfo.nextLevelXp > levelInfo.levelStartXp
+    ? Math.round(((state.profile.xp - levelInfo.levelStartXp) / (levelInfo.nextLevelXp - levelInfo.levelStartXp)) * 100)
+    : 100;
+
+  const recentUnlocks = state.session.unlockedAchievements.slice(0, 3);
+
+  dom.achievementPanel.innerHTML = `
+    <div class="achievement-head">
+      <div>
+        <strong>Achievements</strong>
+        <span>${unlockedIds.size}/${ACHIEVEMENTS.length} unlocked</span>
+      </div>
+      <div>
+        <strong>XP ${state.profile.xp.toLocaleString()}</strong>
+        <span>${xpForNext > 0 ? `${xpForNext} XP to next level` : "Max vibe achieved"}</span>
+      </div>
+    </div>
+    <div class="xp-bar"><span style="width:${Math.max(0, Math.min(100, progress))}%"></span></div>
+    <div class="achievement-list">
+      ${ACHIEVEMENTS.map((achievement) => {
+        const unlocked = unlockedIds.has(achievement.id);
+        return `
+          <article class="achievement-item ${unlocked ? "unlocked" : "locked"}">
+            <strong>${achievement.title}</strong>
+            <span>${achievement.description}</span>
+            <em>${unlocked ? `+${achievement.xp} XP` : "Locked"}</em>
+          </article>
+        `;
+      }).join("")}
+    </div>
+    ${
+      recentUnlocks.length
+        ? `<p class="recent-achievement">Recent: ${recentUnlocks.map((item) => `${item.title} (+${item.xp} XP)`).join(" | ")}</p>`
+        : ""
+    }
+  `;
+}
+
+function evaluateAchievements(cards, packValue) {
+  const binderUnique = Object.keys(state.binder.cards || {}).length;
+  const unlockedNow = [];
+
+  for (const achievement of ACHIEVEMENTS) {
+    if (state.profile.achievements[achievement.id]) {
+      continue;
+    }
+
+    const earned = achievement.condition({
+      cards,
+      packValue,
+      session: state.session,
+      binderUnique,
+      profile: state.profile,
+    });
+
+    if (!earned) continue;
+
+    state.profile.achievements[achievement.id] = Date.now();
+    state.profile.xp += achievement.xp;
+    state.session.xpEarned += achievement.xp;
+    unlockedNow.push(achievement);
+  }
+
+  if (unlockedNow.length) {
+    state.session.unlockedAchievements.unshift(...unlockedNow);
+    state.session.unlockedAchievements = state.session.unlockedAchievements.slice(0, 6);
+    persistProfile();
+    playAchievementSound(unlockedNow.length);
+    const names = unlockedNow.map((item) => item.title).join(", ");
+    setStatus(`Achievement unlocked: ${names}`, "ready");
+  }
 }
 
 function renderBinder() {
@@ -1544,6 +1888,11 @@ function renderCards() {
 
     if (isRevealed) {
       article.classList.add("revealed");
+      article.classList.add(`impact-${getRevealImpact(card)}`);
+      article.classList.add("inspectable");
+      article.addEventListener("click", () => {
+        openInspectModal(card);
+      });
       if (card.instanceId === state.justRevealedInstanceId) {
         article.classList.add("just-revealed");
       }
@@ -1583,7 +1932,11 @@ function renderCards() {
 
 function updateButtons() {
   const canOpen = Boolean(state.setData[state.selectedPackKey]);
+  const canShare = Boolean(getTopRevealedCard());
   dom.openPackBtn.disabled = !canOpen;
+  if (dom.sharePullBtn) {
+    dom.sharePullBtn.disabled = !canShare;
+  }
 }
 
 function revealCardByClick(card) {
@@ -1596,6 +1949,7 @@ function revealCardByClick(card) {
   state.revealedInstanceIds.add(card.instanceId);
   state.justRevealedInstanceId = card.instanceId;
   playRevealSound(card);
+  triggerRevealCinematic(card);
   renderCards();
   updateButtons();
 }
@@ -1603,6 +1957,7 @@ function revealCardByClick(card) {
 function triggerPackAnimation() {
   dom.packArt.classList.remove("opening");
   dom.fxLayer.classList.remove("burst");
+  dom.playPanel.classList.remove("screen-shake");
 
   void dom.packArt.offsetWidth;
 
@@ -1612,7 +1967,31 @@ function triggerPackAnimation() {
   window.setTimeout(() => {
     dom.packArt.classList.remove("opening");
     dom.fxLayer.classList.remove("burst");
+    dom.playPanel.classList.remove("screen-shake");
   }, 700);
+}
+
+function triggerRevealCinematic(card) {
+  const impact = getRevealImpact(card);
+  dom.fxLayer.classList.remove("burst-cool", "burst-warm", "burst-hot", "burst-epic");
+  dom.playPanel.classList.remove("screen-shake");
+
+  const burstClassByImpact = {
+    cool: "burst-cool",
+    warm: "burst-warm",
+    hot: "burst-hot",
+    epic: "burst-epic",
+  };
+  dom.fxLayer.classList.add("burst", burstClassByImpact[impact] || "burst-cool");
+
+  if (impact === "hot" || impact === "epic") {
+    dom.playPanel.classList.add("screen-shake");
+  }
+
+  window.setTimeout(() => {
+    dom.fxLayer.classList.remove("burst", "burst-cool", "burst-warm", "burst-hot", "burst-epic");
+    dom.playPanel.classList.remove("screen-shake");
+  }, impact === "epic" ? 1050 : 780);
 }
 
 function playPackOpenSound() {
@@ -1631,16 +2010,39 @@ function playRevealSound(card) {
   if (!ctx) return;
 
   const now = ctx.currentTime;
-  const tierRank = HIT_TIER_ORDER.indexOf(card?.pulledTier);
-  const isBigHit = tierRank > -1 && tierRank <= 2;
+  const impact = getRevealImpact(card);
 
-  if (isBigHit || (card?.value || 0) >= 30) {
-    playTone(ctx, now, 520, 0.09, 0.08, "square", 660);
-    playTone(ctx, now + 0.1, 660, 0.1, 0.09, "square", 840);
+  if (impact === "epic") {
+    playTone(ctx, now, 420, 0.12, 0.11, "square", 620);
+    playTone(ctx, now + 0.12, 620, 0.13, 0.1, "triangle", 910);
+    playTone(ctx, now + 0.27, 910, 0.16, 0.09, "sawtooth", 1100);
     return;
   }
 
-  playTone(ctx, now, 300, 0.05, 0.07, "triangle", 360);
+  if (impact === "hot") {
+    playTone(ctx, now, 360, 0.08, 0.09, "square", 500);
+    playTone(ctx, now + 0.1, 500, 0.1, 0.08, "triangle", 700);
+    return;
+  }
+
+  if (impact === "warm") {
+    playTone(ctx, now, 290, 0.07, 0.06, "triangle", 390);
+    playTone(ctx, now + 0.08, 390, 0.06, 0.05, "triangle", 460);
+    return;
+  }
+
+  playTone(ctx, now, 250, 0.05, 0.045, "sine", 290);
+}
+
+function playAchievementSound(unlockCount = 1) {
+  if (!state.soundEnabled) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const step = Math.min(Math.max(unlockCount, 1), 3);
+  playTone(ctx, now, 340, 0.08, 0.06, "triangle", 420 + step * 30);
+  playTone(ctx, now + 0.09, 430, 0.1, 0.07, "triangle", 560 + step * 40);
+  playTone(ctx, now + 0.21, 560, 0.13, 0.08, "square", 780 + step * 45);
 }
 
 function playTone(ctx, startTime, startFreq, duration, gainPeak, type, endFreq = startFreq) {
@@ -1709,6 +2111,98 @@ function persistBinder() {
   } catch {
     // Ignore storage failures in private windows.
   }
+}
+
+function createEmptyProfile() {
+  return {
+    xp: 0,
+    achievements: {},
+  };
+}
+
+function loadProfileFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return createEmptyProfile();
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return createEmptyProfile();
+    const xp = Number(parsed.xp || 0);
+    const achievements = parsed.achievements && typeof parsed.achievements === "object" ? parsed.achievements : {};
+    return {
+      xp: Number.isFinite(xp) ? Math.max(0, Math.round(xp)) : 0,
+      achievements,
+    };
+  } catch {
+    return createEmptyProfile();
+  }
+}
+
+function persistProfile() {
+  try {
+    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profile));
+  } catch {
+    // Ignore storage failures in private windows.
+  }
+}
+
+function loadChaseTargetsFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(CHASE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const result = {};
+    for (const [setKey, targets] of Object.entries(parsed)) {
+      if (!Array.isArray(targets)) continue;
+      result[setKey] = targets.slice(0, CHASE_SLOT_COUNT).map((item) => String(item || ""));
+      while (result[setKey].length < CHASE_SLOT_COUNT) result[setKey].push("");
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+function persistChaseTargets() {
+  try {
+    window.localStorage.setItem(CHASE_STORAGE_KEY, JSON.stringify(state.chaseTargetsBySet));
+  } catch {
+    // Ignore storage failures in private windows.
+  }
+}
+
+function getLevelFromXp(totalXp) {
+  const safeXp = Math.max(0, Math.floor(Number(totalXp) || 0));
+  const xpPerLevel = 120;
+  const level = Math.floor(safeXp / xpPerLevel) + 1;
+  const levelStartXp = (level - 1) * xpPerLevel;
+  const nextLevelXp = level * xpPerLevel;
+  return { level, levelStartXp, nextLevelXp };
+}
+
+function isUltraPlusTier(tier) {
+  return ["ultraRare", "illustrationRare", "specialIllustrationRare", "hyperRare", "shinyUltraRare"].includes(tier);
+}
+
+function isSirPlusTier(tier) {
+  return ["specialIllustrationRare", "hyperRare", "shinyUltraRare"].includes(tier);
+}
+
+function getRevealImpact(card) {
+  const tier = card?.pulledTier || card?.tier || "";
+  if (isSirPlusTier(tier) || (card?.value || 0) >= 40) return "epic";
+  if (isUltraPlusTier(tier) || (card?.value || 0) >= 14) return "hot";
+  if (["doubleRare", "aceSpec", "shinyRare", "rareHolo", "illustrationRare"].includes(tier) || (card?.value || 0) >= 5) return "warm";
+  return "cool";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function hydrateLiveSetCache() {
@@ -1886,6 +2380,193 @@ function applyImageWithFallback(imgEl, candidates) {
   };
 
   tryLoadAt(0);
+}
+
+function openInspectModal(card) {
+  if (!card || !dom.inspectModal || !dom.inspectCardImage) return;
+  state.inspectCard = card;
+  dom.inspectCardImage.src = card.image || "";
+  dom.inspectCardImage.alt = card.name || "Pokemon card";
+  dom.inspectCardName.textContent = card.name || "Unknown Card";
+  dom.inspectCardRarity.textContent = card.variant ? `${card.variant} (${card.rarity})` : card.rarity || "Unknown rarity";
+  dom.inspectCardSlot.textContent = card.slotLabel || "Pack card";
+  dom.inspectCardOdds.textContent = card.packPullOdds > 0
+    ? `Approx odds: 1 in ${Math.max(1, Math.round(1 / card.packPullOdds)).toLocaleString()}`
+    : "Approx odds: n/a";
+  dom.inspectCardValue.textContent = card.value > 0 ? `Market value: ${formatUsd(card.value)}` : "No market data";
+  dom.inspectModal.hidden = false;
+  dom.inspectModal.classList.add("open");
+}
+
+function closeInspectModal() {
+  if (!dom.inspectModal) return;
+  if (dom.inspectModal.hidden) return;
+  state.inspectCard = null;
+  dom.inspectModal.classList.remove("open");
+  dom.inspectModal.hidden = true;
+  resetInspectTilt();
+}
+
+function handleInspectPointerMove(event) {
+  if (!dom.inspectCardTilt) return;
+  const rect = dom.inspectCardTilt.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
+  const rotY = ((x - 0.5) * 14).toFixed(2);
+  const rotX = ((0.5 - y) * 14).toFixed(2);
+  dom.inspectCardTilt.style.setProperty("--rx", `${rotX}deg`);
+  dom.inspectCardTilt.style.setProperty("--ry", `${rotY}deg`);
+  dom.inspectCardTilt.style.setProperty("--mx", `${Math.round(x * 100)}%`);
+  dom.inspectCardTilt.style.setProperty("--my", `${Math.round(y * 100)}%`);
+}
+
+function resetInspectTilt() {
+  if (!dom.inspectCardTilt) return;
+  dom.inspectCardTilt.style.setProperty("--rx", "0deg");
+  dom.inspectCardTilt.style.setProperty("--ry", "0deg");
+  dom.inspectCardTilt.style.setProperty("--mx", "50%");
+  dom.inspectCardTilt.style.setProperty("--my", "50%");
+}
+
+function getTopRevealedCard() {
+  if (!state.currentPack?.length) return null;
+  const revealAll = state.revealMode === "all";
+  const revealed = state.currentPack.filter((card) => revealAll || state.revealedInstanceIds.has(card.instanceId));
+  if (!revealed.length) return null;
+  return revealed.reduce((best, card) => ((card.value || 0) > (best?.value || 0) ? card : best), null);
+}
+
+async function shareTopPull() {
+  const topCard = getTopRevealedCard();
+  if (!topCard) {
+    setStatus("Reveal at least one card before sharing.", "error");
+    return;
+  }
+
+  const blob = await buildShareImageBlob(topCard);
+  const fileName = `poke-pull-${(topCard.name || "hit").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`;
+  const file = typeof File !== "undefined" ? new File([blob], fileName, { type: "image/png" }) : null;
+  const shareText = `I pulled ${topCard.name} worth ${formatUsd(topCard.value || 0)} in Pokemon Pack Simulator!`;
+
+  if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      title: "Pokemon Pack Simulator Pull",
+      text: shareText,
+      files: [file],
+    });
+    setStatus("Shared your top pull.", "ready");
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  setStatus("Saved pull card image for sharing.", "ready");
+}
+
+async function buildShareImageBlob(card) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 630;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas unavailable");
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, "#0e2644");
+  gradient.addColorStop(0.58, "#102a49");
+  gradient.addColorStop(1, "#2e224a");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  for (let i = 0; i < 16; i += 1) {
+    ctx.fillRect(i * 80, 0, 1, canvas.height);
+    ctx.fillRect(0, i * 80, canvas.width, 1);
+  }
+
+  const image = await loadImageForShare(card.image || "", SHARE_RENDER_TIMEOUT_MS);
+  if (image) {
+    const cardWidth = 360;
+    const cardHeight = 500;
+    const x = 80;
+    const y = 65;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 8;
+    ctx.drawImage(image, x, y, cardWidth, cardHeight);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#f0f7ff";
+  ctx.font = "700 52px Orbitron, Rajdhani, sans-serif";
+  ctx.fillText("Top Pull", 500, 120);
+
+  ctx.font = "700 44px Rajdhani, sans-serif";
+  ctx.fillStyle = "#ffd45c";
+  ctx.fillText(`${card.name || "Mystery Hit"}`, 500, 195);
+
+  ctx.font = "600 34px Rajdhani, sans-serif";
+  ctx.fillStyle = "#d0e8ff";
+  ctx.fillText(card.variant ? `${card.variant} (${card.rarity || ""})` : card.rarity || "Pokemon Card", 500, 250);
+  ctx.fillText(`Value: ${formatUsd(card.value || 0)}`, 500, 305);
+  if (card.packPullOdds > 0) {
+    ctx.fillText(`Approx odds: 1 in ${Math.max(1, Math.round(1 / card.packPullOdds)).toLocaleString()}`, 500, 360);
+  }
+  ctx.fillStyle = "#8eb7d9";
+  ctx.font = "600 30px Rajdhani, sans-serif";
+  ctx.fillText(`Set: ${getCurrentPackDef().displayName}`, 500, 430);
+
+  ctx.fillStyle = "#c7def7";
+  ctx.font = "600 26px Rajdhani, sans-serif";
+  ctx.fillText("Pokemon Pack Simulator", 500, 520);
+
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Unable to render share image"));
+        return;
+      }
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+function loadImageForShare(src, timeoutMs) {
+  return new Promise((resolve) => {
+    if (!src) {
+      resolve(null);
+      return;
+    }
+    const image = new Image();
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(null);
+    }, timeoutMs);
+
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(image);
+    };
+    image.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(null);
+    };
+    image.src = src;
+  });
 }
 
 function createPackPlaceholderDataUri(packDef) {

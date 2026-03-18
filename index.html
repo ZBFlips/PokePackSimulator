@@ -50,6 +50,7 @@
 
         <div class="button-row">
           <button id="openPackBtn" class="btn btn-primary" disabled>Open Pack</button>
+          <button id="sharePullBtn" class="btn" disabled>Share Top Pull</button>
         </div>
 
         <div class="button-row">
@@ -57,6 +58,7 @@
           <button id="resetBinderBtn" class="btn">Reset Binder</button>
         </div>
 
+        <div id="chasePanel" class="chase-panel"></div>
         <div id="oddsPanel" class="odds-panel"></div>
       </section>
 
@@ -85,6 +87,7 @@
             <p>Tracks this session's progress and your saved pulls.</p>
           </div>
           <div id="sessionStats" class="session-stats"></div>
+          <div id="achievementPanel" class="achievement-panel"></div>
           <div id="binderGrid" class="binder-grid"></div>
         </section>
       </section>
@@ -107,6 +110,25 @@
     </article>
   </template>
 
-  <script src="app.js?v=20260318-9"></script>
+  <div id="inspectModal" class="inspect-modal" hidden>
+    <div class="inspect-backdrop" data-close-inspect></div>
+    <article class="inspect-dialog" role="dialog" aria-modal="true" aria-label="Card details">
+      <button id="inspectCloseBtn" class="inspect-close-btn" type="button">Close</button>
+      <div class="inspect-card-wrap">
+        <div id="inspectCardTilt" class="inspect-card-tilt">
+          <img id="inspectCardImage" alt="Selected card detail" />
+        </div>
+      </div>
+      <div class="inspect-copy">
+        <h3 id="inspectCardName">Card Name</h3>
+        <p id="inspectCardRarity">Rarity</p>
+        <p id="inspectCardSlot">Slot</p>
+        <p id="inspectCardOdds">Odds</p>
+        <p id="inspectCardValue">Value</p>
+      </div>
+    </article>
+  </div>
+
+  <script src="app.js?v=20260318-11"></script>
 </body>
 </html>
