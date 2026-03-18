@@ -3,7 +3,7 @@ const BINDER_STORAGE_KEY = "pokemon-pack-sim-binder-v2";
 const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
 const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
 const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
-const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v2-";
+const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v3-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
 const REQUEST_RETRIES = 2;
@@ -14,10 +14,6 @@ const CHASE_CANDIDATE_LIMIT = 40;
 const DEFAULT_PACK_PRICE = 4.99;
 const HISTORY_LIMIT = 30;
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
-const VINTAGE_SET_IDS = new Set(["base1", "base2", "base3"]);
-const VINTAGE_ICONIC_MIN_VALUE = {
-  "base1:charizard": 4800,
-};
 const ANALYTICS_TIER_ORDER = [
   "common",
   "uncommon",
@@ -1675,7 +1671,7 @@ async function fetchSetCards(setId) {
       q: `set.id:${setId}`,
       pageSize: "250",
       page: String(page),
-      select: "id,name,number,rarity,images,supertype,subtypes,set,tcgplayer",
+      select: "id,name,number,rarity,images,supertype,subtypes,set,tcgplayer,cardmarket",
     });
 
     const payload = await fetchJsonWithTimeout(`${API_BASE}/cards?${params.toString()}`, REQUEST_TIMEOUT_MS, `Card fetch (${setId})`);
@@ -1766,56 +1762,80 @@ function normalizeCard(rawCard) {
     number: String(rawCard.number ?? ""),
     rarity: rawCard.rarity ?? "",
     tier,
-    marketValue: findMarketValue(rawCard.tcgplayer?.prices, rawCard, tier),
+    marketValue: findMarketValue(rawCard, tier),
     supertype: rawCard.supertype ?? "",
     subtypes: rawCard.subtypes ?? [],
     setCode: rawCard.set?.ptcgoCode || rawCard.set?.id || "",
   };
 }
 
-function findMarketValue(priceTable, rawCard, tier) {
+function findMarketValue(rawCard, tier) {
+  const priceTable = rawCard?.tcgplayer?.prices;
+  const cardmarketPrices = rawCard?.cardmarket?.prices;
   if (!priceTable || typeof priceTable !== "object") {
-    return 0;
+    return fallbackCardmarketValue(cardmarketPrices);
+  }
+
+  const preferredKeys = getPreferredVariantKeys(tier);
+
+  for (const key of preferredKeys) {
+    const variant = priceTable[key];
+    if (variant && typeof variant.market === "number" && Number.isFinite(variant.market) && variant.market > 0) {
+      return Number(variant.market.toFixed(2));
+    }
   }
 
   let bestMarket = 0;
   let bestMid = 0;
-  let bestHigh = 0;
+  let bestLow = 0;
   for (const variant of Object.values(priceTable)) {
     if (!variant || typeof variant !== "object") {
       continue;
     }
     if (typeof variant.market === "number") bestMarket = Math.max(bestMarket, variant.market);
     if (typeof variant.mid === "number") bestMid = Math.max(bestMid, variant.mid);
-    if (typeof variant.high === "number") bestHigh = Math.max(bestHigh, variant.high);
+    if (typeof variant.low === "number") bestLow = Math.max(bestLow, variant.low);
   }
 
-  let estimated = Math.max(bestMarket, bestMid * 0.8, bestHigh * 0.55);
-  const setId = rawCard?.set?.id || "";
-  const vintage = VINTAGE_SET_IDS.has(setId);
-
-  if (vintage) {
-    if (tier === "rareHolo") {
-      estimated = Math.max(estimated, bestMarket * 2.6, bestMid * 1.2, bestHigh * 0.9);
-    } else if (tier === "rare") {
-      estimated = Math.max(estimated, bestMarket * 1.6, bestMid * 1.05, bestHigh * 0.7);
-    } else if (tier === "uncommon") {
-      estimated = Math.max(estimated, bestMarket * 1.2, bestMid * 0.92, bestHigh * 0.58);
-    } else if (tier === "common") {
-      estimated = Math.max(estimated, bestMarket * 1.08, bestMid * 0.8, bestHigh * 0.5);
-    }
-
-    const iconKey = `${setId}:${cleanName(rawCard?.name || "")}`;
-    const minIconValue = VINTAGE_ICONIC_MIN_VALUE[iconKey];
-    if (typeof minIconValue === "number") {
-      estimated = Math.max(estimated, minIconValue);
-    }
+  if (Number.isFinite(bestMarket) && bestMarket > 0) {
+    return Number(bestMarket.toFixed(2));
+  }
+  if (Number.isFinite(bestMid) && bestMid > 0) {
+    return Number((bestMid * 0.9).toFixed(2));
+  }
+  if (Number.isFinite(bestLow) && bestLow > 0) {
+    return Number(bestLow.toFixed(2));
   }
 
-  if (!Number.isFinite(estimated) || estimated < 0) {
+  return fallbackCardmarketValue(cardmarketPrices);
+}
+
+function fallbackCardmarketValue(cardmarketPrices) {
+  if (!cardmarketPrices || typeof cardmarketPrices !== "object") {
     return 0;
   }
-  return Number(estimated.toFixed(2));
+  const candidates = [
+    cardmarketPrices.trendPrice,
+    cardmarketPrices.averageSellPrice,
+    cardmarketPrices.avg30,
+    cardmarketPrices.lowPriceExPlus,
+    cardmarketPrices.lowPrice,
+  ].filter((value) => typeof value === "number" && Number.isFinite(value) && value > 0);
+
+  if (!candidates.length) {
+    return 0;
+  }
+  return Number(Math.max(...candidates).toFixed(2));
+}
+
+function getPreferredVariantKeys(tier) {
+  if (["rareHolo", "doubleRare", "ultraRare", "illustrationRare", "specialIllustrationRare", "hyperRare", "shinyUltraRare"].includes(tier)) {
+    return ["holofoil", "unlimitedHolofoil", "1stEditionHolofoil"];
+  }
+  if (["rare", "uncommon", "common", "reverseFoil", "energy"].includes(tier)) {
+    return ["normal", "unlimited", "reverseHolofoil"];
+  }
+  return ["holofoil", "normal", "unlimitedHolofoil", "unlimited", "reverseHolofoil", "1stEditionHolofoil"];
 }
 
 function rarityToTier(rarityValue) {
@@ -2171,7 +2191,7 @@ function renderOddsPanel() {
     <div class="odds-title">Rarity Slot Odds (${packDef.displayName})</div>
     <ul class="odds-list">${baseList}</ul>
     ${chaseMarkup}
-    <div class="odds-source">Per-card weighting: market-scarcity weighted by tier. Sources: ${sourceLinks}</div>
+    <div class="odds-source">Per-card weighting: market-scarcity weighted by tier. Pricing: PokemonTCG API public data (TCGplayer market, then mid/low fallback, then Cardmarket fallback). Sources: ${sourceLinks}</div>
   `;
 }
 
