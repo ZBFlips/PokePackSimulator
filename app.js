@@ -550,7 +550,7 @@ const PACK_CONFIG = [
     shortCode: "ASR",
     releaseLabel: "Sword & Shield Expansion",
     packPrice: 4.49,
-    localPackImage: "",
+    localPackImage: "assets/packs/astral-radiance.png",
     packImage: "",
     setAliases: ["Astral Radiance", "Sword & Shield-Astral Radiance", "Sword & Shield-Astral-Radiance"],
     slotOdds: {
@@ -603,7 +603,7 @@ const PACK_CONFIG = [
     shortCode: "SIT",
     releaseLabel: "Sword & Shield Expansion",
     packPrice: 4.49,
-    localPackImage: "",
+    localPackImage: "assets/packs/silver-tempest.png",
     packImage: "",
     setAliases: ["Silver Tempest", "Sword & Shield-Silver Tempest", "Sword & Shield-Silver-Tempest"],
     slotOdds: {
@@ -656,7 +656,7 @@ const PACK_CONFIG = [
     shortCode: "CRZ",
     releaseLabel: "Sword & Shield Special Set",
     packPrice: 5.29,
-    localPackImage: "",
+    localPackImage: "assets/packs/crown-zenith.png",
     packImage: "",
     setAliases: ["Crown Zenith", "Sword & Shield-Crown Zenith", "Sword & Shield-Crown-Zenith"],
     slotOdds: {
