@@ -1,7 +1,10 @@
 const API_BASE = "https://api.pokemontcg.io/v2";
 const BINDER_STORAGE_KEY = "pokemon-pack-sim-binder-v2";
+const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v1-";
+const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
 const REQUEST_RETRIES = 2;
+const IMAGE_FALLBACK_TIMEOUT_MS = 4500;
 
 const PACK_CONFIG = [
   {
@@ -620,7 +623,8 @@ init().catch((error) => {
 async function init() {
   wireControls();
   seedFallbackData();
-  setStatus("Ready in fallback mode. Loading live card data...");
+  const cachedSets = hydrateLiveSetCache();
+  setStatus(cachedSets ? `Ready from cache (${cachedSets} sets).` : "Ready in fallback mode. Loading live card data...");
   renderPackSelector();
   renderOddsPanel();
   renderPackHeader();
@@ -628,7 +632,11 @@ async function init() {
   renderSessionStats();
   renderBinder();
   updateButtons();
-  loadPackLiveData(state.selectedPackKey);
+  if (state.liveLoadedPackKeys.has(state.selectedPackKey)) {
+    setStatus("Ready to rip packs.", "ready");
+  } else {
+    loadPackLiveData(state.selectedPackKey);
+  }
 }
 
 function wireControls() {
@@ -733,6 +741,7 @@ async function loadPackLiveData(packKey) {
       approxCardOdds,
     };
     state.liveLoadedPackKeys.add(packKey);
+    persistLiveSetCache(packKey, setMeta, cards);
 
     setStatus("Ready to rip packs.", "ready");
   } catch (error) {
@@ -1702,6 +1711,98 @@ function persistBinder() {
   }
 }
 
+function hydrateLiveSetCache() {
+  let loaded = 0;
+  for (const packDef of PACK_CONFIG) {
+    const cached = loadLiveSetCache(packDef.key);
+    if (!cached?.cards?.length) continue;
+
+    const cards = cached.cards.map(normalizeCachedCard).filter((card) => card.id && card.image);
+    if (!cards.length) continue;
+
+    const pools = buildPools(cards);
+    const weightedPools = buildWeightedPools(packDef, pools);
+    const approxCardOdds = buildApproxPackOdds(packDef, weightedPools);
+
+    state.setData[packDef.key] = {
+      setMeta: cached.setMeta || state.setData[packDef.key]?.setMeta || null,
+      cards,
+      pools,
+      weightedPools,
+      approxCardOdds,
+    };
+    state.liveLoadedPackKeys.add(packDef.key);
+    loaded += 1;
+  }
+  return loaded;
+}
+
+function getLiveSetCacheKey(packKey) {
+  return `${LIVE_SET_CACHE_PREFIX}${packKey}`;
+}
+
+function loadLiveSetCache(packKey) {
+  try {
+    const raw = window.localStorage.getItem(getLiveSetCacheKey(packKey));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!Array.isArray(parsed.cards) || !parsed.savedAt) return null;
+    if (Date.now() - parsed.savedAt > LIVE_SET_CACHE_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function persistLiveSetCache(packKey, setMeta, cards) {
+  try {
+    const payload = {
+      savedAt: Date.now(),
+      setMeta: setMeta
+        ? {
+            id: setMeta.id || "",
+            name: setMeta.name || "",
+            images: {
+              symbol: setMeta.images?.symbol || "",
+              logo: setMeta.images?.logo || "",
+            },
+          }
+        : null,
+      cards: cards.map((card) => ({
+        id: card.id || "",
+        name: card.name || "",
+        image: card.image || "",
+        number: card.number || "",
+        rarity: card.rarity || "",
+        tier: card.tier || "",
+        marketValue: Number(card.marketValue || 0),
+        supertype: card.supertype || "",
+        subtypes: Array.isArray(card.subtypes) ? card.subtypes : [],
+        setCode: card.setCode || "",
+      })),
+    };
+    window.localStorage.setItem(getLiveSetCacheKey(packKey), JSON.stringify(payload));
+  } catch {
+    // Ignore cache write failures when storage is unavailable or full.
+  }
+}
+
+function normalizeCachedCard(rawCard) {
+  return {
+    id: rawCard.id,
+    name: rawCard.name ?? "Unknown Card",
+    image: rawCard.image || "",
+    number: String(rawCard.number ?? ""),
+    rarity: rawCard.rarity ?? "",
+    tier: rawCard.tier || rarityToTier(rawCard.rarity),
+    marketValue: Number(rawCard.marketValue || 0),
+    supertype: rawCard.supertype ?? "",
+    subtypes: Array.isArray(rawCard.subtypes) ? rawCard.subtypes : [],
+    setCode: rawCard.setCode || "",
+  };
+}
+
 function makeFallbackCard() {
   return {
     id: "fallback",
@@ -1739,23 +1840,52 @@ function getSetLogoUrl(setId) {
 
 function applyImageWithFallback(imgEl, candidates) {
   const chain = candidates.filter(Boolean);
-  let index = 0;
+  const requestToken = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  imgEl.dataset.fallbackRequest = requestToken;
 
   if (!chain.length) {
     imgEl.removeAttribute("src");
     return;
   }
 
-  imgEl.onerror = () => {
-    index += 1;
-    if (index >= chain.length) {
-      imgEl.removeAttribute("src");
+  const tryLoadAt = (index) => {
+    if (imgEl.dataset.fallbackRequest !== requestToken) {
       return;
     }
+
+    if (index >= chain.length) {
+      imgEl.removeAttribute("src");
+      imgEl.onerror = null;
+      imgEl.onload = null;
+      return;
+    }
+
+    let settled = false;
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      tryLoadAt(index + 1);
+    }, IMAGE_FALLBACK_TIMEOUT_MS);
+
+    imgEl.onload = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      imgEl.onerror = null;
+      imgEl.onload = null;
+    };
+
+    imgEl.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      tryLoadAt(index + 1);
+    };
+
     imgEl.src = chain[index];
   };
 
-  imgEl.src = chain[index];
+  tryLoadAt(0);
 }
 
 function createPackPlaceholderDataUri(packDef) {
