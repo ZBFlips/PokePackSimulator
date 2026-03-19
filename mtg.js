@@ -6,6 +6,7 @@ const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
 const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
 const MTG_CHASE_FILTER_STORAGE_KEY = "mtg-pack-sim-chase-filter-v1";
 const MTG_QA_WINDOW_SIZE = 50;
+const MTG_EXACT_TEMPLATE_VERSION = "exact-template-v1";
 
 const MTG_PRODUCTS = {
   play: {
@@ -160,6 +161,7 @@ function buildPlayOverride(note, options = {}) {
 
   return {
     fidelity: options.fidelity || "official-slot",
+    templateVersion: MTG_EXACT_TEMPLATE_VERSION,
     notes: note,
     play: { slots: playSlots },
     collector: {
@@ -197,8 +199,9 @@ function buildSetBoosterOverride(note, options = {}) {
 
 const MTG_SET_COLLATION_OVERRIDES = {
   blb: {
-    fidelity: "official-slot",
-    notes: "Official Collecting Bloomburrow breakdown (Play/Collector composition).",
+    fidelity: "exact",
+    templateVersion: MTG_EXACT_TEMPLATE_VERSION,
+    notes: "Exact template baseline (Bloomburrow): strict slot/sheet simulation using official collecting breakdowns and strict pool gating.",
     play: {
       slots: [
         { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
@@ -395,6 +398,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
     wildcardWeights: { common: 62, uncommon: 22, rare: 12, mythic: 4 },
     landWeights: { basicLand: 73, land: 27 },
     includeSpecialGuestSlot: false,
+    fidelity: "exact",
   }),
   eoe: buildPlayOverride("Official Collecting Edge of Eternities breakdown (Play/Collector composition).", {
     commonCount: 6,
@@ -407,12 +411,14 @@ const MTG_SET_COLLATION_OVERRIDES = {
     wildcardWeights: { common: 61, uncommon: 23, rare: 12, mythic: 4 },
     landWeights: { basicLand: 73, land: 27 },
     includeSpecialGuestSlot: false,
+    fidelity: "exact",
   }),
   tla: buildPlayOverride("Official Collecting Avatar: The Last Airbender breakdown (Play/Collector composition).", {
     commonCount: 6,
     wildcardWeights: { common: 61, uncommon: 23, rare: 12, mythic: 4 },
     landWeights: { basicLand: 73, land: 27 },
     includeSpecialGuestSlot: false,
+    fidelity: "exact",
   }),
   ecl: buildPlayOverride("Official Collecting Lorwyn Eclipsed breakdown (Play/Collector composition).", {
     commonCount: 6,
@@ -1034,7 +1040,7 @@ function renderHeader() {
     const sourceLabel = profile.profileSource || "Default";
     const note = profile.profileNote ? `<span class="pack-source-meta">${escapeHtml(profile.profileNote)}</span>` : "";
     const fidelity = profile.profileFidelityLabel || "Estimated";
-    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong> <strong>[${escapeHtml(fidelity)}]</strong></span>${note}`;
+    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong> <strong>[${escapeHtml(fidelity)}]</strong> <span class="pack-source-meta">${escapeHtml(profile.templateVersion || MTG_EXACT_TEMPLATE_VERSION)}</span></span>${note}`;
   }
 
   dom.packPriceSource.innerHTML = source
@@ -1059,7 +1065,9 @@ async function loadSetData(setKey) {
     const normalized = cards.map(normalizeCard).filter((card) => card.image);
     const boosterEligible = normalized.filter((card) => card.boosterEligible);
     const activeCards = boosterEligible.length ? boosterEligible : normalized;
-    const pools = buildPools(activeCards);
+    const pools = buildPools(activeCards, {
+      strictMode: isExactCollationSet(setDef),
+    });
     state.setData[setKey] = {
       setMeta,
       cards: activeCards,
@@ -1178,7 +1186,8 @@ function normalizeCard(raw) {
   };
 }
 
-function buildPools(cards) {
+function buildPools(cards, options = {}) {
+  const strictMode = options.strictMode === true;
   const specialGuestLike = cards.filter((card) => card.isSpecialGuestLike);
   const specialGuestIds = new Set(specialGuestLike.map((card) => card.id));
   const nonLandCards = cards.filter((card) => !card.isLand);
@@ -1197,15 +1206,20 @@ function buildPools(cards) {
     common: commonAll,
     uncommon: uncommonAll,
     // Tailored fix: keep premium treatments and special-guest style inserts out of baseline play-booster rare/mythic pools.
-    rare: rareBase.length ? rareBase : rareAll,
-    mythic: mythicBase.length ? mythicBase : mythicAll,
-    basicLand: basicLands.length ? basicLands : nonBasicLands,
-    land: nonBasicLands.length ? nonBasicLands : basicLands,
+    rare: strictMode ? rareBase : (rareBase.length ? rareBase : rareAll),
+    mythic: strictMode ? mythicBase : (mythicBase.length ? mythicBase : mythicAll),
+    basicLand: strictMode ? basicLands : (basicLands.length ? basicLands : nonBasicLands),
+    land: strictMode ? nonBasicLands : (nonBasicLands.length ? nonBasicLands : basicLands),
     specialGuest: specialGuestLike,
     showcaseRare: boosterFunRare,
     showcaseMythic: boosterFunMythic,
   };
   return byRarity;
+}
+
+function isExactCollationSet(setDef) {
+  const override = MTG_SET_COLLATION_OVERRIDES[setDef?.scryfallCode] || null;
+  return override?.fidelity === "exact";
 }
 
 function openPack() {
@@ -1296,12 +1310,14 @@ function getCollationProfile(setDef) {
   const profile = override || base;
   const note = setOverride?.notes || "";
   const fidelity = setOverride?.fidelity || "estimated";
+  const templateVersion = setOverride?.templateVersion || MTG_EXACT_TEMPLATE_VERSION;
   return {
     slots: profile.slots || [],
     profileSource: override ? `${setDef.displayName} ${base.label} Official` : `${base.label} Default`,
     profileNote: note,
     profileFidelity: fidelity,
     profileFidelityLabel: formatCollationFidelityLabel(fidelity),
+    templateVersion,
   };
 }
 
