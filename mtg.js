@@ -820,6 +820,7 @@ const state = {
     running: false,
     resultBySetProduct: {},
   },
+  qaLockfile: null,
   rng: initializeRngState(),
   lab: {
     running: false,
@@ -855,6 +856,7 @@ const dom = {
   rngPanel: document.getElementById("mtgRngPanel"),
   labPanel: document.getElementById("mtgLabPanel"),
   fidelityRegistryPanel: document.getElementById("mtgFidelityRegistryPanel"),
+  profileDataPanel: document.getElementById("mtgProfileDataPanel"),
   cardTemplate: document.getElementById("mtgCardTemplate"),
 };
 
@@ -865,6 +867,7 @@ init().catch((error) => {
 
 async function init() {
   syncProductModeFromSealedSelection();
+  await loadMtgQaLockfile();
   wireControls();
   renderSetSelect();
   renderHeader();
@@ -874,6 +877,7 @@ async function init() {
   renderRngPanel();
   renderLabPanel();
   renderFidelityRegistryPanel();
+  renderMtgProfileDataPanel();
   renderChasePanel();
   renderBinder();
   renderCards();
@@ -946,6 +950,8 @@ function wireControls() {
     renderSessionStats();
     renderEconomyPanel();
     renderLabPanel();
+    renderFidelityRegistryPanel();
+    renderMtgProfileDataPanel();
     renderChasePanel();
   });
 
@@ -974,6 +980,8 @@ function wireControls() {
     renderOddsQaPanel();
     renderRngPanel();
     renderLabPanel();
+    renderFidelityRegistryPanel();
+    renderMtgProfileDataPanel();
     renderChasePanel();
     renderCards();
   });
@@ -1152,6 +1160,9 @@ async function loadSetData(setKey) {
     renderSetSelect();
     renderHeader();
     renderOddsQaPanel();
+    renderLabPanel();
+    renderFidelityRegistryPanel();
+    renderMtgProfileDataPanel();
     renderChasePanel();
     if (state.backgroundSync.running) {
       state.backgroundSync.done += 1;
@@ -1234,6 +1245,7 @@ function normalizeCard(raw) {
     image: raw.image_uris?.normal || raw.card_faces?.[0]?.image_uris?.normal || "",
     usd: Number(raw.prices?.usd || 0),
     usdFoil: Number(raw.prices?.usd_foil || 0),
+    usdEtched: Number(raw.prices?.usd_etched || 0),
     boosterEligible,
     isBoosterFunTreatment,
     isBasicLand: /basic land/i.test(raw.type_line || ""),
@@ -1309,6 +1321,8 @@ function openPack() {
   renderOddsQaPanel();
   renderRngPanel();
   renderLabPanel();
+  renderFidelityRegistryPanel();
+  renderMtgProfileDataPanel();
   renderChasePanel();
   renderBinder();
   renderCards();
@@ -1328,7 +1342,7 @@ function simulatePack(setData, options = {}) {
     cards.push({
       ...picked,
       slotLabel,
-      value: picked.isFoil && picked.usdFoil > 0 ? picked.usdFoil : picked.usd > 0 ? picked.usd : picked.usdFoil,
+      value: resolveMtgCardValue(picked),
       instanceId: `${picked.id}-${setProductKey}-${packIndex}-${cards.length + 1}-${Math.floor(rng() * 1e9)}`,
       standardIndex: cards.length + 1,
       packIndex,
@@ -1388,6 +1402,28 @@ function weightedChoice(entries, rng = state.rng.generator) {
     if (roll <= 0) return entry;
   }
   return entries[entries.length - 1] || null;
+}
+
+function resolveMtgCardValue(card) {
+  if (!card) return 0;
+  if (card.isFoil) {
+    if (card.frameEffects?.includes("etched") && Number.isFinite(card.usdEtched) && card.usdEtched > 0) {
+      return Number(card.usdEtched.toFixed(2));
+    }
+    if (Number.isFinite(card.usdFoil) && card.usdFoil > 0) {
+      return Number(card.usdFoil.toFixed(2));
+    }
+  }
+  if (Number.isFinite(card.usd) && card.usd > 0) {
+    return Number(card.usd.toFixed(2));
+  }
+  if (Number.isFinite(card.usdFoil) && card.usdFoil > 0) {
+    return Number(card.usdFoil.toFixed(2));
+  }
+  if (Number.isFinite(card.usdEtched) && card.usdEtched > 0) {
+    return Number(card.usdEtched.toFixed(2));
+  }
+  return 0;
 }
 
 function getCollationProfile(setDef) {
@@ -1972,6 +2008,8 @@ async function runCollationTest(setKey, productMode) {
     renderSetSelect();
     renderOddsQaPanel();
     renderLabPanel();
+    renderFidelityRegistryPanel();
+    renderMtgProfileDataPanel();
     renderChasePanel();
   }
 }
@@ -2151,6 +2189,7 @@ function renderLabPanel() {
   const setDef = getCurrentSetDef();
   const setProductKey = getSetProductKey(setDef.key, state.productMode);
   const last = state.lab.lastResultBySetProduct[setProductKey] || null;
+  const lockCheck = getMtgLockfileCheck(setProductKey, last);
   dom.labPanel.innerHTML = `
     <div class="economy-head">
       <strong>Simulation Lab</strong>
@@ -2170,6 +2209,11 @@ function renderLabPanel() {
     <div class="qa-test-summary">
       <strong>${last ? `Last: ${last.n.toLocaleString()} packs` : "No simulation yet"}</strong>
       <p>${last ? `Mythic ${formatPercent(last.metrics.mythicAny.rate)} | Foil Rare+ ${formatPercent(last.metrics.foilRarePlusAny.rate)}` : "Run a lab to compute confidence bands."}</p>
+      ${
+        lockCheck
+          ? `<p>QA Lockfile: <strong class="${lockCheck.pass ? "qa-pass" : "qa-fail"}">${lockCheck.pass ? "PASS" : "CHECK"}</strong> ${escapeHtml(lockCheck.summary)}</p>`
+          : "<p>QA Lockfile: no entry for this set/product.</p>"
+      }
     </div>
   `;
   const select = dom.labPanel.querySelector("#mtgLabIterations");
@@ -2195,7 +2239,9 @@ function renderFidelityRegistryPanel() {
   const rows = getSortedSets()
     .map((setDef) => {
       const profile = getCollationProfile(setDef);
-      return `<li><span>${escapeHtml(setDef.displayName)}</span><strong>${escapeHtml(profile.profileFidelityLabel)}</strong></li>`;
+      const lockKey = getSetProductKey(setDef.key, "play");
+      const lock = state.qaLockfile?.sets?.[lockKey] ? "lockfile" : "no lockfile";
+      return `<li><span>${escapeHtml(setDef.displayName)} <em>${lock}</em></span><strong>${escapeHtml(profile.profileFidelityLabel)}</strong></li>`;
     })
     .join("");
   const sourceLinks = (MTG_FIDELITY_SOURCES.default || [])
@@ -2209,6 +2255,148 @@ function renderFidelityRegistryPanel() {
     <ul class="qa-slot-list">${rows}</ul>
     <div class="pack-price-source"><span>Sources: ${sourceLinks}</span></div>
   `;
+}
+
+async function loadMtgQaLockfile() {
+  try {
+    const response = await fetch("./assets/qa/mtg-lockfile.json");
+    if (!response.ok) return;
+    const parsed = await response.json();
+    if (parsed && typeof parsed === "object") {
+      state.qaLockfile = parsed;
+    }
+  } catch {
+    // Ignore missing lockfile.
+  }
+}
+
+function getMtgLockfileCheck(setProductKey, result) {
+  if (!result || !state.qaLockfile?.sets?.[setProductKey]) return null;
+  const lock = state.qaLockfile.sets[setProductKey];
+  const checks = [
+    checkMtgRange(result.metrics?.mythicAny?.rate, lock.mythic_any_rate),
+    checkMtgRange(result.metrics?.foilRarePlusAny?.rate, lock.foil_rare_plus_rate),
+    checkMtgRange(result.metrics?.showcaseRarePlusAny?.rate, lock.showcase_rare_plus_rate),
+  ];
+  const pass = checks.every(Boolean);
+  const parts = [];
+  if (!checks[0]) parts.push("Mythic");
+  if (!checks[1]) parts.push("Foil Rare+");
+  if (!checks[2]) parts.push("Showcase Rare+");
+  return {
+    pass,
+    summary: pass ? "All ranges satisfied." : `${parts.join(", ")} out of band.`,
+  };
+}
+
+function checkMtgRange(value, range) {
+  if (!range || typeof range !== "object") return true;
+  const min = Number(range.min);
+  const max = Number(range.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return true;
+  return Number(value) >= min && Number(value) <= max;
+}
+
+function renderMtgProfileDataPanel() {
+  if (!dom.profileDataPanel) return;
+  dom.profileDataPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Profile Data</strong>
+      <span>Export/import MTG binder, chase, RNG, and session state.</span>
+    </div>
+    <div class="button-row">
+      <button id="mtgExportProfileBtn" class="btn">Export JSON</button>
+      <button id="mtgImportProfileBtn" class="btn">Import JSON</button>
+    </div>
+    <input id="mtgImportProfileInput" type="file" accept="application/json" hidden />
+  `;
+  dom.profileDataPanel.querySelector("#mtgExportProfileBtn")?.addEventListener("click", exportMtgProfileData);
+  dom.profileDataPanel.querySelector("#mtgImportProfileBtn")?.addEventListener("click", () => {
+    dom.profileDataPanel.querySelector("#mtgImportProfileInput")?.click();
+  });
+  dom.profileDataPanel.querySelector("#mtgImportProfileInput")?.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    importMtgProfileData(text);
+    event.target.value = "";
+  });
+}
+
+function exportMtgProfileData() {
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    mtg: {
+      binder: state.binder,
+      chaseTargetsBySet: state.chaseTargetsBySet,
+      session: state.session,
+      sealedProductKey: state.sealedProductKey,
+      productMode: state.productMode,
+      priceSourceMode: state.priceSourceMode,
+      rng: {
+        mode: state.rng.mode,
+        seed: state.rng.seed,
+      },
+    },
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mtg-pack-sim-profile-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importMtgProfileData(rawText) {
+  try {
+    const parsed = JSON.parse(rawText);
+    const payload = parsed?.mtg;
+    if (!payload || typeof payload !== "object") throw new Error("Invalid MTG payload.");
+    if (payload.binder && typeof payload.binder === "object") {
+      state.binder = payload.binder;
+      persistBinder();
+    }
+    if (payload.chaseTargetsBySet && typeof payload.chaseTargetsBySet === "object") {
+      state.chaseTargetsBySet = payload.chaseTargetsBySet;
+      persistChaseTargets();
+    }
+    if (payload.session && typeof payload.session === "object") {
+      state.session = { ...state.session, ...payload.session };
+    }
+    if (payload.sealedProductKey && MTG_SEALED_PRODUCTS[payload.sealedProductKey]) {
+      state.sealedProductKey = payload.sealedProductKey;
+      syncProductModeFromSealedSelection();
+      saveProductMode(state.sealedProductKey);
+    }
+    if (payload.priceSourceMode === "scryfall" || payload.priceSourceMode === "tcgplayerSealed") {
+      state.priceSourceMode = payload.priceSourceMode;
+      savePriceSourceMode(state.priceSourceMode);
+    }
+    if (payload.rng && typeof payload.rng === "object") {
+      state.rng.mode = payload.rng.mode === "random" ? "random" : "seeded";
+      reseedRng(payload.rng.seed || state.rng.seed);
+    }
+
+    renderSetSelect();
+    renderHeader();
+    renderSessionStats();
+    renderEconomyPanel();
+    renderOddsQaPanel();
+    renderRngPanel();
+    renderLabPanel();
+    renderFidelityRegistryPanel();
+    renderMtgProfileDataPanel();
+    renderChasePanel();
+    renderBinder();
+    renderCards();
+    setStatus("Imported MTG profile data.", "ready");
+  } catch (error) {
+    setStatus(`Import failed: ${error.message}`, "error");
+  }
 }
 function applySetTheme(setDef) {
   const releaseYear = Number((setDef.releaseDate || "").slice(0, 4));

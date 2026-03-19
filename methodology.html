@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1d33" />
+  <title>Simulator Methodology</title>
+  <link href="https://fonts.cdnfonts.com/css/pokemon-solid" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20260319-34" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1>Methodology & Fidelity</h1>
+        <p>How Pokemon and MTG odds, pricing, and QA verification are modeled.</p>
+        <nav class="mode-tabs" aria-label="Game mode">
+          <a class="mode-tab" href="index.html">Pokemon</a>
+          <a class="mode-tab" href="mtg.html">MTG</a>
+          <a class="mode-tab is-active" href="methodology.html" aria-current="page">Methodology</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout methodology-layout">
+      <section class="panel play-panel">
+        <h2>Fidelity Labels</h2>
+        <ul class="qa-slot-list">
+          <li><span>Exact</span><strong>All required slot pools present + strict slot gating.</strong></li>
+          <li><span>Official-slot</span><strong>Official slot structure with public odds, no full print-sheet certainty.</strong></li>
+          <li><span>Estimated</span><strong>Best-fit approximation from public pull samples and market/public metadata.</strong></li>
+        </ul>
+
+        <h2>Pricing Logic</h2>
+        <ul class="qa-slot-list">
+          <li><span>Pokemon</span><strong>Treatment-aware preference order from TCGplayer (holo/reverse/normal by tier).</strong></li>
+          <li><span>MTG</span><strong>Treatment-aware selection (nonfoil, foil, and booster-fun pools where available).</strong></li>
+          <li><span>Fallbacks</span><strong>Cardmarket/Scryfall fallback only when primary treatment pricing is unavailable.</strong></li>
+        </ul>
+
+        <h2>QA Lockfiles</h2>
+        <p class="pack-select-meta">Static lockfiles define expected bands for EV and key hit rates. Simulation Lab compares observed outputs against these guardrails to flag drift.</p>
+        <ul class="qa-slot-list">
+          <li><span>Pokemon lockfile</span><strong><code>assets/qa/pokemon-lockfile.json</code></strong></li>
+          <li><span>MTG lockfile</span><strong><code>assets/qa/mtg-lockfile.json</code></strong></li>
+        </ul>
+
+        <h2>Reproducibility</h2>
+        <p class="pack-select-meta">Seeded RNG mode allows deterministic replay. Audit payloads can be exported/imported for verification across devices.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

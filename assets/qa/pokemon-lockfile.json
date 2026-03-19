@@ -1,0 +1,17 @@
+{
+  "version": "2026-03-19",
+  "sets": {
+    "surging-sparks": {
+      "ev_usd": { "min": 5.6, "max": 7.1 },
+      "ultra_plus_rate": { "min": 0.06, "max": 0.16 },
+      "sir_plus_rate": { "min": 0.008, "max": 0.03 },
+      "value20_rate": { "min": 0.004, "max": 0.02 }
+    },
+    "paldean-fates": {
+      "ev_usd": { "min": 7.5, "max": 10.5 },
+      "ultra_plus_rate": { "min": 0.08, "max": 0.2 },
+      "sir_plus_rate": { "min": 0.01, "max": 0.04 },
+      "value20_rate": { "min": 0.006, "max": 0.03 }
+    }
+  }
+}

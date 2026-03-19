@@ -1804,6 +1804,7 @@ const state = {
     pendingIterations: 10000,
     resultByPackKey: {},
   },
+  qaLockfile: null,
   rng: initializeRngState(),
   session: {
     packsOpened: 0,
@@ -1876,6 +1877,7 @@ const dom = {
   simulationLabPanel: document.getElementById("simulationLabPanel"),
   rngAuditPanel: document.getElementById("rngAuditPanel"),
   fidelityRegistryPanel: document.getElementById("fidelityRegistryPanel"),
+  profileDataPanel: document.getElementById("profileDataPanel"),
   achievementPanel: document.getElementById("achievementPanel"),
   binderFilters: document.getElementById("binderFilters"),
   binderGrid: document.getElementById("binderGrid"),
@@ -1898,6 +1900,7 @@ init().catch((error) => {
 
 async function init() {
   wireControls();
+  await loadPokemonQaLockfile();
   syncSoundControlState();
   seedFallbackData();
   const cachedSets = hydrateLiveSetCache();
@@ -1916,6 +1919,7 @@ async function init() {
   renderSimulationLab();
   renderRngAuditPanel();
   renderFidelityRegistryPanel();
+  renderProfileDataPanel();
   renderAchievements();
   renderBinder();
   renderBackgroundSyncStatus();
@@ -2034,6 +2038,7 @@ function wireControls() {
     renderEconomyPanel();
     renderSimulationLab();
     renderFidelityRegistryPanel();
+    renderProfileDataPanel();
     renderAchievements();
     renderBinder();
   });
@@ -2423,6 +2428,7 @@ async function loadPackLiveData(packKey, options = {}) {
     renderSimulationLab();
     renderRngAuditPanel();
     renderFidelityRegistryPanel();
+    renderProfileDataPanel();
     renderAnalyticsOverlay();
     renderAchievements();
     renderBinder();
@@ -2583,6 +2589,7 @@ function cleanName(value) {
 
 function normalizeCard(rawCard) {
   const tier = rarityToTier(rawCard.rarity);
+  const priceVariants = extractPriceVariants(rawCard);
   return {
     id: rawCard.id,
     name: rawCard.name ?? "Unknown Card",
@@ -2591,10 +2598,28 @@ function normalizeCard(rawCard) {
     rarity: rawCard.rarity ?? "",
     tier,
     marketValue: findMarketValue(rawCard, tier),
+    priceVariants,
     supertype: rawCard.supertype ?? "",
     subtypes: rawCard.subtypes ?? [],
     setCode: rawCard.set?.ptcgoCode || rawCard.set?.id || "",
   };
+}
+
+function extractPriceVariants(rawCard) {
+  const table = rawCard?.tcgplayer?.prices;
+  if (!table || typeof table !== "object") return {};
+  const out = {};
+  for (const [key, variant] of Object.entries(table)) {
+    if (!variant || typeof variant !== "object") continue;
+    const market = typeof variant.market === "number" && Number.isFinite(variant.market) ? variant.market : 0;
+    const mid = typeof variant.mid === "number" && Number.isFinite(variant.mid) ? variant.mid : 0;
+    const low = typeof variant.low === "number" && Number.isFinite(variant.low) ? variant.low : 0;
+    const value = market > 0 ? market : mid > 0 ? mid * 0.9 : low;
+    if (value > 0) {
+      out[key] = Number(value.toFixed(2));
+    }
+  }
+  return out;
 }
 
 function findMarketValue(rawCard, tier) {
@@ -2664,6 +2689,33 @@ function getPreferredVariantKeys(tier) {
     return ["normal", "unlimited", "reverseHolofoil"];
   }
   return ["holofoil", "normal", "unlimitedHolofoil", "unlimited", "reverseHolofoil", "1stEditionHolofoil"];
+}
+
+function resolvePulledCardValue(card, tier, variant = "") {
+  const variants = card?.priceVariants || {};
+  if (!variants || typeof variants !== "object") {
+    return Number(card?.marketValue || 0);
+  }
+
+  const variantHint = String(variant || "").toLowerCase();
+  let keys = [];
+  if (variantHint.includes("reverse") || tier === "reverseFoil") {
+    keys = ["reverseHolofoil", "reverseHolo", "normal"];
+  } else if (
+    variantHint.includes("holo") ||
+    ["rareHolo", "doubleRare", "ultraRare", "illustrationRare", "specialIllustrationRare", "hyperRare", "shinyUltraRare"].includes(tier)
+  ) {
+    keys = ["holofoil", "unlimitedHolofoil", "1stEditionHolofoil", "normal"];
+  } else {
+    keys = getPreferredVariantKeys(tier);
+  }
+
+  for (const key of keys) {
+    if (typeof variants[key] === "number" && Number.isFinite(variants[key]) && variants[key] > 0) {
+      return Number(variants[key].toFixed(2));
+    }
+  }
+  return Number(card?.marketValue || 0);
 }
 
 function rarityToTier(rarityValue) {
@@ -2942,6 +2994,7 @@ function renderPackSelector() {
     renderSimulationLab();
     renderRngAuditPanel();
     renderFidelityRegistryPanel();
+    renderProfileDataPanel();
     renderAchievements();
     updateButtons();
     loadPackLiveData(nextPack.key);
@@ -3366,6 +3419,7 @@ function replayHistoryPack(historyId) {
   renderSimulationLab();
   renderRngAuditPanel();
   renderFidelityRegistryPanel();
+  renderProfileDataPanel();
   renderAnalyticsOverlay();
   renderAchievements();
   renderBinder();
@@ -3567,7 +3621,7 @@ function simulatePack(packDef, setData, options = {}) {
       pulledTierLabel: variant || TIER_LABEL[tier] || picked.rarity || "Hit",
       standardIndex: result.length + 1,
       instanceId: `${picked.id}-${result.length}-${Date.now()}-${Math.floor(rng() * 1e9).toString(16)}`,
-      value: picked.marketValue || 0,
+      value: resolvePulledCardValue(picked, tier, variant),
       packPullOdds,
       setKey: packDef.key,
     });
@@ -3838,6 +3892,7 @@ function renderSimulationLab() {
   const packDef = getCurrentPackDef();
   const setData = state.setData[packDef.key];
   const last = state.simulationLab.resultByPackKey[packDef.key] || null;
+  const qaCheck = getPokemonLockfileCheck(packDef.key, last);
   dom.simulationLabPanel.innerHTML = `
     <div class="economy-head">
       <strong>Simulation Lab</strong>
@@ -3861,6 +3916,11 @@ function renderSimulationLab() {
         last
           ? `<p>EV 95% CI: ${formatUsd(last.evCiLow)} - ${formatUsd(last.evCiHigh)} | $20+ hit: ${formatPercent(last.value20Rate)} (${formatPercent(last.value20CiLow)} - ${formatPercent(last.value20CiHigh)})</p>`
           : ""
+      }
+      ${
+        qaCheck
+          ? `<p>QA Lockfile: <strong class="${qaCheck.pass ? "qa-pass" : "qa-fail"}">${qaCheck.pass ? "PASS" : "CHECK"}</strong> ${escapeHtml(qaCheck.summary)}</p>`
+          : `<p>QA Lockfile: no entry for this set.</p>`
       }
     </div>
   `;
@@ -3936,6 +3996,48 @@ async function runPokemonSimulationLab(iterations) {
   state.simulationLab.running = false;
   renderSimulationLab();
   setStatus(`Simulation complete for ${packDef.displayName}: ${n.toLocaleString()} packs.`, "ready");
+}
+
+async function loadPokemonQaLockfile() {
+  try {
+    const response = await fetch("./assets/qa/pokemon-lockfile.json");
+    if (!response.ok) return;
+    const parsed = await response.json();
+    if (parsed && typeof parsed === "object") {
+      state.qaLockfile = parsed;
+    }
+  } catch {
+    // Ignore lockfile fetch failures.
+  }
+}
+
+function getPokemonLockfileCheck(packKey, result) {
+  if (!result || !state.qaLockfile?.sets?.[packKey]) return null;
+  const lock = state.qaLockfile.sets[packKey];
+  const checks = [
+    checkRange(result.ev, lock.ev_usd),
+    checkRange(result.ultraPlusRate, lock.ultra_plus_rate),
+    checkRange(result.sirPlusRate, lock.sir_plus_rate),
+    checkRange(result.value20Rate, lock.value20_rate),
+  ];
+  const pass = checks.every(Boolean);
+  const parts = [];
+  if (!checks[0]) parts.push("EV out of band");
+  if (!checks[1]) parts.push("Ultra+ out of band");
+  if (!checks[2]) parts.push("SIR+ out of band");
+  if (!checks[3]) parts.push("$20+ hit out of band");
+  return {
+    pass,
+    summary: pass ? "All lockfile ranges satisfied." : parts.join("; "),
+  };
+}
+
+function checkRange(value, range) {
+  if (!range || typeof range !== "object") return true;
+  const min = Number(range.min);
+  const max = Number(range.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return true;
+  return value >= min && value <= max;
 }
 
 function getRateConfidenceInterval(rate, sampleSize) {
@@ -4112,7 +4214,8 @@ function renderFidelityRegistryPanel() {
   const rows = getSortedPackDefs()
     .map((packDef) => {
       const fidelity = getPackFidelity(packDef);
-      return `<li><span>${escapeHtml(packDef.displayName)}</span><strong>${escapeHtml(fidelity.label)}</strong></li>`;
+      const lockLabel = hasPokemonLockfileSet(packDef.key) ? "lockfile" : "no lockfile";
+      return `<li><span>${escapeHtml(packDef.displayName)} <em>${lockLabel}</em></span><strong>${escapeHtml(fidelity.label)}</strong></li>`;
     })
     .join("");
   dom.fidelityRegistryPanel.innerHTML = `
@@ -4123,6 +4226,10 @@ function renderFidelityRegistryPanel() {
     <ul class="qa-slot-list">${rows}</ul>
     <div class="pack-price-source"><span>Sources: <a href="https://api.pokemontcg.io/" target="_blank" rel="noreferrer">PokemonTCG API</a> | <a href="https://www.pokebeach.com/" target="_blank" rel="noreferrer">PokeBeach/PokePatch Pull Data</a></span></div>
   `;
+}
+
+function hasPokemonLockfileSet(packKey) {
+  return Boolean(state.qaLockfile?.sets?.[packKey]);
 }
 
 function getPackFidelity(packDef) {
@@ -4137,6 +4244,124 @@ function getPackFidelity(packDef) {
     return { label: "Estimated", level: "estimated" };
   }
   return { label: "Unknown", level: "unknown" };
+}
+
+function renderProfileDataPanel() {
+  if (!dom.profileDataPanel) return;
+  dom.profileDataPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Profile Data</strong>
+      <span>Export/import binder, profile, chase, RNG, and session state.</span>
+    </div>
+    <div class="button-row">
+      <button id="pokemonExportProfileBtn" class="btn">Export JSON</button>
+      <button id="pokemonImportProfileBtn" class="btn">Import JSON</button>
+    </div>
+    <input id="pokemonImportProfileInput" type="file" accept="application/json" hidden />
+  `;
+
+  dom.profileDataPanel.querySelector("#pokemonExportProfileBtn")?.addEventListener("click", exportPokemonProfileData);
+  dom.profileDataPanel.querySelector("#pokemonImportProfileBtn")?.addEventListener("click", () => {
+    dom.profileDataPanel.querySelector("#pokemonImportProfileInput")?.click();
+  });
+  dom.profileDataPanel.querySelector("#pokemonImportProfileInput")?.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    importPokemonProfileData(text);
+    event.target.value = "";
+  });
+}
+
+function exportPokemonProfileData() {
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    pokemon: {
+      profile: state.profile,
+      binder: state.binder,
+      chaseTargetsBySet: state.chaseTargetsBySet,
+      rng: {
+        mode: state.rng.mode,
+        seed: state.rng.seed,
+      },
+      soundEnabled: state.soundEnabled,
+      soundSettings: state.soundSettings,
+      packPriceSourceMode: state.packPriceSourceMode,
+      session: state.session,
+    },
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `pokemon-pack-sim-profile-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importPokemonProfileData(rawText) {
+  try {
+    const parsed = JSON.parse(rawText);
+    const payload = parsed?.pokemon;
+    if (!payload || typeof payload !== "object") {
+      throw new Error("Invalid pokemon payload.");
+    }
+    if (payload.profile && typeof payload.profile === "object") {
+      state.profile = payload.profile;
+      persistProfile();
+    }
+    if (payload.binder && typeof payload.binder === "object") {
+      state.binder = payload.binder;
+      persistBinder();
+    }
+    if (payload.chaseTargetsBySet && typeof payload.chaseTargetsBySet === "object") {
+      state.chaseTargetsBySet = payload.chaseTargetsBySet;
+      persistChaseTargets();
+    }
+    if (payload.rng && typeof payload.rng === "object") {
+      state.rng.mode = payload.rng.mode === "random" ? "random" : "seeded";
+      reseedRng(payload.rng.seed || state.rng.seed);
+    }
+    if (typeof payload.soundEnabled === "boolean") {
+      state.soundEnabled = payload.soundEnabled;
+    }
+    if (payload.soundSettings && typeof payload.soundSettings === "object") {
+      state.soundSettings = {
+        ...state.soundSettings,
+        ...payload.soundSettings,
+      };
+    }
+    if (payload.packPriceSourceMode === "pricecharting" || payload.packPriceSourceMode === "tcgplayerSealed") {
+      state.packPriceSourceMode = payload.packPriceSourceMode;
+      persistPackPriceSourceMode();
+    }
+    if (payload.session && typeof payload.session === "object") {
+      state.session = {
+        ...state.session,
+        ...payload.session,
+      };
+    }
+    persistSoundSettings();
+    renderPackSelector();
+    renderPackHeader();
+    renderChasePanel();
+    renderOddsPanel();
+    renderSessionStats();
+    renderEconomyPanel();
+    renderSimulationLab();
+    renderRngAuditPanel();
+    renderFidelityRegistryPanel();
+    renderProfileDataPanel();
+    renderAchievements();
+    renderBinder();
+    updateButtons();
+    setStatus("Imported Pokemon profile data.", "ready");
+  } catch (error) {
+    setStatus(`Import failed: ${error.message}`, "error");
+  }
 }
 
 function renderAchievements() {
@@ -4819,6 +5044,10 @@ function persistLiveSetCache(packKey, setMeta, cards) {
         supertype: card.supertype || "",
         subtypes: Array.isArray(card.subtypes) ? card.subtypes : [],
         setCode: card.setCode || "",
+        priceVariants:
+          card.priceVariants && typeof card.priceVariants === "object"
+            ? card.priceVariants
+            : {},
       })),
     };
     window.localStorage.setItem(getLiveSetCacheKey(packKey), JSON.stringify(payload));
@@ -4839,6 +5068,10 @@ function normalizeCachedCard(rawCard) {
     supertype: rawCard.supertype ?? "",
     subtypes: Array.isArray(rawCard.subtypes) ? rawCard.subtypes : [],
     setCode: rawCard.setCode || "",
+    priceVariants:
+      rawCard.priceVariants && typeof rawCard.priceVariants === "object"
+        ? rawCard.priceVariants
+        : {},
   };
 }
 

@@ -463,6 +463,25 @@ select {
   color: var(--muted);
 }
 
+.qa-slot-list li em {
+  font-style: normal;
+  color: #9db7d6;
+  margin-left: 6px;
+  font-size: 0.84rem;
+}
+
+.qa-pass {
+  color: #9ff3b5;
+}
+
+.qa-fail {
+  color: #ffb0b0;
+}
+
+.methodology-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .mtg-hit-rare .card-frame {
   box-shadow: 0 0 0 1px rgba(255, 205, 96, 0.65), 0 0 18px rgba(255, 181, 53, 0.35);
 }
