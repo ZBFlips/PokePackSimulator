@@ -10,6 +10,7 @@ const PACK_SORT_MODE_STORAGE_KEY = "pokemon-pack-sim-pack-sort-mode-v1";
 const MARKET_VALUE_MODE_STORAGE_KEY = "pokemon-pack-sim-market-value-mode-v1";
 const OPENING_UX_MODE_STORAGE_KEY = "pokemon-pack-sim-opening-ux-mode-v1";
 const RNG_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-rng-v1";
+const PACK_SEARCH_STORAGE_KEY = "pokemon-pack-sim-pack-search-v1";
 const POKEMON_MARKET_SNAPSHOT_URL = "./assets/data/pokemon-market-snapshot.json";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v3-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
@@ -2320,6 +2321,7 @@ const state = {
   historyVisibleCount: HISTORY_RENDER_BATCH,
   binderVisibleCount: BINDER_RENDER_BATCH,
   audioContext: null,
+  packSearchQuery: loadPackSearchQueryFromStorage(),
 };
 
 const dom = {
@@ -2329,6 +2331,9 @@ const dom = {
   networkStatus: document.getElementById("networkStatus"),
   installAppBtn: document.getElementById("installAppBtn"),
   packSelector: document.getElementById("packSelector"),
+  packSearch: document.getElementById("packSearch"),
+  packVaultSummary: document.getElementById("packVaultSummary"),
+  packVault: document.getElementById("packVault"),
   chooseSetToggleBtn: document.getElementById("chooseSetToggleBtn"),
   chooseSetContent: document.getElementById("chooseSetContent"),
   openSettingsToggleBtn: document.getElementById("openSettingsToggleBtn"),
@@ -2444,6 +2449,12 @@ function wireControls() {
     renderPackSelector();
     renderSimulationLab();
     renderFidelityRegistryPanel();
+  });
+
+  dom.packSearch?.addEventListener("input", () => {
+    state.packSearchQuery = dom.packSearch.value;
+    persistPackSearchQuery(state.packSearchQuery);
+    renderPackSelector();
   });
 
   dom.priceSourceMode?.addEventListener("change", () => {
@@ -3596,6 +3607,9 @@ function renderPackSelector() {
   if (dom.ultraCompactBinderToggle) {
     dom.ultraCompactBinderToggle.checked = Boolean(state.ultraCompactBinder);
   }
+  if (dom.packSearch) {
+    dom.packSearch.value = state.packSearchQuery || "";
+  }
 
   for (const packDef of getSortedPackDefs()) {
     const option = document.createElement("option");
@@ -3641,6 +3655,115 @@ function renderPackSelector() {
   helper.textContent = selectedPack.releaseLabel;
 
   dom.packSelector.append(select, helper);
+  renderPackVault();
+}
+
+function selectPack(packKey) {
+  if (!packKey || state.selectedPackKey === packKey) return;
+  state.selectedPackKey = packKey;
+  state.currentPack = null;
+  state.revealedInstanceIds = new Set();
+  state.justRevealedInstanceId = "";
+  closeInspectModal();
+  renderPackSelector();
+  renderChasePanel();
+  renderPackHeader();
+  renderOddsPanel();
+  renderCards();
+  renderSessionStats();
+  renderEconomyPanel();
+  renderSimulationLab();
+  renderRngAuditPanel();
+  renderFidelityRegistryPanel();
+  renderProfileDataPanel();
+  renderAchievements();
+  updateButtons();
+  loadPackLiveData(packKey);
+}
+
+function loadPackSearchQueryFromStorage() {
+  try {
+    return window.localStorage.getItem(PACK_SEARCH_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function persistPackSearchQuery(value) {
+  try {
+    window.localStorage.setItem(PACK_SEARCH_STORAGE_KEY, value || "");
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function matchesPackSearch(packDef, query) {
+  if (!query) return true;
+  const haystack = [
+    packDef.displayName,
+    packDef.key,
+    packDef.shortCode,
+    packDef.releaseLabel,
+    ...(packDef.setAliases || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
+function renderPackVault() {
+  if (!dom.packVault || !dom.packVaultSummary) return;
+  const query = String(state.packSearchQuery || "").trim().toLowerCase();
+  const packs = getSortedPackDefs().filter((packDef) => matchesPackSearch(packDef, query));
+  const readyCount = packs.filter((packDef) => Boolean(state.setData[packDef.key]?.cards?.length)).length;
+  const liveCount = packs.filter((packDef) => state.liveLoadedPackKeys.has(packDef.key)).length;
+  const fallbackCount = packs.length - liveCount;
+
+  dom.packVaultSummary.innerHTML = `
+    <span class="pack-source-badge">Pokédex ${packs.length}</span>
+    <span class="pack-source-badge">${readyCount} ready</span>
+    <span class="pack-source-badge">${liveCount} live</span>
+    <span class="pack-source-badge">${fallbackCount} fallback</span>
+  `;
+
+  dom.packVault.innerHTML = packs
+    .map((packDef) => {
+      const isLive = state.liveLoadedPackKeys.has(packDef.key);
+      const isLoading = state.loadingPackKeys.has(packDef.key);
+      const isSelected = state.selectedPackKey === packDef.key;
+      const loadLabel = isLoading ? "Loading" : isLive ? "Live" : "Fallback";
+      const priceLabel = formatUsd(getPackPriceForRoi(packDef));
+      const fidelity = getPackFidelity(packDef).label;
+      const source = getPackPricingSource(packDef);
+      return `
+        <button class="set-vault-card ${isSelected ? "is-selected" : ""}" type="button" data-pack-key="${escapeHtml(packDef.key)}" aria-pressed="${isSelected ? "true" : "false"}">
+          <img class="set-vault-art" src="${escapeHtml(packDef.localPackImage || packDef.packImage || createPackPlaceholderDataUri(packDef))}" alt="${escapeHtml(packDef.displayName)} pack art" loading="lazy" />
+          <div class="set-vault-copy">
+            <strong>${escapeHtml(packDef.displayName)}</strong>
+            <span>${escapeHtml(packDef.releaseLabel)}</span>
+            <span>${escapeHtml(packDef.shortCode || packDef.key)}</span>
+          </div>
+          <div class="set-vault-meta">
+            <span class="pack-source-badge">${escapeHtml(loadLabel)}</span>
+            <span class="pack-source-badge">${escapeHtml(fidelity)}</span>
+            <span class="pack-source-badge">${escapeHtml(priceLabel)}</span>
+          </div>
+          <div class="set-vault-footer">
+            <span>${escapeHtml(source?.label || "No price source")}</span>
+            <span>${isSelected ? "Selected" : "Tap to open"}</span>
+          </div>
+        </button>
+      `;
+    })
+    .join("");
+
+  dom.packVault.querySelectorAll("[data-pack-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextKey = button.getAttribute("data-pack-key");
+      selectPack(nextKey);
+    });
+  });
 }
 
 function getSortedPackDefs() {
@@ -4746,7 +4869,7 @@ function renderEconomyPanel() {
   const sparkline = buildEconomySparkline(recentHistory);
   const outcomeSplit = buildEconomyOutcomeSplit(recentHistory);
 
-  const setRows = Object.entries(state.session.setEconomy || {})
+  const setRowsData = Object.entries(state.session.setEconomy || {})
     .map(([setKey, stats]) => {
       const packDef = PACK_CONFIG.find((pack) => pack.key === setKey);
       const setName = packDef?.displayName || setKey;
@@ -4754,13 +4877,15 @@ function renderEconomyPanel() {
       const setRoi = stats.spent > 0 ? (setNet / stats.spent) * 100 : 0;
       return { setName, packs: stats.packs || 0, setNet, setRoi };
     })
-    .sort((a, b) => b.setNet - a.setNet)
+    .sort((a, b) => b.setNet - a.setNet);
+  const setRows = setRowsData
     .slice(0, 4)
     .map(
       (row) =>
         `<li><span>${escapeHtml(row.setName)} (${row.packs})</span><strong>${formatUsd(row.setNet)} (${row.setRoi.toFixed(1)}%)</strong></li>`,
     )
     .join("");
+  const comparisonSummary = buildSetComparisonSummary(setRowsData, "Pokemon");
 
   dom.economyPanel.innerHTML = `
     <div class="economy-head">
@@ -4781,6 +4906,7 @@ function renderEconomyPanel() {
       <article class="economy-stat"><strong>${pro.breakEvenRate.toFixed(1)}%</strong><span>Break-even Probability</span></article>
       <article class="economy-stat"><strong>${formatUsd(pro.var95)}</strong><span>VaR 95% (Net)</span></article>
     </div>
+    ${comparisonSummary}
     <div class="economy-chart-wrap">
       <div class="economy-chart-head">
         <strong>Recent Net Trend</strong>
@@ -4859,6 +4985,46 @@ function buildEconomyOutcomeSplit(history) {
       <div class="economy-outcome-copy">
         <span>${gainCount} gainers</span>
         <span>${lossCount} losers</span>
+      </div>
+    </div>
+  `;
+}
+
+function buildSetComparisonSummary(rows, label) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return `<div class="set-comparison-empty">No ${escapeHtml(label)} set data yet.</div>`;
+  }
+  const bestRoi = [...rows].sort((a, b) => b.setRoi - a.setRoi)[0];
+  const worstRoi = [...rows].sort((a, b) => a.setRoi - b.setRoi)[0];
+  const mostOpened = [...rows].sort((a, b) => b.packs - a.packs)[0];
+  const strongestNet = [...rows].sort((a, b) => b.setNet - a.setNet)[0];
+  return `
+    <div class="set-comparison-panel">
+      <div class="set-comparison-head">
+        <strong>${escapeHtml(label)} Set Comparison</strong>
+        <span>Quick read on who is pulling ahead, who is lagging, and who you have been ripping most.</span>
+      </div>
+      <div class="set-comparison-grid">
+        <article class="set-comparison-card">
+          <span>Best ROI</span>
+          <strong>${escapeHtml(bestRoi.setName)}</strong>
+          <em>${bestRoi.setRoi.toFixed(1)}%</em>
+        </article>
+        <article class="set-comparison-card">
+          <span>Worst ROI</span>
+          <strong>${escapeHtml(worstRoi.setName)}</strong>
+          <em>${worstRoi.setRoi.toFixed(1)}%</em>
+        </article>
+        <article class="set-comparison-card">
+          <span>Most Opened</span>
+          <strong>${escapeHtml(mostOpened.setName)}</strong>
+          <em>${mostOpened.packs.toLocaleString()} packs</em>
+        </article>
+        <article class="set-comparison-card">
+          <span>Strongest Net</span>
+          <strong>${escapeHtml(strongestNet.setName)}</strong>
+          <em>${formatUsd(strongestNet.setNet)}</em>
+        </article>
       </div>
     </div>
   `;

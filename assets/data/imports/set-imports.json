@@ -1,5 +1,60 @@
 {
-  "pokemon": [],
+  "pokemon": [
+    {
+      "key": "scarlet-violet-151",
+      "setId": "sv3pt5",
+      "displayName": "Scarlet & Violet 151",
+      "shortCode": "151",
+      "releaseLabel": "Special Set",
+      "releaseDate": "2023-09-22",
+      "packPrice": 9.99,
+      "localPackImage": "",
+      "packImage": "https://images.pokemontcg.io/sv3pt5/logo.png",
+      "setAliases": ["151", "Scarlet & Violet 151", "Scarlet & Violet-151"],
+      "sources": [
+        {
+          "label": "PriceCharting booster pack market",
+          "url": "https://www.pricecharting.com/game/pokemon-151/booster-pack"
+        }
+      ]
+    },
+    {
+      "key": "shrouded-fable",
+      "setId": "sv6pt5",
+      "displayName": "Shrouded Fable",
+      "shortCode": "SFA",
+      "releaseLabel": "Special Set",
+      "releaseDate": "2024-08-02",
+      "packPrice": 4.99,
+      "localPackImage": "",
+      "packImage": "https://images.pokemontcg.io/sv6pt5/logo.png",
+      "setAliases": ["Shrouded Fable", "Scarlet & Violet-Shrouded Fable", "Scarlet & Violet-Shrouded-Fable"],
+      "sources": [
+        {
+          "label": "PriceCharting booster pack market",
+          "url": "https://www.pricecharting.com/game/pokemon-shrouded-fable/booster-pack"
+        }
+      ]
+    },
+    {
+      "key": "journey-together",
+      "setId": "sv9",
+      "displayName": "Journey Together",
+      "shortCode": "JTG",
+      "releaseLabel": "Scarlet & Violet Expansion",
+      "releaseDate": "2025-03-28",
+      "packPrice": 5.49,
+      "localPackImage": "",
+      "packImage": "https://images.pokemontcg.io/sv9/logo.png",
+      "setAliases": ["Journey Together", "Scarlet & Violet-Journey Together", "Scarlet & Violet-Journey-Together"],
+      "sources": [
+        {
+          "label": "PriceCharting booster pack market",
+          "url": "https://www.pricecharting.com/game/pokemon-journey-together/booster-pack"
+        }
+      ]
+    }
+  ],
   "mtg": [
     {
       "key": "dominaria-remastered",

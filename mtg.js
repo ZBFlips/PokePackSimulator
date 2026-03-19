@@ -18,6 +18,7 @@ const MTG_AUDIT_TRAIL_LIMIT = 150;
 const COMMON = window.PackSimCommon || {};
 const SNAPSHOT_STALE_DAYS = Number(COMMON.SNAPSHOT_STALE_DAYS || 14);
 const MTG_BINDER_RENDER_BATCH = 200;
+const MTG_SET_SEARCH_STORAGE_KEY = "mtg-set-search-v1";
 
 const MTG_PRODUCTS = {
   play: {
@@ -897,6 +898,7 @@ const state = {
   revealMode: "all",
   displayOrder: "standard",
   setSortMode: loadMtgSetSortMode(),
+  setSearchQuery: loadMtgSetSearchQuery(),
   sealedProductKey: loadProductMode(),
   productMode: "play",
   priceSourceMode: loadPriceSourceMode(),
@@ -956,6 +958,9 @@ const state = {
 const dom = {
   loadStatus: document.getElementById("mtgLoadStatus"),
   setSelect: document.getElementById("mtgSetSelect"),
+  setSearch: document.getElementById("mtgSetSearch"),
+  setVaultSummary: document.getElementById("mtgSetVaultSummary"),
+  setVault: document.getElementById("mtgSetVault"),
   productSelect: document.getElementById("mtgProductSelect"),
   setSort: document.getElementById("mtgSetSort"),
   revealMode: document.getElementById("mtgRevealMode"),
@@ -1026,21 +1031,16 @@ function wireControls() {
     renderFidelityRegistryPanel();
   });
 
+  dom.setSearch?.addEventListener("input", () => {
+    state.setSearchQuery = dom.setSearch.value;
+    saveMtgSetSearchQuery(state.setSearchQuery);
+    renderSetSelect();
+  });
+
   dom.setSelect?.addEventListener("change", () => {
     const next = MTG_SETS.find((set) => set.key === dom.setSelect.value);
     if (!next) return;
-    state.selectedSetKey = next.key;
-    state.currentPack = null;
-    state.revealedIds = new Set();
-    sanitizeCurrentSetChaseTargets();
-    renderSetSelect();
-    renderHeader();
-    renderOddsQaPanel();
-    renderLabPanel();
-    renderFidelityRegistryPanel();
-    renderChasePanel();
-    renderCards();
-    loadSetData(next.key);
+    selectSet(next.key);
   });
 
   dom.productSelect?.addEventListener("change", () => {
@@ -1214,9 +1214,30 @@ function getReleaseTimestamp(setKey) {
   return Number.isFinite(ts) ? ts : 0;
 }
 
+function selectSet(setKey) {
+  if (!setKey || state.selectedSetKey === setKey) {
+    return;
+  }
+  state.selectedSetKey = setKey;
+  state.currentPack = null;
+  state.revealedIds = new Set();
+  sanitizeCurrentSetChaseTargets();
+  renderSetSelect();
+  renderHeader();
+  renderOddsQaPanel();
+  renderLabPanel();
+  renderFidelityRegistryPanel();
+  renderChasePanel();
+  renderCards();
+  loadSetData(setKey);
+}
+
 function renderSetSelect() {
   if (!dom.setSelect) return;
   dom.setSort.value = state.setSortMode;
+  if (dom.setSearch) {
+    dom.setSearch.value = state.setSearchQuery;
+  }
   if (dom.productSelect) {
     dom.productSelect.innerHTML = "";
     for (const product of Object.values(MTG_SEALED_PRODUCTS)) {
@@ -1253,6 +1274,76 @@ function renderSetSelect() {
     dom.setSelect.appendChild(option);
   }
   dom.setSelect.value = state.selectedSetKey;
+  renderSetVault();
+}
+
+function matchesSetSearch(setDef, query) {
+  if (!query) return true;
+  const haystack = [
+    setDef.displayName,
+    setDef.key,
+    setDef.scryfallCode,
+    setDef.releaseLabel,
+    setDef.priceSources?.scryfall?.label,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
+function renderSetVault() {
+  if (!dom.setVault || !dom.setVaultSummary) return;
+  const query = String(state.setSearchQuery || "").trim().toLowerCase();
+  const sets = getSortedSets().filter((setDef) => matchesSetSearch(setDef, query));
+  const loadedCount = sets.filter((setDef) => Boolean(state.setData[setDef.key])).length;
+  const liveCount = sets.filter((setDef) => Boolean(state.setData[setDef.key]?.cards?.length)).length;
+  dom.setVaultSummary.innerHTML = `
+    <span class="pack-source-badge">${sets.length} matched</span>
+    <span class="pack-source-badge">${loadedCount} loaded</span>
+    <span class="pack-source-badge">${liveCount} ready</span>
+  `;
+
+  const cards = sets
+    .map((setDef) => {
+      const loaded = Boolean(state.setData[setDef.key]);
+      const loading = state.loadingSetKeys.has(setDef.key);
+      const selected = state.selectedSetKey === setDef.key;
+      const fidelityLabel = getCollationFidelityLabel(setDef);
+      const status = loading ? "Loading" : loaded ? "Ready" : "Pending";
+      const price = formatUsd(getPackPrice(setDef));
+      const release = setDef.releaseDate || "Unknown";
+      const source = getPriceSource(setDef);
+      const sourceLabel = source?.label || "No source";
+      return `
+        <button class="set-vault-card ${selected ? "is-selected" : ""}" type="button" data-set-key="${escapeHtml(setDef.key)}" aria-pressed="${selected ? "true" : "false"}">
+          <img class="set-vault-art" src="${escapeHtml(setDef.packImage)}" alt="${escapeHtml(setDef.displayName)} pack art" loading="lazy" />
+          <div class="set-vault-copy">
+            <strong>${escapeHtml(setDef.displayName)}</strong>
+            <span>${escapeHtml(setDef.releaseLabel)}</span>
+            <span>${escapeHtml(release)}</span>
+          </div>
+          <div class="set-vault-meta">
+            <span class="pack-source-badge">${escapeHtml(status)}</span>
+            <span class="pack-source-badge">${escapeHtml(fidelityLabel)}</span>
+            <span class="pack-source-badge">${escapeHtml(price)}</span>
+          </div>
+          <div class="set-vault-footer">
+            <span>${escapeHtml(sourceLabel)}</span>
+            <span>${selected ? "Selected" : "Tap to open"}</span>
+          </div>
+        </button>
+      `;
+    })
+    .join("");
+
+  dom.setVault.innerHTML = cards || `<div class="set-vault-empty">No sets match that search.</div>`;
+  dom.setVault.querySelectorAll("[data-set-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextKey = button.getAttribute("data-set-key");
+      selectSet(nextKey);
+    });
+  });
 }
 
 function loadProductMode() {
@@ -1277,9 +1368,26 @@ function loadMtgSetSortMode() {
   return "release";
 }
 
+function loadMtgSetSearchQuery() {
+  try {
+    const value = window.localStorage.getItem(MTG_SET_SEARCH_STORAGE_KEY);
+    return typeof value === "string" ? value : "";
+  } catch {
+    return "";
+  }
+}
+
 function saveMtgSetSortMode(value) {
   try {
     window.localStorage.setItem(MTG_SET_SORT_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function saveMtgSetSearchQuery(value) {
+  try {
+    window.localStorage.setItem(MTG_SET_SEARCH_STORAGE_KEY, value);
   } catch {
     // Ignore storage failures.
   }
@@ -2082,7 +2190,7 @@ function renderEconomyPanel() {
   const sparkline = buildEconomySparkline(recentHistory);
   const outcomeSplit = buildEconomyOutcomeSplit(recentHistory);
 
-  const setRows = Object.entries(state.session.setEconomy || {})
+  const setRowsData = Object.entries(state.session.setEconomy || {})
     .map(([setKey, stats]) => {
       const setDef = MTG_SETS.find((set) => set.key === setKey);
       const setName = setDef?.displayName || setKey;
@@ -2090,10 +2198,12 @@ function renderEconomyPanel() {
       const setRoi = stats.spent > 0 ? (setNet / stats.spent) * 100 : 0;
       return { setName, packs: stats.packs || 0, setNet, setRoi };
     })
-    .sort((a, b) => b.setNet - a.setNet)
+    .sort((a, b) => b.setNet - a.setNet);
+  const setRows = setRowsData
     .slice(0, 4)
     .map((row) => `<li><span>${escapeHtml(row.setName)} (${row.packs})</span><strong>${formatUsd(row.setNet)} (${row.setRoi.toFixed(1)}%)</strong></li>`)
     .join("");
+  const comparisonSummary = buildSetComparisonSummary(setRowsData, "MTG");
 
   dom.economyPanel.innerHTML = `
     <div class="economy-head">
@@ -2114,6 +2224,7 @@ function renderEconomyPanel() {
       <article class="economy-stat"><strong>${pro.breakEvenRate.toFixed(1)}%</strong><span>Break-even Probability</span></article>
       <article class="economy-stat"><strong>${formatUsd(pro.var95)}</strong><span>VaR 95% (Net)</span></article>
     </div>
+    ${comparisonSummary}
     <div class="economy-chart-wrap">
       <div class="economy-chart-head">
         <strong>Recent Net Trend</strong>
@@ -2176,6 +2287,46 @@ function buildEconomyOutcomeSplit(history) {
       <div class="economy-outcome-copy">
         <span>${gainCount} gainers</span>
         <span>${lossCount} losers</span>
+      </div>
+    </div>
+  `;
+}
+
+function buildSetComparisonSummary(rows, label) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return `<div class="set-comparison-empty">No ${escapeHtml(label)} set data yet.</div>`;
+  }
+  const bestRoi = [...rows].sort((a, b) => b.setRoi - a.setRoi)[0];
+  const worstRoi = [...rows].sort((a, b) => a.setRoi - b.setRoi)[0];
+  const mostOpened = [...rows].sort((a, b) => b.packs - a.packs)[0];
+  const strongestNet = [...rows].sort((a, b) => b.setNet - a.setNet)[0];
+  return `
+    <div class="set-comparison-panel">
+      <div class="set-comparison-head">
+        <strong>${escapeHtml(label)} Set Comparison</strong>
+        <span>Quick read on who is pulling ahead, who is lagging, and what you have been ripping most.</span>
+      </div>
+      <div class="set-comparison-grid">
+        <article class="set-comparison-card">
+          <span>Best ROI</span>
+          <strong>${escapeHtml(bestRoi.setName)}</strong>
+          <em>${bestRoi.setRoi.toFixed(1)}%</em>
+        </article>
+        <article class="set-comparison-card">
+          <span>Worst ROI</span>
+          <strong>${escapeHtml(worstRoi.setName)}</strong>
+          <em>${worstRoi.setRoi.toFixed(1)}%</em>
+        </article>
+        <article class="set-comparison-card">
+          <span>Most Opened</span>
+          <strong>${escapeHtml(mostOpened.setName)}</strong>
+          <em>${mostOpened.packs.toLocaleString()} packs</em>
+        </article>
+        <article class="set-comparison-card">
+          <span>Strongest Net</span>
+          <strong>${escapeHtml(strongestNet.setName)}</strong>
+          <em>${formatUsd(strongestNet.setNet)}</em>
+        </article>
       </div>
     </div>
   `;
