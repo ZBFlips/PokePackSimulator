@@ -1324,6 +1324,7 @@ function matchesSetSearch(setDef, query) {
 
 function renderSetVault() {
   if (!dom.setVault || !dom.setVaultSummary) return;
+  dom.setVault.classList.add("mtg-vault-list");
   const query = String(state.setSearchQuery || "").trim().toLowerCase();
   const sets = getSortedSets().filter((setDef) => matchesSetSearch(setDef, query));
   const loadedCount = sets.filter((setDef) => Boolean(state.setData[setDef.key])).length;
@@ -1347,11 +1348,10 @@ function renderSetVault() {
       const sourceLabel = source?.label || "No source";
       return `
         <button class="set-vault-card ${selected ? "is-selected" : ""}" type="button" data-set-key="${escapeHtml(setDef.key)}" aria-pressed="${selected ? "true" : "false"}">
-          <img class="set-vault-art" src="${escapeHtml(setDef.packImage)}" alt="${escapeHtml(setDef.displayName)} pack art" loading="lazy" />
           <div class="set-vault-copy">
             <strong>${escapeHtml(setDef.displayName)}</strong>
-            <span>${escapeHtml(setDef.releaseLabel)}</span>
-            <span>${escapeHtml(release)}</span>
+            <span>${escapeHtml(setDef.releaseLabel)} - ${escapeHtml(release)}</span>
+            <span>${escapeHtml(setDef.scryfallCode?.toUpperCase?.() || setDef.scryfallCode || setDef.key)}</span>
           </div>
           <div class="set-vault-meta">
             <span class="pack-source-badge">${escapeHtml(status)}</span>

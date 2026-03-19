@@ -2805,6 +2805,11 @@ body.pokemon-theme .set-vault-head {
   align-items: start;
 }
 
+body.pokemon-theme .set-vault-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
 body.pokemon-theme .pack-art,
 body.pokemon-theme .card-frame,
 body.pokemon-theme .binder-entry,
@@ -2836,6 +2841,11 @@ body.pokemon-theme .set-vault-card {
     linear-gradient(180deg, rgba(47, 20, 48, 0.98), rgba(18, 18, 46, 0.98));
   position: relative;
   overflow: hidden;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  min-height: 84px;
 }
 
 body.pokemon-theme .set-vault-card::before {
@@ -2847,6 +2857,17 @@ body.pokemon-theme .set-vault-card::before {
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%);
   opacity: 0;
   transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+body.pokemon-theme .set-vault-card::after {
+  content: "";
+  position: absolute;
+  inset: 7px auto 7px 7px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 87, 103, 0.95), rgba(255, 232, 109, 0.92), rgba(76, 213, 255, 0.9));
+  opacity: 0.7;
   pointer-events: none;
 }
 
@@ -2869,8 +2890,8 @@ body.pokemon-theme .set-vault-card.is-selected {
 body.pokemon-theme .set-vault-card.is-selected::after {
   content: "";
   position: absolute;
-  inset: auto 10px 10px;
-  height: 34px;
+  inset: auto 10px 8px 10px;
+  height: 26px;
   border-radius: 999px;
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.45) 0 8%, transparent 9%),
@@ -2878,6 +2899,41 @@ body.pokemon-theme .set-vault-card.is-selected::after {
   border: 1px solid rgba(255, 255, 255, 0.5);
   opacity: 0.88;
   pointer-events: none;
+}
+
+body.pokemon-theme .set-vault-art {
+  grid-row: 1 / span 3;
+  width: 68px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(20, 40, 65, 0.92), rgba(8, 18, 31, 0.98));
+}
+
+body.pokemon-theme .set-vault-copy strong {
+  font-size: 0.88rem;
+}
+
+body.pokemon-theme .set-vault-copy span {
+  font-size: 0.7rem;
+}
+
+body.pokemon-theme .set-vault-meta {
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+body.pokemon-theme .set-vault-footer {
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: #b6c5ef;
+}
+
+body.pokemon-theme .set-vault-footer span:last-child {
+  color: #ffe47b;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 body.pokemon-theme .pack-meta {
@@ -3153,6 +3209,10 @@ body.mtg-theme .set-vault-head {
   align-items: start;
 }
 
+body.mtg-theme .mtg-vault-list {
+  grid-template-columns: 1fr;
+}
+
 body.mtg-theme .set-vault-card {
   border-color: rgba(145, 121, 186, 0.22);
   background:
@@ -3172,6 +3232,37 @@ body.mtg-theme .set-vault-card::before {
   opacity: 0;
   transition: opacity 180ms ease;
   pointer-events: none;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-card {
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-art {
+  display: none;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-copy {
+  gap: 2px;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-copy strong {
+  font-size: 0.98rem;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-copy span {
+  font-size: 0.76rem;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-meta {
+  justify-content: flex-start;
+}
+
+body.mtg-theme .mtg-vault-list .set-vault-footer {
+  justify-content: flex-start;
+  gap: 10px;
 }
 
 body.mtg-theme .set-vault-card:hover {
