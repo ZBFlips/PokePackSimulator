@@ -20,6 +20,10 @@
       <div>
         <h1>Pokemon Pack Simulator</h1>
         <p>Open packs with high-fidelity pull-rate simulation and live market value sorting.</p>
+        <nav class="mode-tabs" aria-label="Game mode">
+          <a class="mode-tab is-active" href="index.html" aria-current="page">Pokemon</a>
+          <a class="mode-tab" href="mtg.html">MTG</a>
+        </nav>
       </div>
       <div class="status-stack">
         <div id="loadStatus" class="load-status">Loading set data...</div>
@@ -71,6 +75,14 @@
               </select>
             </div>
 
+            <div class="control-group">
+              <label for="priceSourceMode">Pack price source</label>
+              <select id="priceSourceMode">
+                <option value="pricecharting">PriceCharting (Public)</option>
+                <option value="tcgplayerSealed">TCGplayer Sealed (Public)</option>
+              </select>
+            </div>
+
             <label class="toggle-control" for="soundToggle">
               <input id="soundToggle" type="checkbox" checked />
               <span>Sound effects enabled</span>
@@ -108,6 +120,7 @@
             <h2 id="selectedPackName">Select a pack</h2>
             <p id="selectedPackSub">Pick one of the available sets to start ripping packs.</p>
             <div id="packStats" class="pack-stats"></div>
+            <div id="packPriceSource" class="pack-price-source"></div>
           </div>
         </div>
 
@@ -196,6 +209,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260318-27"></script>
+  <script src="app.js?v=20260318-29"></script>
 </body>
 </html>

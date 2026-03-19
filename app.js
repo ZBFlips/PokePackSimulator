@@ -3,6 +3,7 @@ const BINDER_STORAGE_KEY = "pokemon-pack-sim-binder-v2";
 const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
 const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
 const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
+const PACK_PRICE_SOURCE_STORAGE_KEY = "pokemon-pack-sim-pack-price-source-v1";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v3-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
@@ -14,6 +15,25 @@ const CHASE_CANDIDATE_LIMIT = 40;
 const DEFAULT_PACK_PRICE = 4.99;
 const HISTORY_LIMIT = 30;
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
+const MARKET_PRICE_LAST_REFRESH_ISO = "2026-03-19";
+const PACK_MARKET_SOURCE_OVERRIDES = {
+  "paldean-fates": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-paldean-fates/booster-pack" },
+  "prismatic-evolutions": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-prismatic-evolutions/booster-pack" },
+  "surging-sparks": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-surging-sparks/booster-pack" },
+  "obsidian-flames": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-obsidian-flames/booster-pack" },
+  "temporal-forces": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-temporal-forces/booster-pack" },
+  "twilight-masquerade": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-twilight-masquerade/booster-pack" },
+  "evolving-skies": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-evolving-skies/booster-pack" },
+  "brilliant-stars": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-brilliant-stars/booster-pack" },
+  "lost-origin": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-lost-origin/booster-pack" },
+  "astral-radiance": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-astral-radiance/booster-pack" },
+  "silver-tempest": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-silver-tempest/booster-pack" },
+  "crown-zenith": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-crown-zenith/booster-pack" },
+  "ascended-heroes": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-ascended-heroes/booster-pack" },
+  "base-set-1999": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-base-set/booster-pack" },
+  "jungle-1999": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-jungle/booster-pack" },
+  "fossil-1999": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-fossil/booster-pack" },
+};
 const ANALYTICS_TIER_ORDER = [
   "common",
   "uncommon",
@@ -1746,6 +1766,7 @@ const state = {
   revealMode: "all",
   sortMode: "standard",
   packSortMode: "release",
+  packPriceSourceMode: loadPackPriceSourceModeFromStorage(),
   soundEnabled: loadSoundEnabledFromStorage(),
   soundSettings: loadSoundSettingsFromStorage(),
   setData: {},
@@ -1813,6 +1834,7 @@ const dom = {
   packSortMode: document.getElementById("packSortMode"),
   revealMode: document.getElementById("revealMode"),
   sortMode: document.getElementById("sortMode"),
+  priceSourceMode: document.getElementById("priceSourceMode"),
   soundToggle: document.getElementById("soundToggle"),
   resetSessionBtn: document.getElementById("resetSessionBtn"),
   resetBinderBtn: document.getElementById("resetBinderBtn"),
@@ -1835,6 +1857,7 @@ const dom = {
   selectedPackName: document.getElementById("selectedPackName"),
   selectedPackSub: document.getElementById("selectedPackSub"),
   packStats: document.getElementById("packStats"),
+  packPriceSource: document.getElementById("packPriceSource"),
   sessionStatsToggleBtn: document.getElementById("sessionStatsToggleBtn"),
   cardsGrid: document.getElementById("cardsGrid"),
   openedPackSummary: document.getElementById("openedPackSummary"),
@@ -1902,6 +1925,14 @@ function wireControls() {
   dom.packSortMode?.addEventListener("change", () => {
     state.packSortMode = dom.packSortMode.value;
     renderPackSelector();
+  });
+
+  dom.priceSourceMode?.addEventListener("change", () => {
+    state.packPriceSourceMode = dom.priceSourceMode.value;
+    persistPackPriceSourceMode();
+    renderPackSelector();
+    renderPackHeader();
+    renderEconomyPanel();
   });
 
   dom.revealMode.addEventListener("change", () => {
@@ -2849,6 +2880,9 @@ function renderPackSelector() {
   if (dom.packSortMode) {
     dom.packSortMode.value = state.packSortMode;
   }
+  if (dom.priceSourceMode) {
+    dom.priceSourceMode.value = state.packPriceSourceMode;
+  }
 
   for (const packDef of getSortedPackDefs()) {
     const option = document.createElement("option");
@@ -2898,7 +2932,7 @@ function getSortedPackDefs() {
   }
 
   if (state.packSortMode === "value") {
-    packs.sort((a, b) => (b.packPrice || 0) - (a.packPrice || 0) || a.displayName.localeCompare(b.displayName));
+    packs.sort((a, b) => getPackPriceForRoi(b) - getPackPriceForRoi(a) || a.displayName.localeCompare(b.displayName));
     return packs;
   }
 
@@ -2926,6 +2960,7 @@ function getPackReleaseTimestamp(packKey) {
 function renderPackHeader() {
   const packDef = getCurrentPackDef();
   const setData = state.setData[packDef.key];
+  const priceData = getActivePackPriceData(packDef);
 
   dom.selectedPackName.textContent = packDef.displayName;
   dom.selectedPackSub.textContent = packDef.releaseLabel;
@@ -2954,9 +2989,105 @@ function renderPackHeader() {
   } else {
     stats.push("<span class=\"pack-stat\">Set data unavailable</span>");
   }
-  stats.push(`<span class="pack-stat">Pack price ${formatUsd(packDef.packPrice || DEFAULT_PACK_PRICE)}</span>`);
+  stats.push(`<span class="pack-stat">Pack price ${formatUsd(priceData.price)}</span>`);
   stats.push(`<span class="pack-stat">${packDef.shortCode}</span>`);
   dom.packStats.innerHTML = stats.join("");
+
+  if (dom.packPriceSource) {
+    const pricingSource = priceData.source;
+    const updatedLabel = formatDateLabel(priceData.updatedAt);
+    if (!pricingSource) {
+      dom.packPriceSource.innerHTML = `<span>Pack market source unavailable for this set.</span>`;
+    } else {
+      const fallbackBadge = priceData.fallbackApplied
+        ? `<span class="pack-source-badge warn">Fallback: PriceCharting</span>`
+        : `<span class="pack-source-badge">${escapeHtml(priceData.sourceModeLabel)}</span>`;
+      dom.packPriceSource.innerHTML = `
+        <span>Pack market source: <a href="${pricingSource.url}" target="_blank" rel="noreferrer">${escapeHtml(pricingSource.label)}</a></span>
+        <span class="pack-source-meta">Last updated: ${updatedLabel}</span>
+        ${fallbackBadge}
+      `;
+    }
+  }
+}
+
+function getPackPricingSource(packDef) {
+  const override = PACK_MARKET_SOURCE_OVERRIDES[packDef?.key || ""];
+  if (override) {
+    return override;
+  }
+  if (!packDef?.sources?.length) {
+    return null;
+  }
+  return (
+    packDef.sources.find((source) => /pricecharting|booster pack market|market/i.test(source.label || "") || /pricecharting/i.test(source.url || "")) ||
+    packDef.sources[0]
+  );
+}
+
+function getActivePackPriceData(packDef) {
+  const defaultPrice = Number(packDef?.packPrice || DEFAULT_PACK_PRICE);
+  const defaultSource = getPackPricingSource(packDef);
+  const defaultData = {
+    price: defaultPrice,
+    source: defaultSource,
+    updatedAt: MARKET_PRICE_LAST_REFRESH_ISO,
+    sourceModeLabel: "PriceCharting",
+    fallbackApplied: false,
+  };
+
+  if (state.packPriceSourceMode !== "tcgplayerSealed") {
+    return defaultData;
+  }
+
+  const tcgplayerSealed = getTcgplayerSealedPackPrice(packDef);
+  if (tcgplayerSealed) {
+    return {
+      ...tcgplayerSealed,
+      sourceModeLabel: "TCGplayer Sealed",
+      fallbackApplied: false,
+    };
+  }
+
+  return {
+    ...defaultData,
+    fallbackApplied: true,
+  };
+}
+
+function getTcgplayerSealedPackPrice() {
+  return null;
+}
+
+function getPackPriceForRoi(packDef) {
+  return getActivePackPriceData(packDef).price;
+}
+
+function formatDateLabel(isoDate) {
+  if (!isoDate) return "Unknown";
+  const parsed = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+  return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function loadPackPriceSourceModeFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(PACK_PRICE_SOURCE_STORAGE_KEY);
+    if (raw === "tcgplayerSealed" || raw === "pricecharting") {
+      return raw;
+    }
+  } catch {
+    // Ignore storage read errors.
+  }
+  return "pricecharting";
+}
+
+function persistPackPriceSourceMode() {
+  try {
+    window.localStorage.setItem(PACK_PRICE_SOURCE_STORAGE_KEY, state.packPriceSourceMode);
+  } catch {
+    // Ignore storage write errors.
+  }
 }
 
 function renderOddsPanel() {
@@ -3497,7 +3628,7 @@ function drawFromWeightedPool(weightedPool, usedIds) {
 }
 function registerOpenedPack(cards, packDef) {
   const packValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
-  const packCost = Number(packDef?.packPrice || DEFAULT_PACK_PRICE);
+  const packCost = Number(getPackPriceForRoi(packDef));
   state.session.packsOpened += 1;
   state.session.totalCards += cards.length;
   state.session.totalValue += packValue;
