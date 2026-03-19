@@ -1797,6 +1797,11 @@ const state = {
   chaseTargetsBySet: loadChaseTargetsFromStorage(),
   profile: loadProfileFromStorage(),
   inspectCard: null,
+  simulationLab: {
+    running: false,
+    pendingIterations: 10000,
+    resultByPackKey: {},
+  },
   session: {
     packsOpened: 0,
     totalValue: 0,
@@ -1864,6 +1869,7 @@ const dom = {
   historyTimeline: document.getElementById("historyTimeline"),
   sessionStats: document.getElementById("sessionStats"),
   economyPanel: document.getElementById("economyPanel"),
+  simulationLabPanel: document.getElementById("simulationLabPanel"),
   achievementPanel: document.getElementById("achievementPanel"),
   binderFilters: document.getElementById("binderFilters"),
   binderGrid: document.getElementById("binderGrid"),
@@ -1901,6 +1907,7 @@ async function init() {
   renderSessionStats();
   initSessionStatsCollapse();
   renderEconomyPanel();
+  renderSimulationLab();
   renderAchievements();
   renderBinder();
   renderBackgroundSyncStatus();
@@ -1925,6 +1932,7 @@ function wireControls() {
   dom.packSortMode?.addEventListener("change", () => {
     state.packSortMode = dom.packSortMode.value;
     renderPackSelector();
+    renderSimulationLab();
   });
 
   dom.priceSourceMode?.addEventListener("change", () => {
@@ -1933,6 +1941,7 @@ function wireControls() {
     renderPackSelector();
     renderPackHeader();
     renderEconomyPanel();
+    renderSimulationLab();
   });
 
   dom.revealMode.addEventListener("change", () => {
@@ -1995,6 +2004,7 @@ function wireControls() {
     renderChasePanel();
     renderSessionStats();
     renderEconomyPanel();
+    renderSimulationLab();
     renderAchievements();
     renderHistoryTimeline();
     renderAnalyticsOverlay();
@@ -2010,6 +2020,7 @@ function wireControls() {
     renderPackHeader();
     renderSessionStats();
     renderEconomyPanel();
+    renderSimulationLab();
     renderAchievements();
     renderBinder();
   });
@@ -2396,6 +2407,7 @@ async function loadPackLiveData(packKey, options = {}) {
     renderHistoryTimeline();
     renderSessionStats();
     renderEconomyPanel();
+    renderSimulationLab();
     renderAnalyticsOverlay();
     renderAchievements();
     renderBinder();
@@ -2912,6 +2924,7 @@ function renderPackSelector() {
     renderCards();
     renderSessionStats();
     renderEconomyPanel();
+    renderSimulationLab();
     renderAchievements();
     updateButtons();
     loadPackLiveData(nextPack.key);
@@ -3333,6 +3346,7 @@ function replayHistoryPack(historyId) {
   renderHistoryTimeline();
   renderSessionStats();
   renderEconomyPanel();
+  renderSimulationLab();
   renderAnalyticsOverlay();
   renderAchievements();
   renderBinder();
@@ -3794,6 +3808,119 @@ function renderEconomyPanel() {
     </div>
     <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
   `;
+}
+
+function renderSimulationLab() {
+  if (!dom.simulationLabPanel) return;
+  const packDef = getCurrentPackDef();
+  const setData = state.setData[packDef.key];
+  const last = state.simulationLab.resultByPackKey[packDef.key] || null;
+  dom.simulationLabPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Simulation Lab</strong>
+      <span>Run 10k/100k/1M pack Monte Carlo for strict parity checks.</span>
+    </div>
+    <div class="control-group">
+      <label for="simLabIterations">Simulation size</label>
+      <select id="simLabIterations">
+        <option value="10000">10,000 packs</option>
+        <option value="100000">100,000 packs</option>
+        <option value="1000000">1,000,000 packs</option>
+      </select>
+    </div>
+    <div class="button-row">
+      <button id="runSimLabBtn" class="btn" ${setData && !state.simulationLab.running ? "" : "disabled"}>${state.simulationLab.running ? "Running..." : "Run Simulation"}</button>
+    </div>
+    <div class="qa-test-summary">
+      <strong>${last ? `Last: ${last.iterations.toLocaleString()} packs` : "No simulation yet"}</strong>
+      <p>${last ? `EV ${formatUsd(last.ev)} | Ultra+ ${formatPercent(last.ultraPlusRate)} | SIR+ ${formatPercent(last.sirPlusRate)}` : "Run to estimate EV bands and hit-rate confidence intervals."}</p>
+      ${
+        last
+          ? `<p>EV 95% CI: ${formatUsd(last.evCiLow)} - ${formatUsd(last.evCiHigh)} | $20+ hit: ${formatPercent(last.value20Rate)} (${formatPercent(last.value20CiLow)} - ${formatPercent(last.value20CiHigh)})</p>`
+          : ""
+      }
+    </div>
+  `;
+
+  const select = dom.simulationLabPanel.querySelector("#simLabIterations");
+  if (select) {
+    select.value = String(state.simulationLab.pendingIterations || 10000);
+    select.addEventListener("change", () => {
+      state.simulationLab.pendingIterations = Number(select.value);
+    });
+  }
+  dom.simulationLabPanel.querySelector("#runSimLabBtn")?.addEventListener("click", async () => {
+    if (state.simulationLab.running) return;
+    await runPokemonSimulationLab(Number(select?.value || 10000));
+  });
+}
+
+async function runPokemonSimulationLab(iterations) {
+  const packDef = getCurrentPackDef();
+  const setData = state.setData[packDef.key];
+  if (!setData) {
+    setStatus(`Cannot run simulation until ${packDef.displayName} loads.`, "error");
+    return;
+  }
+  const n = Math.max(1000, Number(iterations || 10000));
+  state.simulationLab.running = true;
+  state.simulationLab.pendingIterations = n;
+  renderSimulationLab();
+
+  let sum = 0;
+  let sumSq = 0;
+  let ultraPlusHits = 0;
+  let sirPlusHits = 0;
+  let value20Hits = 0;
+
+  for (let i = 0; i < n; i += 1) {
+    const pack = simulatePack(packDef, setData);
+    const packValue = pack.reduce((acc, card) => acc + (card.value || 0), 0);
+    const hasUltraPlus = pack.some((card) => ["ultra", "sir", "hyper", "shinyUltra"].includes(card.pulledTier));
+    const hasSirPlus = pack.some((card) => ["sir", "hyper"].includes(card.pulledTier));
+    const hasValue20 = pack.some((card) => (card.value || 0) >= 20);
+    sum += packValue;
+    sumSq += packValue * packValue;
+    if (hasUltraPlus) ultraPlusHits += 1;
+    if (hasSirPlus) sirPlusHits += 1;
+    if (hasValue20) value20Hits += 1;
+    if ((i + 1) % 5000 === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  }
+
+  const ev = sum / n;
+  const variance = Math.max(0, sumSq / n - ev * ev);
+  const stdDev = Math.sqrt(variance);
+  const evMargin = 1.96 * (stdDev / Math.sqrt(n));
+  const ultraRate = ultraPlusHits / n;
+  const sirRate = sirPlusHits / n;
+  const value20Rate = value20Hits / n;
+  const value20Ci = getRateConfidenceInterval(value20Rate, n);
+
+  state.simulationLab.resultByPackKey[packDef.key] = {
+    iterations: n,
+    ev,
+    evCiLow: Math.max(0, ev - evMargin),
+    evCiHigh: ev + evMargin,
+    ultraPlusRate: ultraRate,
+    sirPlusRate: sirRate,
+    value20Rate,
+    value20CiLow: value20Ci.low,
+    value20CiHigh: value20Ci.high,
+  };
+  state.simulationLab.running = false;
+  renderSimulationLab();
+  setStatus(`Simulation complete for ${packDef.displayName}: ${n.toLocaleString()} packs.`, "ready");
+}
+
+function getRateConfidenceInterval(rate, sampleSize) {
+  if (!sampleSize) return { low: 0, high: 0 };
+  const margin = 1.96 * Math.sqrt((rate * (1 - rate)) / sampleSize);
+  return {
+    low: Math.max(0, rate - margin),
+    high: Math.min(1, rate + margin),
+  };
 }
 
 function renderAchievements() {
