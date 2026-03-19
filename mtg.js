@@ -157,6 +157,7 @@ function buildPlayOverride(note, options = {}) {
   }
 
   return {
+    fidelity: options.fidelity || "official-slot",
     notes: note,
     play: { slots: playSlots },
     collector: {
@@ -188,11 +189,13 @@ function buildSetBoosterOverride(note, options = {}) {
     foilWeights: options.foilWeights || { common: 50, uncommon: 30, rare: 16, mythic: 4 },
     specialGuestChance: options.specialGuestChance ?? 0.0,
     includeSpecialGuestSlot: options.includeSpecialGuestSlot ?? false,
+    fidelity: options.fidelity || "official-slot",
   });
 }
 
 const MTG_SET_COLLATION_OVERRIDES = {
   blb: {
+    fidelity: "official-slot",
     notes: "Official Collecting Bloomburrow breakdown (Play/Collector composition).",
     play: {
       slots: [
@@ -230,6 +233,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
     },
   },
   dsk: {
+    fidelity: "official-slot",
     notes: "Official Collecting Duskmourn: House of Horror breakdown (Play/Collector composition).",
     play: {
       slots: [
@@ -267,6 +271,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
     },
   },
   fdn: {
+    fidelity: "official-slot",
     notes: "Official Collecting Foundations breakdown (Play/Collector composition).",
     play: {
       slots: [
@@ -935,7 +940,8 @@ function renderSetSelect() {
     option.value = setDef.key;
     const loaded = Boolean(state.setData[setDef.key]);
     const loading = state.loadingSetKeys.has(setDef.key);
-    option.textContent = `${setDef.displayName} (${loading ? "loading..." : loaded ? "live" : "pending"})`;
+    const fidelityLabel = getCollationFidelityLabel(setDef);
+    option.textContent = `${setDef.displayName} [${fidelityLabel}] (${loading ? "loading..." : loaded ? "live" : "pending"})`;
     dom.setSelect.appendChild(option);
   }
   dom.setSelect.value = state.selectedSetKey;
@@ -975,6 +981,7 @@ function renderHeader() {
 
   dom.packStats.innerHTML = [
     `<span class="pack-stat">${setData?.cards?.length || 0} cards loaded</span>`,
+    `<span class="pack-stat">${setData?.dataQuality?.boosterEligible || 0}/${setData?.dataQuality?.totalSeen || 0} booster-eligible cards</span>`,
     `<span class="pack-stat">Pack price ${formatUsd(price)}</span>`,
     `<span class="pack-stat">Release ${escapeHtml(release)}</span>`,
     `<span class="pack-stat">${profile.slots.length} slots (${product.label})</span>`,
@@ -983,7 +990,8 @@ function renderHeader() {
   if (dom.collationMeta) {
     const sourceLabel = profile.profileSource || "Default";
     const note = profile.profileNote ? `<span class="pack-source-meta">${escapeHtml(profile.profileNote)}</span>` : "";
-    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong></span>${note}`;
+    const fidelity = profile.profileFidelityLabel || "Estimated";
+    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong> <strong>[${escapeHtml(fidelity)}]</strong></span>${note}`;
   }
 
   dom.packPriceSource.innerHTML = source
@@ -1006,8 +1014,18 @@ async function loadSetData(setKey) {
     const setMeta = await fetchJson(`${SCRYFALL_API_BASE}/sets/${setDef.scryfallCode}`);
     const cards = await fetchAllCards(setDef.scryfallCode);
     const normalized = cards.map(normalizeCard).filter((card) => card.image);
-    const pools = buildPools(normalized);
-    state.setData[setKey] = { setMeta, cards: normalized, pools };
+    const boosterEligible = normalized.filter((card) => card.boosterEligible);
+    const activeCards = boosterEligible.length ? boosterEligible : normalized;
+    const pools = buildPools(activeCards);
+    state.setData[setKey] = {
+      setMeta,
+      cards: activeCards,
+      pools,
+      dataQuality: {
+        totalSeen: normalized.length,
+        boosterEligible: boosterEligible.length,
+      },
+    };
     setStatus("Ready to open MTG packs.", "ready");
   } catch (error) {
     console.error(error);
@@ -1076,6 +1094,18 @@ async function fetchJson(url) {
 }
 
 function normalizeCard(raw) {
+  const frameEffects = Array.isArray(raw.frame_effects) ? raw.frame_effects : [];
+  const boosterEligible = raw.booster !== false && raw.digital !== true && raw.promo !== true;
+  const isBoosterFunTreatment =
+    raw.showcase === true ||
+    raw.border_color === "borderless" ||
+    raw.full_art === true ||
+    raw.extended_art === true ||
+    raw.variation === true ||
+    frameEffects.some((effect) =>
+      ["showcase", "extendedart", "borderless", "etched", "inverted", "shatteredglass"].includes(effect),
+    );
+
   return {
     id: raw.id,
     name: raw.name || "Unknown",
@@ -1084,20 +1114,32 @@ function normalizeCard(raw) {
     image: raw.image_uris?.normal || raw.card_faces?.[0]?.image_uris?.normal || "",
     usd: Number(raw.prices?.usd || 0),
     usdFoil: Number(raw.prices?.usd_foil || 0),
+    boosterEligible,
+    isBoosterFunTreatment,
   };
 }
 
 function buildPools(cards) {
+  const commonAll = cards.filter((card) => card.rarity === "common");
+  const uncommonAll = cards.filter((card) => card.rarity === "uncommon");
+  const rareAll = cards.filter((card) => card.rarity === "rare");
+  const mythicAll = cards.filter((card) => card.rarity === "mythic");
+  const rareBase = rareAll.filter((card) => !card.isBoosterFunTreatment);
+  const mythicBase = mythicAll.filter((card) => !card.isBoosterFunTreatment);
+  const boosterFunRare = rareAll.filter((card) => card.isBoosterFunTreatment);
+  const boosterFunMythic = mythicAll.filter((card) => card.isBoosterFunTreatment);
+
   const byRarity = {
-    common: cards.filter((card) => card.rarity === "common"),
-    uncommon: cards.filter((card) => card.rarity === "uncommon"),
-    rare: cards.filter((card) => card.rarity === "rare"),
-    mythic: cards.filter((card) => card.rarity === "mythic"),
+    common: commonAll,
+    uncommon: uncommonAll,
+    // Tailored fix: keep premium treatments out of baseline play-booster rare/mythic pools.
+    rare: rareBase.length ? rareBase : rareAll,
+    mythic: mythicBase.length ? mythicBase : mythicAll,
     basicLand: cards.filter((card) => /basic land/i.test(card.typeLine)),
     land: cards.filter((card) => /land/i.test(card.typeLine)),
     specialGuest: cards.filter((card) => /special guest|bonus|breaking news|masterpiece|list/i.test(card.name) || /special guest|bonus|masterpiece/i.test(card.typeLine)),
-    showcaseRare: cards.filter((card) => card.rarity === "rare" && (card.usd > 0 || card.usdFoil > 0)),
-    showcaseMythic: cards.filter((card) => card.rarity === "mythic" && (card.usd > 0 || card.usdFoil > 0)),
+    showcaseRare: boosterFunRare.length ? boosterFunRare : rareAll,
+    showcaseMythic: boosterFunMythic.length ? boosterFunMythic : mythicAll,
   };
   return byRarity;
 }
@@ -1185,11 +1227,25 @@ function getCollationProfile(setDef) {
   const override = setOverride?.[productKey];
   const profile = override || base;
   const note = setOverride?.notes || "";
+  const fidelity = setOverride?.fidelity || "estimated";
   return {
     slots: profile.slots || [],
     profileSource: override ? `${setDef.displayName} ${base.label} Official` : `${base.label} Default`,
     profileNote: note,
+    profileFidelity: fidelity,
+    profileFidelityLabel: formatCollationFidelityLabel(fidelity),
   };
+}
+
+function getCollationFidelityLabel(setDef) {
+  const override = MTG_SET_COLLATION_OVERRIDES[setDef.scryfallCode] || null;
+  return formatCollationFidelityLabel(override?.fidelity || "estimated");
+}
+
+function formatCollationFidelityLabel(value) {
+  if (value === "exact") return "Exact";
+  if (value === "official-slot") return "Official-slot";
+  return "Estimated";
 }
 
 function registerPack(cards, setDef) {
