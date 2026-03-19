@@ -24,6 +24,10 @@ const HISTORY_LIMIT = 30;
 const RNG_AUDIT_LIMIT = 120;
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
 const MARKET_PRICE_LAST_REFRESH_ISO = "2026-03-19";
+const COMMON = window.PackSimCommon || {};
+const SNAPSHOT_STALE_DAYS = Number(COMMON.SNAPSHOT_STALE_DAYS || 14);
+const HISTORY_RENDER_BATCH = 14;
+const BINDER_RENDER_BATCH = 180;
 const DEFAULT_POKEMON_COLLATION_PROFILE = {
   version: "v2",
   fidelity: "official-slot",
@@ -2313,6 +2317,8 @@ const state = {
     rngAuditTrail: [],
   },
   binder: loadBinderFromStorage(),
+  historyVisibleCount: HISTORY_RENDER_BATCH,
+  binderVisibleCount: BINDER_RENDER_BATCH,
   audioContext: null,
 };
 
@@ -2552,6 +2558,7 @@ function wireControls() {
       rngAuditTrail: [],
     };
     state.analyticsOpen = false;
+    state.historyVisibleCount = HISTORY_RENDER_BATCH;
     closeInspectModal();
     renderChasePanel();
     renderSessionStats();
@@ -2569,6 +2576,7 @@ function wireControls() {
     const okay = window.confirm("Reset binder collection data? This cannot be undone.");
     if (!okay) return;
     state.binder = createEmptyBinder();
+    state.binderVisibleCount = BINDER_RENDER_BATCH;
     persistBinder();
     renderPackHeader();
     renderSessionStats();
@@ -2885,13 +2893,13 @@ function wirePwaInstallPrompt() {
 }
 
 function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) {
+  if (typeof COMMON.registerServiceWorker === "function") {
+    COMMON.registerServiceWorker("./sw.js");
     return;
   }
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch((error) => {
-      console.warn("Service worker registration failed:", error);
-    });
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("./sw.js").catch((error) => {
+    console.warn("Service worker registration failed:", error);
   });
 }
 function seedFallbackData() {
@@ -3728,6 +3736,10 @@ function renderPackHeader() {
   if (dom.packPriceSource) {
     const pricingSource = priceData.source;
     const updatedLabel = formatDateLabel(priceData.updatedAt);
+    const freshnessLabel = getSnapshotFreshnessLabel(priceData.updatedAt);
+    const freshnessBadge = isSnapshotStale(priceData.updatedAt)
+      ? `<span class="pack-source-badge warn">${escapeHtml(freshnessLabel)}</span>`
+      : `<span class="pack-source-badge">${escapeHtml(freshnessLabel)}</span>`;
     if (!pricingSource) {
       dom.packPriceSource.innerHTML = `<span>Pack market source unavailable for this set.</span>`;
     } else {
@@ -3738,6 +3750,7 @@ function renderPackHeader() {
         <span>Pack market source: <a href="${escapeHtml(sanitizeHttpUrl(pricingSource.url))}" target="_blank" rel="noreferrer">${escapeHtml(pricingSource.label)}</a></span>
         <span class="pack-source-meta">Last updated: ${updatedLabel}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>
         ${fallbackBadge}
+        ${freshnessBadge}
       `;
     }
   }
@@ -3821,6 +3834,9 @@ function getPackPriceForRoi(packDef) {
 }
 
 function formatDateLabel(isoDate) {
+  if (typeof COMMON.formatDateLabel === "function") {
+    return COMMON.formatDateLabel(isoDate);
+  }
   if (!isoDate) return "Unknown";
   const parsed = new Date(`${isoDate}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return isoDate;
@@ -3982,7 +3998,7 @@ function renderOddsPanel() {
     chaseMarkup = `
       <div class="odds-title">Approx Specific Card Odds (Weighted)</div>
       <ul class="odds-list">
-        ${topChase.map((item) => `<li><span>${item.name}</span><strong>${item.oddsText}</strong></li>`).join("")}
+        ${topChase.map((item) => `<li><span>${escapeHtml(item.name)}</span><strong>${item.oddsText}</strong></li>`).join("")}
       </ul>
     `;
   }
@@ -4147,11 +4163,16 @@ function renderHistoryTimeline() {
   if (!dom.historyTimeline) return;
   const history = state.session.openHistory || [];
   if (!history.length) {
+    state.historyVisibleCount = HISTORY_RENDER_BATCH;
     dom.historyTimeline.innerHTML = `<div class="history-empty">No packs in history yet. Open one to start building your timeline.</div>`;
     return;
   }
 
-  dom.historyTimeline.innerHTML = history
+  const visibleCount = Math.max(HISTORY_RENDER_BATCH, Number(state.historyVisibleCount) || HISTORY_RENDER_BATCH);
+  const visibleItems = history.slice(0, visibleCount);
+  const hasMore = history.length > visibleItems.length;
+
+  dom.historyTimeline.innerHTML = visibleItems
     .map((item) => {
       const timeLabel = new Date(item.openedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
       const topCard = item.topCard;
@@ -4171,6 +4192,18 @@ function renderHistoryTimeline() {
       `;
     })
     .join("");
+
+  if (hasMore) {
+    const moreBtn = document.createElement("button");
+    moreBtn.className = "btn history-replay-btn";
+    moreBtn.type = "button";
+    moreBtn.textContent = `Show ${Math.min(HISTORY_RENDER_BATCH, history.length - visibleItems.length)} more`;
+    moreBtn.addEventListener("click", () => {
+      state.historyVisibleCount += HISTORY_RENDER_BATCH;
+      renderHistoryTimeline();
+    });
+    dom.historyTimeline.appendChild(moreBtn);
+  }
 
   dom.historyTimeline.querySelectorAll("[data-replay-pack]").forEach((buttonEl) => {
     buttonEl.addEventListener("click", () => {
@@ -5360,6 +5393,7 @@ function renderBinder() {
   });
 
   if (!sorted.length) {
+    state.binderVisibleCount = BINDER_RENDER_BATCH;
     dom.binderGrid.classList.add("empty");
     const baseEmpty = entries.length
       ? "No cards match your current binder filters."
@@ -5368,15 +5402,19 @@ function renderBinder() {
     return;
   }
 
+  const visibleCount = Math.max(BINDER_RENDER_BATCH, Number(state.binderVisibleCount) || BINDER_RENDER_BATCH);
+  const visibleEntries = sorted.slice(0, visibleCount);
+  const hasMore = sorted.length > visibleEntries.length;
+
   dom.binderGrid.classList.remove("empty");
-  dom.binderGrid.innerHTML = sorted
+  dom.binderGrid.innerHTML = visibleEntries
     .map(
       (entry) => `
       <article class="binder-entry">
-        <img src="${entry.image}" alt="${entry.name}" loading="lazy" onerror="this.src='https://images.pokemontcg.io/base1/4_hires.png'" />
+        <img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.name)}" loading="lazy" />
         <div class="binder-entry-copy">
-          <h3>${entry.name}</h3>
-          <p>${formatTierName(entry.tier)}</p>
+          <h3>${escapeHtml(entry.name)}</h3>
+          <p>${escapeHtml(formatTierName(entry.tier))}</p>
           <p>x${entry.count} pulled</p>
           <p>Best value: ${formatUsd(entry.bestValue)}</p>
         </div>
@@ -5384,6 +5422,37 @@ function renderBinder() {
     `,
     )
     .join("");
+
+  dom.binderGrid.querySelectorAll(".binder-entry img").forEach((imgEl) => {
+    imgEl.addEventListener(
+      "error",
+      () => {
+        if (imgEl.dataset.fallbackApplied === "1") return;
+        imgEl.dataset.fallbackApplied = "1";
+        imgEl.src = "https://images.pokemontcg.io/base1/4_hires.png";
+      },
+      { once: true },
+    );
+  });
+
+  if (hasMore) {
+    dom.binderGrid.insertAdjacentHTML(
+      "beforeend",
+      `
+        <article class="binder-entry">
+          <div class="binder-entry-copy">
+            <h3>${sorted.length - visibleEntries.length} more cards</h3>
+            <p>Load additional binder entries</p>
+            <button id="binderShowMoreBtn" class="btn" type="button">Show More</button>
+          </div>
+        </article>
+      `,
+    );
+    dom.binderGrid.querySelector("#binderShowMoreBtn")?.addEventListener("click", () => {
+      state.binderVisibleCount += BINDER_RENDER_BATCH;
+      renderBinder();
+    });
+  }
 }
 
 function renderBinderFilters(entries) {
@@ -5538,7 +5607,15 @@ function renderCards() {
       article.classList.add("revealed");
       article.classList.add(`impact-${getRevealImpact(card)}`);
       article.classList.add("inspectable");
+      article.setAttribute("role", "button");
+      article.setAttribute("tabindex", "0");
+      article.setAttribute("aria-label", `Inspect ${card.name}`);
       article.addEventListener("click", () => {
+        openInspectModal(card);
+      });
+      article.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
         openInspectModal(card);
       });
       if (card.instanceId === state.justRevealedInstanceId) {
@@ -5556,7 +5633,15 @@ function renderCards() {
     } else {
       if (state.revealMode === "step") {
         article.classList.add("can-reveal");
+        article.setAttribute("role", "button");
+        article.setAttribute("tabindex", "0");
+        article.setAttribute("aria-label", `Reveal hidden card ${index + 1}`);
         article.addEventListener("click", () => {
+          revealCardByClick(card);
+        });
+        article.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
           revealCardByClick(card);
         });
       }
@@ -5861,6 +5946,9 @@ function getRevealImpact(card) {
 }
 
 function escapeHtml(value) {
+  if (typeof COMMON.escapeHtml === "function") {
+    return COMMON.escapeHtml(value);
+  }
   return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -5870,6 +5958,9 @@ function escapeHtml(value) {
 }
 
 function sanitizeHttpUrl(urlValue) {
+  if (typeof COMMON.sanitizeHttpUrl === "function") {
+    return COMMON.sanitizeHttpUrl(urlValue);
+  }
   const value = String(urlValue || "").trim();
   if (!value) return "#";
   try {
@@ -5881,6 +5972,20 @@ function sanitizeHttpUrl(urlValue) {
     // Ignore parse errors and fall back to an inert URL.
   }
   return "#";
+}
+
+function isSnapshotStale(isoDate) {
+  if (typeof COMMON.isSnapshotStale === "function") {
+    return COMMON.isSnapshotStale(isoDate, SNAPSHOT_STALE_DAYS);
+  }
+  return false;
+}
+
+function getSnapshotFreshnessLabel(isoDate) {
+  if (typeof COMMON.getSnapshotFreshnessLabel === "function") {
+    return COMMON.getSnapshotFreshnessLabel(isoDate, SNAPSHOT_STALE_DAYS);
+  }
+  return "Snapshot freshness unknown";
 }
 
 function hydrateLiveSetCache() {
@@ -6084,6 +6189,7 @@ function openInspectModal(card) {
     : "No market data";
   dom.inspectModal.hidden = false;
   dom.inspectModal.classList.add("open");
+  dom.inspectCloseBtn?.focus();
 }
 
 function closeInspectModal() {

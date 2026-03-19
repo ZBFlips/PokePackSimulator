@@ -1,16 +1,16 @@
-const CACHE_VERSION = "v20260319-10";
-const STATIC_CACHE = `pack-sim-static-${CACHE_VERSION}`;
-const RUNTIME_CACHE = `pack-sim-runtime-${CACHE_VERSION}`;
-const API_CACHE = `pack-sim-api-${CACHE_VERSION}`;
-
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./mtg.html",
   "./methodology.html",
+  "./common.js?v=20260319-1",
+  "./methodology.js?v=20260319-1",
   "./styles.css",
+  "./styles.css?v=20260319-39",
   "./app.js",
+  "./app.js?v=20260319-40",
   "./mtg.js",
+  "./mtg.js?v=20260319-40",
   "./assets/qa/pokemon-lockfile.json",
   "./assets/qa/mtg-lockfile.json",
   "./assets/data/pokemon-market-snapshot.json",
@@ -35,6 +35,11 @@ const STATIC_ASSETS = [
   "./assets/packs/jungle-1999.png",
   "./assets/packs/fossil-1999.png"
 ];
+
+const MANIFEST_HASH = computeManifestHash(STATIC_ASSETS);
+const STATIC_CACHE = `pack-sim-static-${MANIFEST_HASH}`;
+const RUNTIME_CACHE = `pack-sim-runtime-${MANIFEST_HASH}`;
+const API_CACHE = `pack-sim-api-${MANIFEST_HASH}`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -86,7 +91,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isSameOrigin) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE, RUNTIME_CACHE));
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE, RUNTIME_CACHE));
     return;
   }
 
@@ -110,6 +115,28 @@ async function cacheFirst(request, preferredCache, fallbackCache) {
   }
 }
 
+async function staleWhileRevalidate(request, preferredCache, fallbackCache) {
+  const cached = await caches.match(request);
+  const fetchPromise = fetch(request)
+    .then(async (response) => {
+      if (response && response.ok) {
+        const cache = await caches.open(preferredCache || fallbackCache);
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  if (cached) {
+    return cached;
+  }
+  const networkResponse = await fetchPromise;
+  if (networkResponse) return networkResponse;
+  const fallback = await caches.open(fallbackCache).then((cache) => cache.match(request));
+  if (fallback) return fallback;
+  throw new Error("Request unavailable");
+}
+
 async function networkFirst(request, cacheName) {
   try {
     const response = await fetch(request);
@@ -123,4 +150,15 @@ async function networkFirst(request, cacheName) {
     if (cached) return cached;
     return caches.match(request);
   }
+}
+
+function computeManifestHash(items) {
+  let hash = 2166136261;
+  for (const item of items) {
+    for (let i = 0; i < item.length; i += 1) {
+      hash ^= item.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+  }
+  return (hash >>> 0).toString(16);
 }

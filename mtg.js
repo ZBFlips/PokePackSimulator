@@ -15,6 +15,9 @@ const MTG_MARKET_SNAPSHOT_URL = "./assets/data/mtg-market-snapshot.json";
 const MTG_QA_WINDOW_SIZE = 50;
 const MTG_EXACT_TEMPLATE_VERSION = "exact-template-v1";
 const MTG_AUDIT_TRAIL_LIMIT = 150;
+const COMMON = window.PackSimCommon || {};
+const SNAPSHOT_STALE_DAYS = Number(COMMON.SNAPSHOT_STALE_DAYS || 14);
+const MTG_BINDER_RENDER_BATCH = 200;
 
 const MTG_PRODUCTS = {
   play: {
@@ -947,6 +950,7 @@ const state = {
     running: false,
     lastResultBySetProduct: {},
   },
+  binderVisibleCount: MTG_BINDER_RENDER_BATCH,
 };
 
 const dom = {
@@ -1146,6 +1150,7 @@ function wireControls() {
     };
     state.currentPack = null;
     state.revealedIds = new Set();
+    state.binderVisibleCount = MTG_BINDER_RENDER_BATCH;
     renderSessionStats();
     renderEconomyPanel();
     renderOddsQaPanel();
@@ -1161,6 +1166,7 @@ function wireControls() {
     const okay = window.confirm("Reset MTG binder collection data?");
     if (!okay) return;
     state.binder = { cards: {} };
+    state.binderVisibleCount = MTG_BINDER_RENDER_BATCH;
     persistBinder();
     renderBinder();
   });
@@ -1330,9 +1336,15 @@ function renderHeader() {
     dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong> <strong>[${escapeHtml(fidelity)}]</strong> <span class="pack-source-meta">${escapeHtml(profile.templateVersion || MTG_EXACT_TEMPLATE_VERSION)}</span></span>${note}`;
   }
 
+  const snapshotDate = state.marketSnapshot.updatedAt || new Date().toISOString().slice(0, 10);
+  const freshnessLabel = getSnapshotFreshnessLabel(snapshotDate);
+  const freshnessBadge = isSnapshotStale(snapshotDate)
+    ? `<span class="pack-source-badge warn">${escapeHtml(freshnessLabel)}</span>`
+    : `<span class="pack-source-badge">${escapeHtml(freshnessLabel)}</span>`;
   dom.packPriceSource.innerHTML = source
     ? `<span>Pack market source: <a href="${escapeHtml(sanitizeHttpUrl(source.url))}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a></span>
-       <span class="pack-source-meta">Last updated: ${formatDateLabel(state.marketSnapshot.updatedAt || new Date().toISOString().slice(0, 10))}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>`
+       <span class="pack-source-meta">Last updated: ${formatDateLabel(snapshotDate)}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>
+       ${freshnessBadge}`
     : "<span>Pack market source unavailable.</span>";
 
   dom.openPackBtn.disabled = !setData;
@@ -2812,7 +2824,17 @@ function renderCards() {
       }
     } else {
       article.classList.add("can-reveal");
+      article.setAttribute("role", "button");
+      article.setAttribute("tabindex", "0");
+      article.setAttribute("aria-label", `Reveal hidden card ${index + 1}`);
       article.addEventListener("click", () => {
+        if (state.revealMode !== "step") return;
+        state.revealedIds.add(card.instanceId);
+        renderCards();
+      });
+      article.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
         if (state.revealMode !== "step") return;
         state.revealedIds.add(card.instanceId);
         renderCards();
@@ -2876,13 +2898,18 @@ function renderBinder() {
   binderSection?.classList.toggle("ultra-compact", Boolean(state.ultraCompactBinder));
   const entries = Object.values(state.binder.cards).sort((a, b) => (b.lastPulledAt || 0) - (a.lastPulledAt || 0));
   if (!entries.length) {
+    state.binderVisibleCount = MTG_BINDER_RENDER_BATCH;
     dom.binderGrid.classList.add("empty");
     dom.binderGrid.innerHTML = "No cards in your MTG binder yet.";
     return;
   }
 
+  const visibleCount = Math.max(MTG_BINDER_RENDER_BATCH, Number(state.binderVisibleCount) || MTG_BINDER_RENDER_BATCH);
+  const visibleEntries = entries.slice(0, visibleCount);
+  const hasMore = entries.length > visibleEntries.length;
+
   dom.binderGrid.classList.remove("empty");
-  dom.binderGrid.innerHTML = entries
+  dom.binderGrid.innerHTML = visibleEntries
     .map((card) => `
       <article class="binder-entry">
         <img src="${card.image || ""}" alt="${escapeHtml(card.name)}" />
@@ -2894,6 +2921,25 @@ function renderBinder() {
       </article>
     `)
     .join("");
+
+  if (hasMore) {
+    dom.binderGrid.insertAdjacentHTML(
+      "beforeend",
+      `
+        <article class="binder-entry">
+          <div class="binder-entry-copy">
+            <h3>${entries.length - visibleEntries.length} more cards</h3>
+            <p>Load additional binder entries</p>
+            <button id="mtgBinderShowMoreBtn" class="btn" type="button">Show More</button>
+          </div>
+        </article>
+      `,
+    );
+    dom.binderGrid.querySelector("#mtgBinderShowMoreBtn")?.addEventListener("click", () => {
+      state.binderVisibleCount += MTG_BINDER_RENDER_BATCH;
+      renderBinder();
+    });
+  }
 }
 
 function getChaseTargets(setKey) {
@@ -3135,12 +3181,19 @@ function formatPercentWithCi(rate, sampleSize) {
 }
 
 function formatDateLabel(isoDate) {
+  if (typeof COMMON.formatDateLabel === "function") {
+    return COMMON.formatDateLabel(isoDate);
+  }
   const parsed = new Date(`${isoDate}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return isoDate;
   return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function registerServiceWorker() {
+  if (typeof COMMON.registerServiceWorker === "function") {
+    COMMON.registerServiceWorker("./sw.js");
+    return;
+  }
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.register("./sw.js").catch(() => {
     // Service worker support is optional.
@@ -3148,6 +3201,9 @@ function registerServiceWorker() {
 }
 
 function escapeHtml(value) {
+  if (typeof COMMON.escapeHtml === "function") {
+    return COMMON.escapeHtml(value);
+  }
   return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -3157,6 +3213,9 @@ function escapeHtml(value) {
 }
 
 function sanitizeHttpUrl(urlValue) {
+  if (typeof COMMON.sanitizeHttpUrl === "function") {
+    return COMMON.sanitizeHttpUrl(urlValue);
+  }
   const value = String(urlValue || "").trim();
   if (!value) return "#";
   try {
@@ -3168,5 +3227,19 @@ function sanitizeHttpUrl(urlValue) {
     // Ignore parse errors and fall back to an inert URL.
   }
   return "#";
+}
+
+function isSnapshotStale(isoDate) {
+  if (typeof COMMON.isSnapshotStale === "function") {
+    return COMMON.isSnapshotStale(isoDate, SNAPSHOT_STALE_DAYS);
+  }
+  return false;
+}
+
+function getSnapshotFreshnessLabel(isoDate) {
+  if (typeof COMMON.getSnapshotFreshnessLabel === "function") {
+    return COMMON.getSnapshotFreshnessLabel(isoDate, SNAPSHOT_STALE_DAYS);
+  }
+  return "Snapshot freshness unknown";
 }
 
