@@ -3876,8 +3876,8 @@ async function runPokemonSimulationLab(iterations) {
   for (let i = 0; i < n; i += 1) {
     const pack = simulatePack(packDef, setData);
     const packValue = pack.reduce((acc, card) => acc + (card.value || 0), 0);
-    const hasUltraPlus = pack.some((card) => ["ultra", "sir", "hyper", "shinyUltra"].includes(card.pulledTier));
-    const hasSirPlus = pack.some((card) => ["sir", "hyper"].includes(card.pulledTier));
+    const hasUltraPlus = pack.some((card) => isUltraPlusTier(card.pulledTier || card.tier || ""));
+    const hasSirPlus = pack.some((card) => isSirPlusTier(card.pulledTier || card.tier || ""));
     const hasValue20 = pack.some((card) => (card.value || 0) >= 20);
     sum += packValue;
     sumSq += packValue * packValue;
