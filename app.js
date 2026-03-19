@@ -11,6 +11,8 @@ const MARKET_VALUE_MODE_STORAGE_KEY = "pokemon-pack-sim-market-value-mode-v1";
 const OPENING_UX_MODE_STORAGE_KEY = "pokemon-pack-sim-opening-ux-mode-v1";
 const RNG_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-rng-v1";
 const PACK_SEARCH_STORAGE_KEY = "pokemon-pack-sim-pack-search-v1";
+const PACK_FAVORITES_STORAGE_KEY = "pokemon-pack-sim-pack-favorites-v1";
+const PACK_RECENT_STORAGE_KEY = "pokemon-pack-sim-pack-recent-v1";
 const POKEMON_MARKET_SNAPSHOT_URL = "./assets/data/pokemon-market-snapshot.json";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v3-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
@@ -29,6 +31,7 @@ const COMMON = window.PackSimCommon || {};
 const SNAPSHOT_STALE_DAYS = Number(COMMON.SNAPSHOT_STALE_DAYS || 14);
 const HISTORY_RENDER_BATCH = 14;
 const BINDER_RENDER_BATCH = 180;
+const VAULT_RECENT_LIMIT = 6;
 const DEFAULT_POKEMON_COLLATION_PROFILE = {
   version: "v2",
   fidelity: "official-slot",
@@ -2322,6 +2325,8 @@ const state = {
   binderVisibleCount: BINDER_RENDER_BATCH,
   audioContext: null,
   packSearchQuery: loadPackSearchQueryFromStorage(),
+  favoritePackKeys: loadPackFavoritesFromStorage(),
+  recentPackKeys: loadPackRecentFromStorage(),
 };
 
 const dom = {
@@ -2332,6 +2337,7 @@ const dom = {
   installAppBtn: document.getElementById("installAppBtn"),
   packSelector: document.getElementById("packSelector"),
   packSearch: document.getElementById("packSearch"),
+  packFavoriteBtn: document.getElementById("packFavoriteBtn"),
   packVaultSummary: document.getElementById("packVaultSummary"),
   packVault: document.getElementById("packVault"),
   chooseSetToggleBtn: document.getElementById("chooseSetToggleBtn"),
@@ -2458,6 +2464,10 @@ function wireControls() {
     state.packSearchQuery = dom.packSearch.value;
     persistPackSearchQuery(state.packSearchQuery);
     renderPackSelector();
+  });
+
+  dom.packFavoriteBtn?.addEventListener("click", () => {
+    togglePackFavorite(state.selectedPackKey);
   });
 
   dom.priceSourceMode?.addEventListener("change", () => {
@@ -3596,6 +3606,7 @@ function createSyntheticCards(packDef) {
 function renderPackSelector() {
   dom.packSelector.innerHTML = "";
   const selectedPack = getCurrentPackDef();
+  updatePackRecent(selectedPack.key);
   const select = document.createElement("select");
   select.id = "packSelect";
   select.setAttribute("aria-label", "Choose a pack");
@@ -3666,6 +3677,11 @@ function renderPackSelector() {
   helper.className = "pack-select-meta";
   helper.textContent = selectedPack.releaseLabel;
 
+  if (dom.packFavoriteBtn) {
+    dom.packFavoriteBtn.textContent = isPackFavorite(selectedPack.key) ? "Unpin current pack" : "Pin current pack";
+    dom.packFavoriteBtn.setAttribute("aria-pressed", isPackFavorite(selectedPack.key) ? "true" : "false");
+  }
+
   dom.packSelector.append(select, helper);
   renderPackVault();
 }
@@ -3679,6 +3695,7 @@ function selectPack(packKey) {
   state.revealedInstanceIds = new Set();
   state.justRevealedInstanceId = "";
   closeInspectModal();
+  updatePackRecent(packKey);
   triggerPackSwapCelebration(nextPack);
   renderPackSelector();
   renderChasePanel();
@@ -3732,6 +3749,65 @@ function persistPackSearchQuery(value) {
   }
 }
 
+function loadPackKeyListFromStorage(storageKey) {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    const validKeys = new Set(PACK_CONFIG.map((pack) => pack.key));
+    return parsed.map((key) => String(key || "")).filter((key) => validKeys.has(key));
+  } catch {
+    return [];
+  }
+}
+
+function savePackKeyList(storageKey, keys) {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(keys));
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function loadPackFavoritesFromStorage() {
+  return loadPackKeyListFromStorage(PACK_FAVORITES_STORAGE_KEY);
+}
+
+function loadPackRecentFromStorage() {
+  return loadPackKeyListFromStorage(PACK_RECENT_STORAGE_KEY).slice(0, VAULT_RECENT_LIMIT);
+}
+
+function persistPackFavorites() {
+  savePackKeyList(PACK_FAVORITES_STORAGE_KEY, state.favoritePackKeys);
+}
+
+function persistPackRecent() {
+  savePackKeyList(PACK_RECENT_STORAGE_KEY, state.recentPackKeys.slice(0, VAULT_RECENT_LIMIT));
+}
+
+function isPackFavorite(packKey) {
+  return state.favoritePackKeys.includes(packKey);
+}
+
+function updatePackRecent(packKey) {
+  if (!packKey) return;
+  state.recentPackKeys = [packKey, ...state.recentPackKeys.filter((key) => key !== packKey)].slice(0, VAULT_RECENT_LIMIT);
+  persistPackRecent();
+}
+
+function togglePackFavorite(packKey = state.selectedPackKey) {
+  if (!packKey) return;
+  if (isPackFavorite(packKey)) {
+    state.favoritePackKeys = state.favoritePackKeys.filter((key) => key !== packKey);
+    showToast("Removed from pinned packs.", "info");
+  } else {
+    state.favoritePackKeys = [packKey, ...state.favoritePackKeys].slice(0, 12);
+    showToast("Pinned to the vault.", "success");
+  }
+  persistPackFavorites();
+  renderPackSelector();
+}
+
 function matchesPackSearch(packDef, query) {
   if (!query) return true;
   const haystack = [
@@ -3751,36 +3827,47 @@ function renderPackVault() {
   if (!dom.packVault || !dom.packVaultSummary) return;
   const query = String(state.packSearchQuery || "").trim().toLowerCase();
   const packs = getSortedPackDefs().filter((packDef) => matchesPackSearch(packDef, query));
+  const pinnedPacks = packs.filter((packDef) => isPackFavorite(packDef.key));
+  const recentPacks = packs.filter((packDef) => state.recentPackKeys.includes(packDef.key) && !isPackFavorite(packDef.key));
+  const otherPacks = packs.filter((packDef) => !isPackFavorite(packDef.key) && !state.recentPackKeys.includes(packDef.key));
   const readyCount = packs.filter((packDef) => Boolean(state.setData[packDef.key]?.cards?.length)).length;
   const liveCount = packs.filter((packDef) => state.liveLoadedPackKeys.has(packDef.key)).length;
   const fallbackCount = packs.length - liveCount;
 
   dom.packVaultSummary.innerHTML = `
     <span class="pack-source-badge">Pokedex ${packs.length}</span>
+    <span class="pack-source-badge">${pinnedPacks.length} pinned</span>
+    <span class="pack-source-badge">${recentPacks.length} recent</span>
     <span class="pack-source-badge">${readyCount} ready</span>
     <span class="pack-source-badge">${liveCount} live</span>
     <span class="pack-source-badge">${fallbackCount} fallback</span>
   `;
 
-  const selectMarkup = `
-    <label class="vault-select-label" for="packVaultSelect">Quick pick</label>
-    <select id="packVaultSelect" class="set-vault-select" aria-label="Choose a pack from the vault">
-      ${packs
-        .map((packDef) => {
-          const isLive = state.liveLoadedPackKeys.has(packDef.key);
-          const isLoading = state.loadingPackKeys.has(packDef.key);
-          const loadLabel = isLoading ? "Loading" : isLive ? "Live" : "Fallback";
-          const priceLabel = formatUsd(getPackPriceForRoi(packDef));
-          const fidelity = getPackFidelity(packDef).label;
-          return `
-            <option value="${escapeHtml(packDef.key)}" ${state.selectedPackKey === packDef.key ? "selected" : ""}>
-              ${escapeHtml(packDef.displayName)} - ${escapeHtml(packDef.shortCode || packDef.key)} - ${escapeHtml(loadLabel)} - ${escapeHtml(fidelity)} - ${escapeHtml(priceLabel)}
-            </option>
-          `;
-        })
-        .join("")}
-    </select>
-  `;
+  const buildOption = (packDef) => {
+    const isLive = state.liveLoadedPackKeys.has(packDef.key);
+    const isLoading = state.loadingPackKeys.has(packDef.key);
+    const loadLabel = isLoading ? "Loading" : isLive ? "Live" : "Fallback";
+    const priceLabel = formatUsd(getPackPriceForRoi(packDef));
+    const fidelity = getPackFidelity(packDef).label;
+    const pinLabel = isPackFavorite(packDef.key) ? "Pinned" : state.recentPackKeys.includes(packDef.key) ? "Recent" : "All";
+    return `
+      <option value="${escapeHtml(packDef.key)}" ${state.selectedPackKey === packDef.key ? "selected" : ""}>
+        ${escapeHtml(packDef.displayName)} - ${escapeHtml(packDef.shortCode || packDef.key)} - ${escapeHtml(pinLabel)} - ${escapeHtml(loadLabel)} - ${escapeHtml(fidelity)} - ${escapeHtml(priceLabel)}
+      </option>
+    `;
+  };
+
+  const selectMarkup = packs.length
+    ? `
+      <label class="vault-select-label" for="packVaultSelect">Quick pick</label>
+      <select id="packVaultSelect" class="set-vault-select" aria-label="Choose a pack from the vault">
+        ${pinnedPacks.length ? `<optgroup label="Pinned">${pinnedPacks.map(buildOption).join("")}</optgroup>` : ""}
+        ${recentPacks.length ? `<optgroup label="Recent">${recentPacks.map(buildOption).join("")}</optgroup>` : ""}
+        ${otherPacks.length ? `<optgroup label="All Packs">${otherPacks.map(buildOption).join("")}</optgroup>` : ""}
+      </select>
+      <div class="vault-hint">Pinned and recent packs stay above the rest while you search the stack.</div>
+    `
+    : `<div class="set-vault-empty">No packs match that search.</div>`;
   dom.packVault.innerHTML = selectMarkup;
 
   const select = dom.packVault.querySelector("#packVaultSelect");
@@ -3875,6 +3962,8 @@ function renderPackHeader() {
   } else {
     stats.push("<span class=\"pack-stat\">Set data unavailable</span>");
   }
+  stats.push(`<span class="pack-stat">${state.favoritePackKeys.length} pinned</span>`);
+  stats.push(`<span class="pack-stat">${state.recentPackKeys.length} recent</span>`);
   stats.push(`<span class="pack-stat">Pack price ${formatUsd(priceData.price)}</span>`);
   stats.push(`<span class="pack-stat">Pricing mode ${getMarketValueModeLabel()}</span>`);
   stats.push(`<span class="pack-stat">Collation ${escapeHtml(collation.version || "v2")}</span>`);
@@ -4124,10 +4213,14 @@ function persistPackPriceSourceMode() {
 function renderOddsPanel() {
   const packDef = getCurrentPackDef();
   const setData = state.setData[packDef.key];
+  const oddsHighlights = Array.isArray(packDef.oddsHighlights) ? packDef.oddsHighlights : [];
+  const sources = Array.isArray(packDef.sources) ? packDef.sources : [];
 
-  const baseList = packDef.oddsHighlights
-    .map((entry) => `<li><span>${entry.label}</span><strong>${formatPercent(entry.probability)}</strong></li>`)
-    .join("");
+  const baseList = oddsHighlights.length
+    ? oddsHighlights
+        .map((entry) => `<li><span>${entry.label}</span><strong>${formatPercent(entry.probability)}</strong></li>`)
+        .join("")
+    : `<li><span>No slot highlights defined for this set yet.</span><strong>Fallback</strong></li>`;
 
   let chaseMarkup = "";
   if (setData) {
@@ -4151,9 +4244,11 @@ function renderOddsPanel() {
     `;
   }
 
-  const sourceLinks = packDef.sources
-    .map((source) => `<a href="${escapeHtml(sanitizeHttpUrl(source.url))}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a>`)
-    .join(" | ");
+  const sourceLinks = sources.length
+    ? sources
+        .map((source) => `<a href="${escapeHtml(sanitizeHttpUrl(source.url))}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a>`)
+        .join(" | ")
+    : "No external source links available.";
 
   dom.oddsPanel.innerHTML = `
     <div class="odds-title">Rarity Slot Odds (${packDef.displayName})</div>

@@ -19,6 +19,9 @@ const COMMON = window.PackSimCommon || {};
 const SNAPSHOT_STALE_DAYS = Number(COMMON.SNAPSHOT_STALE_DAYS || 14);
 const MTG_BINDER_RENDER_BATCH = 200;
 const MTG_SET_SEARCH_STORAGE_KEY = "mtg-set-search-v1";
+const MTG_SET_FAVORITES_STORAGE_KEY = "mtg-set-favorites-v1";
+const MTG_SET_RECENT_STORAGE_KEY = "mtg-set-recent-v1";
+const MTG_VAULT_RECENT_LIMIT = 6;
 
 const MTG_PRODUCTS = {
   play: {
@@ -899,6 +902,8 @@ const state = {
   displayOrder: "standard",
   setSortMode: loadMtgSetSortMode(),
   setSearchQuery: loadMtgSetSearchQuery(),
+  favoriteSetKeys: loadMtgSetFavoritesFromStorage(),
+  recentSetKeys: loadMtgSetRecentFromStorage(),
   sealedProductKey: loadProductMode(),
   productMode: "play",
   priceSourceMode: loadPriceSourceMode(),
@@ -959,6 +964,7 @@ const dom = {
   loadStatus: document.getElementById("mtgLoadStatus"),
   setSelect: document.getElementById("mtgSetSelect"),
   setSearch: document.getElementById("mtgSetSearch"),
+  setFavoriteBtn: document.getElementById("mtgSetFavoriteBtn"),
   setVaultSummary: document.getElementById("mtgSetVaultSummary"),
   setVault: document.getElementById("mtgSetVault"),
   productSelect: document.getElementById("mtgProductSelect"),
@@ -1038,6 +1044,10 @@ function wireControls() {
     state.setSearchQuery = dom.setSearch.value;
     saveMtgSetSearchQuery(state.setSearchQuery);
     renderSetSelect();
+  });
+
+  dom.setFavoriteBtn?.addEventListener("click", () => {
+    toggleMtgSetFavorite(state.selectedSetKey);
   });
 
   dom.setSelect?.addEventListener("change", () => {
@@ -1231,6 +1241,7 @@ function selectSet(setKey) {
   state.currentPack = null;
   state.revealedIds = new Set();
   sanitizeCurrentSetChaseTargets();
+  updateMtgSetRecent(setKey);
   triggerSetSwapCelebration(nextSet);
   renderSetSelect();
   renderHeader();
@@ -1304,6 +1315,11 @@ function renderSetSelect() {
     dom.setSelect.appendChild(option);
   }
   dom.setSelect.value = state.selectedSetKey;
+  updateMtgSetRecent(state.selectedSetKey);
+  if (dom.setFavoriteBtn) {
+    dom.setFavoriteBtn.textContent = isMtgSetFavorite(state.selectedSetKey) ? "Unpin current set" : "Pin current set";
+    dom.setFavoriteBtn.setAttribute("aria-pressed", isMtgSetFavorite(state.selectedSetKey) ? "true" : "false");
+  }
   renderSetVault();
 }
 
@@ -1327,33 +1343,42 @@ function renderSetVault() {
   dom.setVault.classList.add("mtg-vault-list");
   const query = String(state.setSearchQuery || "").trim().toLowerCase();
   const sets = getSortedSets().filter((setDef) => matchesSetSearch(setDef, query));
+  const pinnedSets = sets.filter((setDef) => isMtgSetFavorite(setDef.key));
+  const recentSets = sets.filter((setDef) => state.recentSetKeys.includes(setDef.key) && !isMtgSetFavorite(setDef.key));
+  const otherSets = sets.filter((setDef) => !isMtgSetFavorite(setDef.key) && !state.recentSetKeys.includes(setDef.key));
   const loadedCount = sets.filter((setDef) => Boolean(state.setData[setDef.key])).length;
   const liveCount = sets.filter((setDef) => Boolean(state.setData[setDef.key]?.cards?.length)).length;
   dom.setVaultSummary.innerHTML = `
     <span class="pack-source-badge">${sets.length} matched</span>
+    <span class="pack-source-badge">${pinnedSets.length} pinned</span>
+    <span class="pack-source-badge">${recentSets.length} recent</span>
     <span class="pack-source-badge">${loadedCount} loaded</span>
     <span class="pack-source-badge">${liveCount} ready</span>
   `;
+
+  const buildOption = (setDef) => {
+    const loaded = Boolean(state.setData[setDef.key]);
+    const loading = state.loadingSetKeys.has(setDef.key);
+    const fidelityLabel = getCollationFidelityLabel(setDef);
+    const status = loading ? "Loading" : loaded ? "Ready" : "Pending";
+    const price = formatUsd(getPackPrice(setDef));
+    const pinLabel = isMtgSetFavorite(setDef.key) ? "Pinned" : state.recentSetKeys.includes(setDef.key) ? "Recent" : "All";
+    return `
+      <option value="${escapeHtml(setDef.key)}" ${state.selectedSetKey === setDef.key ? "selected" : ""}>
+        ${escapeHtml(setDef.displayName)} - ${escapeHtml(setDef.scryfallCode?.toUpperCase?.() || setDef.scryfallCode || setDef.key)} - ${escapeHtml(pinLabel)} - ${escapeHtml(status)} - ${escapeHtml(fidelityLabel)} - ${escapeHtml(price)}
+      </option>
+    `;
+  };
 
   dom.setVault.innerHTML = sets.length
     ? `
       <label class="vault-select-label" for="mtgSetVaultSelect">Quick pick</label>
       <select id="mtgSetVaultSelect" class="set-vault-select" aria-label="Choose a set from the vault">
-        ${sets
-          .map((setDef) => {
-            const loaded = Boolean(state.setData[setDef.key]);
-            const loading = state.loadingSetKeys.has(setDef.key);
-            const fidelityLabel = getCollationFidelityLabel(setDef);
-            const status = loading ? "Loading" : loaded ? "Ready" : "Pending";
-            const price = formatUsd(getPackPrice(setDef));
-            return `
-              <option value="${escapeHtml(setDef.key)}" ${state.selectedSetKey === setDef.key ? "selected" : ""}>
-                ${escapeHtml(setDef.displayName)} - ${escapeHtml(setDef.scryfallCode?.toUpperCase?.() || setDef.scryfallCode || setDef.key)} - ${escapeHtml(status)} - ${escapeHtml(fidelityLabel)} - ${escapeHtml(price)}
-              </option>
-            `;
-          })
-          .join("")}
+        ${pinnedSets.length ? `<optgroup label="Pinned">${pinnedSets.map(buildOption).join("")}</optgroup>` : ""}
+        ${recentSets.length ? `<optgroup label="Recent">${recentSets.map(buildOption).join("")}</optgroup>` : ""}
+        ${otherSets.length ? `<optgroup label="All Sets">${otherSets.map(buildOption).join("")}</optgroup>` : ""}
       </select>
+      <div class="vault-hint">Pinned and recent sets surface first while you search the archive.</div>
     `
     : `<div class="set-vault-empty">No sets match that search.</div>`;
 
@@ -1412,6 +1437,65 @@ function saveMtgSetSearchQuery(value) {
   }
 }
 
+function loadMtgSetKeyListFromStorage(storageKey) {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    const validKeys = new Set(MTG_SETS.map((set) => set.key));
+    return parsed.map((key) => String(key || "")).filter((key) => validKeys.has(key));
+  } catch {
+    return [];
+  }
+}
+
+function saveMtgSetKeyList(storageKey, keys) {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(keys));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function loadMtgSetFavoritesFromStorage() {
+  return loadMtgSetKeyListFromStorage(MTG_SET_FAVORITES_STORAGE_KEY);
+}
+
+function loadMtgSetRecentFromStorage() {
+  return loadMtgSetKeyListFromStorage(MTG_SET_RECENT_STORAGE_KEY).slice(0, MTG_VAULT_RECENT_LIMIT);
+}
+
+function persistMtgSetFavorites() {
+  saveMtgSetKeyList(MTG_SET_FAVORITES_STORAGE_KEY, state.favoriteSetKeys);
+}
+
+function persistMtgSetRecent() {
+  saveMtgSetKeyList(MTG_SET_RECENT_STORAGE_KEY, state.recentSetKeys.slice(0, MTG_VAULT_RECENT_LIMIT));
+}
+
+function isMtgSetFavorite(setKey) {
+  return state.favoriteSetKeys.includes(setKey);
+}
+
+function updateMtgSetRecent(setKey) {
+  if (!setKey) return;
+  state.recentSetKeys = [setKey, ...state.recentSetKeys.filter((key) => key !== setKey)].slice(0, MTG_VAULT_RECENT_LIMIT);
+  persistMtgSetRecent();
+}
+
+function toggleMtgSetFavorite(setKey = state.selectedSetKey) {
+  if (!setKey) return;
+  if (isMtgSetFavorite(setKey)) {
+    state.favoriteSetKeys = state.favoriteSetKeys.filter((key) => key !== setKey);
+    showToast?.("Removed from pinned sets.", "info");
+  } else {
+    state.favoriteSetKeys = [setKey, ...state.favoriteSetKeys].slice(0, 12);
+    showToast?.("Pinned to the vault.", "success");
+  }
+  persistMtgSetFavorites();
+  renderSetSelect();
+}
+
 function saveProductMode(value) {
   try {
     window.localStorage.setItem(MTG_PRODUCT_STORAGE_KEY, value);
@@ -1449,6 +1533,8 @@ function renderHeader() {
   dom.packStats.innerHTML = [
     `<span class="pack-stat">${setData?.cards?.length || 0} cards loaded</span>`,
     `<span class="pack-stat">${setData?.dataQuality?.boosterEligible || 0}/${setData?.dataQuality?.totalSeen || 0} booster-eligible cards</span>`,
+    `<span class="pack-stat">${state.favoriteSetKeys.length} pinned</span>`,
+    `<span class="pack-stat">${state.recentSetKeys.length} recent</span>`,
     `<span class="pack-stat">Pack price ${formatUsd(price)} (${product.label})</span>`,
     `<span class="pack-stat">Sealed cost ${formatUsd(productCost)} (${sealedProduct.packCount} pack${sealedProduct.packCount > 1 ? "s" : ""})</span>`,
     `<span class="pack-stat">Pricing mode ${escapeHtml(getMtgMarketValueModeLabel())}</span>`,

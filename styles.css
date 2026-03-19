@@ -196,6 +196,24 @@ body {
   font-size: 0.95rem;
 }
 
+.vault-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vault-action-row .btn {
+  flex: 0 0 auto;
+  max-width: 210px;
+}
+
+.vault-hint {
+  margin: 0;
+  color: #aab8d8;
+  font-size: 0.8rem;
+}
+
 .control-group {
   display: grid;
   gap: 6px;
@@ -2069,6 +2087,17 @@ body {
   background: rgba(9, 17, 38, 0.66);
   display: grid;
   gap: 9px;
+  position: relative;
+  overflow: hidden;
+}
+
+.control-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  pointer-events: none;
 }
 
 .controls-panel h2,
