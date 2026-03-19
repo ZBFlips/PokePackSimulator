@@ -2,6 +2,14 @@
   box-sizing: border-box;
 }
 
+@font-face {
+  font-family: "Magic the Gathering";
+  src: url("./Magic.the Gathering.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -3011,6 +3019,7 @@ body.mtg-theme .bg-grid {
 }
 
 body.mtg-theme .app-header h1 {
+  font-family: "Magic the Gathering", Orbitron, Rajdhani, sans-serif;
   color: #f2d38a;
   text-shadow:
     0 2px 0 #1d102f,
@@ -3021,6 +3030,18 @@ body.mtg-theme .app-header h1 {
 
 body.mtg-theme .app-header p {
   color: #d4c8de;
+}
+
+body.mtg-theme .controls-panel h2,
+body.mtg-theme .play-panel h2,
+body.mtg-theme .sidebar-panel h2,
+body.mtg-theme .pack-meta h2,
+body.mtg-theme .binder-head h2,
+body.mtg-theme .history-head h2,
+body.mtg-theme .economy-head strong,
+body.mtg-theme .set-vault-head strong {
+  font-family: "Magic the Gathering", Orbitron, Rajdhani, sans-serif;
+  letter-spacing: 0.08em;
 }
 
 body.mtg-theme .mode-tab {
