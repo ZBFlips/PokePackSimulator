@@ -6,6 +6,8 @@ const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
 const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
 const MTG_CHASE_FILTER_STORAGE_KEY = "mtg-pack-sim-chase-filter-v1";
 const MTG_RNG_SETTINGS_STORAGE_KEY = "mtg-pack-sim-rng-v1";
+const MTG_COMPACT_BINDER_STORAGE_KEY = "mtg-pack-sim-compact-binder-v1";
+const MTG_ULTRA_COMPACT_BINDER_STORAGE_KEY = "mtg-pack-sim-ultra-compact-binder-v1";
 const MTG_MARKET_VALUE_MODE_STORAGE_KEY = "mtg-pack-sim-market-value-mode-v1";
 const MTG_OPENING_UX_MODE_STORAGE_KEY = "mtg-pack-sim-opening-ux-mode-v1";
 const MTG_MARKET_SNAPSHOT_URL = "./assets/data/mtg-market-snapshot.json";
@@ -792,6 +794,8 @@ const state = {
   priceSourceMode: loadPriceSourceMode(),
   marketValueMode: loadMtgMarketValueMode(),
   openingUxMode: loadMtgOpeningUxMode(),
+  compactBinder: loadMtgCompactBinderMode(),
+  ultraCompactBinder: loadMtgUltraCompactBinderMode(),
   setData: {},
   marketSnapshot: {
     loaded: false,
@@ -850,6 +854,8 @@ const dom = {
   priceSourceMode: document.getElementById("mtgPriceSourceMode"),
   marketValueMode: document.getElementById("mtgMarketValueMode"),
   openingUxMode: document.getElementById("mtgOpeningUxMode"),
+  compactBinderToggle: document.getElementById("mtgCompactBinderToggle"),
+  ultraCompactBinderToggle: document.getElementById("mtgUltraCompactBinderToggle"),
   openPackBtn: document.getElementById("mtgOpenPackBtn"),
   resetSessionBtn: document.getElementById("mtgResetSessionBtn"),
   resetBinderBtn: document.getElementById("mtgResetBinderBtn"),
@@ -991,6 +997,28 @@ function wireControls() {
     saveMtgOpeningUxMode(state.openingUxMode);
   });
 
+  dom.compactBinderToggle?.addEventListener("change", () => {
+    state.compactBinder = Boolean(dom.compactBinderToggle.checked);
+    if (!state.compactBinder && state.ultraCompactBinder) {
+      state.ultraCompactBinder = false;
+      if (dom.ultraCompactBinderToggle) dom.ultraCompactBinderToggle.checked = false;
+      saveMtgUltraCompactBinderMode(state.ultraCompactBinder);
+    }
+    saveMtgCompactBinderMode(state.compactBinder);
+    renderBinder();
+  });
+
+  dom.ultraCompactBinderToggle?.addEventListener("change", () => {
+    state.ultraCompactBinder = Boolean(dom.ultraCompactBinderToggle.checked);
+    if (state.ultraCompactBinder && !state.compactBinder) {
+      state.compactBinder = true;
+      if (dom.compactBinderToggle) dom.compactBinderToggle.checked = true;
+      saveMtgCompactBinderMode(state.compactBinder);
+    }
+    saveMtgUltraCompactBinderMode(state.ultraCompactBinder);
+    renderBinder();
+  });
+
   dom.openPackBtn?.addEventListener("click", openPack);
 
   dom.resetSessionBtn?.addEventListener("click", () => {
@@ -1081,6 +1109,12 @@ function renderSetSelect() {
   }
   if (dom.openingUxMode) {
     dom.openingUxMode.value = state.openingUxMode;
+  }
+  if (dom.compactBinderToggle) {
+    dom.compactBinderToggle.checked = Boolean(state.compactBinder);
+  }
+  if (dom.ultraCompactBinderToggle) {
+    dom.ultraCompactBinderToggle.checked = Boolean(state.ultraCompactBinder);
   }
   dom.setSelect.innerHTML = "";
   for (const setDef of getSortedSets()) {
@@ -2453,6 +2487,8 @@ function exportMtgProfileData() {
       priceSourceMode: state.priceSourceMode,
       marketValueMode: state.marketValueMode,
       openingUxMode: state.openingUxMode,
+      compactBinder: state.compactBinder,
+      ultraCompactBinder: state.ultraCompactBinder,
       rng: {
         mode: state.rng.mode,
         seed: state.rng.seed,
@@ -2502,6 +2538,18 @@ function importMtgProfileData(rawText) {
     if (payload.openingUxMode === "quick" || payload.openingUxMode === "standard" || payload.openingUxMode === "hype") {
       state.openingUxMode = payload.openingUxMode;
       saveMtgOpeningUxMode(state.openingUxMode);
+    }
+    if (typeof payload.compactBinder === "boolean") {
+      state.compactBinder = payload.compactBinder;
+      saveMtgCompactBinderMode(state.compactBinder);
+    }
+    if (typeof payload.ultraCompactBinder === "boolean") {
+      state.ultraCompactBinder = payload.ultraCompactBinder;
+      saveMtgUltraCompactBinderMode(state.ultraCompactBinder);
+      if (state.ultraCompactBinder && !state.compactBinder) {
+        state.compactBinder = true;
+        saveMtgCompactBinderMode(state.compactBinder);
+      }
     }
     if (payload.rng && typeof payload.rng === "object") {
       state.rng.mode = payload.rng.mode === "random" ? "random" : "seeded";
@@ -2683,6 +2731,9 @@ function ingestCardsIntoBinder(cards, setKey) {
 
 function renderBinder() {
   if (!dom.binderGrid) return;
+  const binderSection = document.querySelector(".binder-section");
+  binderSection?.classList.toggle("compact", Boolean(state.compactBinder));
+  binderSection?.classList.toggle("ultra-compact", Boolean(state.ultraCompactBinder));
   const entries = Object.values(state.binder.cards).sort((a, b) => (b.lastPulledAt || 0) - (a.lastPulledAt || 0));
   if (!entries.length) {
     dom.binderGrid.classList.add("empty");
@@ -2870,6 +2921,38 @@ function loadMtgOpeningUxMode() {
 function saveMtgOpeningUxMode(value) {
   try {
     window.localStorage.setItem(MTG_OPENING_UX_MODE_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function loadMtgCompactBinderMode() {
+  try {
+    return window.localStorage.getItem(MTG_COMPACT_BINDER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveMtgCompactBinderMode(value) {
+  try {
+    window.localStorage.setItem(MTG_COMPACT_BINDER_STORAGE_KEY, value ? "1" : "0");
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function loadMtgUltraCompactBinderMode() {
+  try {
+    return window.localStorage.getItem(MTG_ULTRA_COMPACT_BINDER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveMtgUltraCompactBinderMode(value) {
+  try {
+    window.localStorage.setItem(MTG_ULTRA_COMPACT_BINDER_STORAGE_KEY, value ? "1" : "0");
   } catch {
     // Ignore storage failures.
   }

@@ -2068,6 +2068,48 @@ label {
   max-height: 380px;
 }
 
+.binder-section.compact .binder-grid {
+  max-height: 240px;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 6px;
+}
+
+.binder-section.compact .binder-entry img {
+  height: 108px;
+}
+
+.binder-section.compact .binder-entry-copy h3 {
+  font-size: 0.74rem;
+}
+
+.binder-section.compact .binder-entry-copy p {
+  font-size: 0.7rem;
+}
+
+.binder-section.ultra-compact .binder-grid {
+  max-height: 190px;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 4px;
+  padding: 6px;
+}
+
+.binder-section.ultra-compact .binder-entry img {
+  height: 84px;
+}
+
+.binder-section.ultra-compact .binder-entry-copy {
+  padding: 4px;
+  gap: 1px;
+}
+
+.binder-section.ultra-compact .binder-entry-copy h3 {
+  font-size: 0.66rem;
+}
+
+.binder-section.ultra-compact .binder-entry-copy p {
+  font-size: 0.62rem;
+}
+
 .analytics-overlay {
   border-radius: 15px;
   border: 1px solid rgba(164, 138, 255, 0.45);

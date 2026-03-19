@@ -3,6 +3,8 @@ const BINDER_STORAGE_KEY = "pokemon-pack-sim-binder-v2";
 const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
 const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
 const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
+const COMPACT_BINDER_STORAGE_KEY = "pokemon-pack-sim-compact-binder-v1";
+const ULTRA_COMPACT_BINDER_STORAGE_KEY = "pokemon-pack-sim-ultra-compact-binder-v1";
 const PACK_PRICE_SOURCE_STORAGE_KEY = "pokemon-pack-sim-pack-price-source-v1";
 const MARKET_VALUE_MODE_STORAGE_KEY = "pokemon-pack-sim-market-value-mode-v1";
 const OPENING_UX_MODE_STORAGE_KEY = "pokemon-pack-sim-opening-ux-mode-v1";
@@ -1788,6 +1790,8 @@ const state = {
   packPriceSourceMode: loadPackPriceSourceModeFromStorage(),
   marketValueMode: loadMarketValueModeFromStorage(),
   openingUxMode: loadOpeningUxModeFromStorage(),
+  compactBinder: loadCompactBinderFromStorage(),
+  ultraCompactBinder: loadUltraCompactBinderFromStorage(),
   soundEnabled: loadSoundEnabledFromStorage(),
   soundSettings: loadSoundSettingsFromStorage(),
   marketSnapshot: {
@@ -1874,6 +1878,8 @@ const dom = {
   marketValueMode: document.getElementById("marketValueMode"),
   openingUxMode: document.getElementById("openingUxMode"),
   soundToggle: document.getElementById("soundToggle"),
+  compactBinderToggle: document.getElementById("compactBinderToggle"),
+  ultraCompactBinderToggle: document.getElementById("ultraCompactBinderToggle"),
   resetSessionBtn: document.getElementById("resetSessionBtn"),
   resetBinderBtn: document.getElementById("resetBinderBtn"),
   openPackBtn: document.getElementById("openPackBtn"),
@@ -2033,6 +2039,28 @@ function wireControls() {
     persistSoundSettings();
     syncSoundControlState();
     renderSoundPanel();
+  });
+
+  dom.compactBinderToggle?.addEventListener("change", () => {
+    state.compactBinder = Boolean(dom.compactBinderToggle.checked);
+    if (!state.compactBinder && state.ultraCompactBinder) {
+      state.ultraCompactBinder = false;
+      if (dom.ultraCompactBinderToggle) dom.ultraCompactBinderToggle.checked = false;
+      persistUltraCompactBinderMode();
+    }
+    persistCompactBinderMode();
+    renderBinder();
+  });
+
+  dom.ultraCompactBinderToggle?.addEventListener("change", () => {
+    state.ultraCompactBinder = Boolean(dom.ultraCompactBinderToggle.checked);
+    if (state.ultraCompactBinder && !state.compactBinder) {
+      state.compactBinder = true;
+      if (dom.compactBinderToggle) dom.compactBinderToggle.checked = true;
+      persistCompactBinderMode();
+    }
+    persistUltraCompactBinderMode();
+    renderBinder();
   });
 
   dom.sessionStatsToggleBtn?.addEventListener("click", () => {
@@ -3097,6 +3125,12 @@ function renderPackSelector() {
   if (dom.openingUxMode) {
     dom.openingUxMode.value = state.openingUxMode;
   }
+  if (dom.compactBinderToggle) {
+    dom.compactBinderToggle.checked = Boolean(state.compactBinder);
+  }
+  if (dom.ultraCompactBinderToggle) {
+    dom.ultraCompactBinderToggle.checked = Boolean(state.ultraCompactBinder);
+  }
 
   for (const packDef of getSortedPackDefs()) {
     const option = document.createElement("option");
@@ -3363,6 +3397,38 @@ function loadOpeningUxModeFromStorage() {
 function persistOpeningUxMode() {
   try {
     window.localStorage.setItem(OPENING_UX_MODE_STORAGE_KEY, state.openingUxMode);
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function loadCompactBinderFromStorage() {
+  try {
+    return window.localStorage.getItem(COMPACT_BINDER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistCompactBinderMode() {
+  try {
+    window.localStorage.setItem(COMPACT_BINDER_STORAGE_KEY, state.compactBinder ? "1" : "0");
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function loadUltraCompactBinderFromStorage() {
+  try {
+    return window.localStorage.getItem(ULTRA_COMPACT_BINDER_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistUltraCompactBinderMode() {
+  try {
+    window.localStorage.setItem(ULTRA_COMPACT_BINDER_STORAGE_KEY, state.ultraCompactBinder ? "1" : "0");
   } catch {
     // Ignore storage write errors.
   }
@@ -4584,6 +4650,8 @@ function exportPokemonProfileData() {
       packPriceSourceMode: state.packPriceSourceMode,
       marketValueMode: state.marketValueMode,
       openingUxMode: state.openingUxMode,
+      compactBinder: state.compactBinder,
+      ultraCompactBinder: state.ultraCompactBinder,
       session: state.session,
     },
   };
@@ -4641,6 +4709,18 @@ function importPokemonProfileData(rawText) {
     if (payload.openingUxMode === "quick" || payload.openingUxMode === "standard" || payload.openingUxMode === "hype") {
       state.openingUxMode = payload.openingUxMode;
       persistOpeningUxMode();
+    }
+    if (typeof payload.compactBinder === "boolean") {
+      state.compactBinder = payload.compactBinder;
+      persistCompactBinderMode();
+    }
+    if (typeof payload.ultraCompactBinder === "boolean") {
+      state.ultraCompactBinder = payload.ultraCompactBinder;
+      persistUltraCompactBinderMode();
+      if (state.ultraCompactBinder && !state.compactBinder) {
+        state.compactBinder = true;
+        persistCompactBinderMode();
+      }
     }
     if (payload.session && typeof payload.session === "object") {
       state.session = {
@@ -4760,6 +4840,9 @@ function evaluateAchievements(cards, packValue) {
 }
 
 function renderBinder() {
+  const binderSection = document.querySelector(".binder-section");
+  binderSection?.classList.toggle("compact", Boolean(state.compactBinder));
+  binderSection?.classList.toggle("ultra-compact", Boolean(state.ultraCompactBinder));
   if (!state.binder || !state.binder.cards || typeof state.binder.cards !== "object") {
     state.binder = createEmptyBinder();
   }
