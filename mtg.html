@@ -37,6 +37,13 @@
             <select id="mtgSetSelect"></select>
           </div>
           <div class="control-group">
+            <label for="mtgProductSelect">Product</label>
+            <select id="mtgProductSelect">
+              <option value="play">Play Booster</option>
+              <option value="collector">Collector Booster (Scaffold)</option>
+            </select>
+          </div>
+          <div class="control-group">
             <label for="mtgSetSort">Sort sets by</label>
             <select id="mtgSetSort">
               <option value="release">Release date (newest first)</option>
@@ -88,6 +95,7 @@
             <h2 id="mtgSelectedPackName">Select a set</h2>
             <p id="mtgSelectedPackSub">Choose one of the starter MTG sets to begin.</p>
             <div id="mtgPackStats" class="pack-stats"></div>
+            <div id="mtgCollationMeta" class="pack-price-source"></div>
             <div id="mtgPackPriceSource" class="pack-price-source"></div>
           </div>
         </div>

@@ -1,6 +1,155 @@
 const SCRYFALL_API_BASE = "https://api.scryfall.com";
 const MTG_PRICE_SOURCE_STORAGE_KEY = "mtg-pack-price-source-v1";
 const MTG_DEFAULT_PACK_PRICE = 5.99;
+const MTG_PRODUCT_STORAGE_KEY = "mtg-product-mode-v1";
+
+const MTG_PRODUCTS = {
+  play: {
+    label: "Play Booster",
+    slots: [
+      { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
+      { label: "Common 2", sheet: [{ pool: "common", weight: 1 }] },
+      { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
+      { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
+      { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+      { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
+      { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
+      { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
+      {
+        label: "Rare/Mythic",
+        sheet: [
+          { pool: "mythic", weight: 1 },
+          { pool: "rare", weight: 7 },
+        ],
+      },
+      {
+        label: "Wildcard",
+        sheet: [
+          { pool: "common", weight: 70 },
+          { pool: "uncommon", weight: 17 },
+          { pool: "rare", weight: 10 },
+          { pool: "mythic", weight: 3 },
+        ],
+      },
+      {
+        label: "Land",
+        sheet: [
+          { pool: "basicLand", weight: 85 },
+          { pool: "land", weight: 15 },
+        ],
+      },
+      {
+        label: "Foil",
+        sheet: [
+          { pool: "common", weight: 60, foil: true },
+          { pool: "uncommon", weight: 25, foil: true },
+          { pool: "rare", weight: 12, foil: true },
+          { pool: "mythic", weight: 3, foil: true },
+        ],
+      },
+      {
+        label: "Special Guest / Bonus",
+        optional: true,
+        chance: 0.16,
+        sheet: [
+          { pool: "specialGuest", weight: 1 },
+          { pool: "rare", weight: 4 },
+          { pool: "mythic", weight: 1 },
+        ],
+      },
+    ],
+  },
+  collector: {
+    label: "Collector Booster (Scaffold)",
+    slots: [
+      {
+        label: "Foil Common/Uncommon 1",
+        sheet: [
+          { pool: "common", weight: 75, foil: true },
+          { pool: "uncommon", weight: 25, foil: true },
+        ],
+      },
+      {
+        label: "Foil Common/Uncommon 2",
+        sheet: [
+          { pool: "common", weight: 75, foil: true },
+          { pool: "uncommon", weight: 25, foil: true },
+        ],
+      },
+      {
+        label: "Foil Common/Uncommon 3",
+        sheet: [
+          { pool: "common", weight: 75, foil: true },
+          { pool: "uncommon", weight: 25, foil: true },
+        ],
+      },
+      { label: "Foil Land", sheet: [{ pool: "land", weight: 1, foil: true }] },
+      { label: "Nonfoil Rare+", sheet: [{ pool: "rare", weight: 7 }, { pool: "mythic", weight: 1 }] },
+      { label: "Foil Rare+", sheet: [{ pool: "rare", weight: 7, foil: true }, { pool: "mythic", weight: 1, foil: true }] },
+      { label: "Showcase/Borderless Rare+", sheet: [{ pool: "showcaseRare", weight: 7 }, { pool: "showcaseMythic", weight: 1 }] },
+    ],
+  },
+};
+
+const MTG_SET_COLLATION_OVERRIDES = {
+  blb: {
+    play: {
+      slots: [
+        { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 2", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Rare/Mythic", sheet: [{ pool: "rare", weight: 7 }, { pool: "mythic", weight: 1 }] },
+        { label: "Wildcard", sheet: [{ pool: "common", weight: 66 }, { pool: "uncommon", weight: 19 }, { pool: "rare", weight: 11 }, { pool: "mythic", weight: 4 }] },
+        { label: "Land", sheet: [{ pool: "basicLand", weight: 78 }, { pool: "land", weight: 22 }] },
+        { label: "Foil", sheet: [{ pool: "common", weight: 56, foil: true }, { pool: "uncommon", weight: 28, foil: true }, { pool: "rare", weight: 13, foil: true }, { pool: "mythic", weight: 3, foil: true }] },
+        { label: "Special Guest / Bonus", optional: true, chance: 0.2, sheet: [{ pool: "specialGuest", weight: 1 }, { pool: "rare", weight: 3 }, { pool: "mythic", weight: 1 }] },
+      ],
+    },
+  },
+  dsk: {
+    play: {
+      slots: [
+        { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 2", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Rare/Mythic", sheet: [{ pool: "rare", weight: 7 }, { pool: "mythic", weight: 1 }] },
+        { label: "Wildcard", sheet: [{ pool: "common", weight: 64 }, { pool: "uncommon", weight: 20 }, { pool: "rare", weight: 12 }, { pool: "mythic", weight: 4 }] },
+        { label: "Land", sheet: [{ pool: "basicLand", weight: 74 }, { pool: "land", weight: 26 }] },
+        { label: "Foil", sheet: [{ pool: "common", weight: 55, foil: true }, { pool: "uncommon", weight: 29, foil: true }, { pool: "rare", weight: 13, foil: true }, { pool: "mythic", weight: 3, foil: true }] },
+        { label: "Special Guest / Bonus", optional: true, chance: 0.22, sheet: [{ pool: "specialGuest", weight: 1 }, { pool: "rare", weight: 3 }, { pool: "mythic", weight: 1 }] },
+      ],
+    },
+  },
+  fdn: {
+    play: {
+      slots: [
+        { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 2", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
+        { label: "Rare/Mythic", sheet: [{ pool: "rare", weight: 7 }, { pool: "mythic", weight: 1 }] },
+        { label: "Wildcard", sheet: [{ pool: "common", weight: 68 }, { pool: "uncommon", weight: 18 }, { pool: "rare", weight: 11 }, { pool: "mythic", weight: 3 }] },
+        { label: "Land", sheet: [{ pool: "basicLand", weight: 82 }, { pool: "land", weight: 18 }] },
+        { label: "Foil", sheet: [{ pool: "common", weight: 58, foil: true }, { pool: "uncommon", weight: 27, foil: true }, { pool: "rare", weight: 12, foil: true }, { pool: "mythic", weight: 3, foil: true }] },
+        { label: "Special Guest / Bonus", optional: true, chance: 0.14, sheet: [{ pool: "specialGuest", weight: 1 }, { pool: "rare", weight: 4 }, { pool: "mythic", weight: 1 }] },
+      ],
+    },
+  },
+};
 
 const MTG_SETS = [
   {
@@ -309,6 +458,7 @@ const state = {
   revealMode: "all",
   displayOrder: "standard",
   setSortMode: "release",
+  productMode: loadProductMode(),
   priceSourceMode: loadPriceSourceMode(),
   setData: {},
   loadingSetKeys: new Set(),
@@ -334,6 +484,7 @@ const state = {
 const dom = {
   loadStatus: document.getElementById("mtgLoadStatus"),
   setSelect: document.getElementById("mtgSetSelect"),
+  productSelect: document.getElementById("mtgProductSelect"),
   setSort: document.getElementById("mtgSetSort"),
   revealMode: document.getElementById("mtgRevealMode"),
   displayOrder: document.getElementById("mtgDisplayOrder"),
@@ -344,6 +495,7 @@ const dom = {
   selectedPackName: document.getElementById("mtgSelectedPackName"),
   selectedPackSub: document.getElementById("mtgSelectedPackSub"),
   packStats: document.getElementById("mtgPackStats"),
+  collationMeta: document.getElementById("mtgCollationMeta"),
   packPriceSource: document.getElementById("mtgPackPriceSource"),
   openedPackSummary: document.getElementById("mtgOpenedPackSummary"),
   cardsGrid: document.getElementById("mtgCardsGrid"),
@@ -384,6 +536,19 @@ function wireControls() {
     renderHeader();
     renderCards();
     loadSetData(next.key);
+  });
+
+  dom.productSelect?.addEventListener("change", () => {
+    if (!MTG_PRODUCTS[dom.productSelect.value]) return;
+    state.productMode = dom.productSelect.value;
+    saveProductMode(state.productMode);
+    state.currentPack = null;
+    state.revealedIds = new Set();
+    renderHeader();
+    renderSetSelect();
+    renderSessionStats();
+    renderEconomyPanel();
+    renderCards();
   });
 
   dom.revealMode?.addEventListener("change", () => {
@@ -445,6 +610,9 @@ function getReleaseTimestamp(setKey) {
 function renderSetSelect() {
   if (!dom.setSelect) return;
   dom.setSort.value = state.setSortMode;
+  if (dom.productSelect) {
+    dom.productSelect.value = state.productMode;
+  }
   dom.priceSourceMode.value = state.priceSourceMode;
   dom.setSelect.innerHTML = "";
   for (const setDef of getSortedSets()) {
@@ -458,15 +626,35 @@ function renderSetSelect() {
   dom.setSelect.value = state.selectedSetKey;
 }
 
+function loadProductMode() {
+  try {
+    const value = window.localStorage.getItem(MTG_PRODUCT_STORAGE_KEY);
+    if (value === "play" || value === "collector") return value;
+  } catch {
+    // Ignore storage failures.
+  }
+  return "play";
+}
+
+function saveProductMode(value) {
+  try {
+    window.localStorage.setItem(MTG_PRODUCT_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 function renderHeader() {
   const setDef = getCurrentSetDef();
   const setData = state.setData[setDef.key];
   const price = getPackPrice(setDef);
   const source = getPriceSource(setDef);
   const release = setData?.setMeta?.released_at || "Unknown";
+  const profile = getCollationProfile(setDef);
+  const product = MTG_PRODUCTS[state.productMode] || MTG_PRODUCTS.play;
 
   dom.selectedPackName.textContent = setDef.displayName;
-  dom.selectedPackSub.textContent = setDef.releaseLabel;
+  dom.selectedPackSub.textContent = `${setDef.releaseLabel} - ${product.label}`;
   dom.packImage.src = setDef.packImage;
   dom.packLogo.src = setData?.setMeta?.icon_svg_uri || "";
 
@@ -474,7 +662,13 @@ function renderHeader() {
     `<span class="pack-stat">${setData?.cards?.length || 0} cards loaded</span>`,
     `<span class="pack-stat">Pack price ${formatUsd(price)}</span>`,
     `<span class="pack-stat">Release ${escapeHtml(release)}</span>`,
+    `<span class="pack-stat">${profile.slots.length} slots (${product.label})</span>`,
   ].join("");
+
+  if (dom.collationMeta) {
+    const sourceLabel = profile.profileSource || "Default";
+    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong></span>`;
+  }
 
   dom.packPriceSource.innerHTML = source
     ? `<span>Pack market source: <a href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a></span>
@@ -582,7 +776,11 @@ function buildPools(cards) {
     uncommon: cards.filter((card) => card.rarity === "uncommon"),
     rare: cards.filter((card) => card.rarity === "rare"),
     mythic: cards.filter((card) => card.rarity === "mythic"),
-    land: cards.filter((card) => /basic land/i.test(card.typeLine)),
+    basicLand: cards.filter((card) => /basic land/i.test(card.typeLine)),
+    land: cards.filter((card) => /land/i.test(card.typeLine)),
+    specialGuest: cards.filter((card) => /special guest|bonus|breaking news|masterpiece|list/i.test(card.name) || /special guest|bonus|masterpiece/i.test(card.typeLine)),
+    showcaseRare: cards.filter((card) => card.rarity === "rare" && (card.usd > 0 || card.usdFoil > 0)),
+    showcaseMythic: cards.filter((card) => card.rarity === "mythic" && (card.usd > 0 || card.usdFoil > 0)),
   };
   return byRarity;
 }
@@ -605,48 +803,45 @@ function openPack() {
 function simulatePack(setData) {
   const cards = [];
   const used = new Set();
-  const pushCard = (slotLabel, rarity) => {
-    const picked = pickFromRarity(setData, rarity, used);
+  const setDef = getCurrentSetDef();
+  const profile = getCollationProfile(setDef);
+  const pushCard = (slotLabel, slotDefinition) => {
+    const picked = pickFromSheet(setData, slotDefinition, used);
+    if (!picked) return;
     cards.push({
       ...picked,
       slotLabel,
-      value: picked.usd > 0 ? picked.usd : picked.usdFoil,
+      value: picked.isFoil && picked.usdFoil > 0 ? picked.usdFoil : picked.usd > 0 ? picked.usd : picked.usdFoil,
       instanceId: `${picked.id}-${Math.random().toString(16).slice(2)}`,
       standardIndex: cards.length + 1,
     });
   };
 
-  for (let i = 0; i < 6; i += 1) pushCard(`Common ${i + 1}`, "common");
-  for (let i = 0; i < 3; i += 1) pushCard(`Uncommon ${i + 1}`, "uncommon");
-  pushCard("Rare/Mythic", Math.random() < 0.125 ? "mythic" : "rare");
-
-  const wildcardRoll = Math.random();
-  if (wildcardRoll < 0.7) pushCard("Wildcard", "common");
-  else if (wildcardRoll < 0.87) pushCard("Wildcard", "uncommon");
-  else if (wildcardRoll < 0.97) pushCard("Wildcard", "rare");
-  else pushCard("Wildcard", "mythic");
-
-  pushCard("Land", setData.pools.land.length ? "land" : "common");
-
-  const foilRoll = Math.random();
-  if (foilRoll < 0.6) pushCard("Foil Slot", "common");
-  else if (foilRoll < 0.85) pushCard("Foil Slot", "uncommon");
-  else if (foilRoll < 0.97) pushCard("Foil Slot", "rare");
-  else pushCard("Foil Slot", "mythic");
+  for (const slotDefinition of profile.slots) {
+    if (slotDefinition.optional && Math.random() > (slotDefinition.chance || 0)) {
+      continue;
+    }
+    pushCard(slotDefinition.label, slotDefinition);
+  }
 
   return cards;
 }
 
-function pickFromRarity(setData, rarity, used) {
-  const pool = setData.pools[rarity] || [];
+function pickFromSheet(setData, slotDefinition, used) {
+  const sheetEntries = slotDefinition?.sheet || [];
+  if (!sheetEntries.length) return null;
+  const chosenSheet = weightedChoice(sheetEntries);
+  if (!chosenSheet) return null;
+  const pool = setData.pools[chosenSheet.pool] || [];
   const candidates = pool.filter((card) => !used.has(card.id));
   const drawPool = candidates.length ? candidates : pool;
   if (!drawPool.length) {
-    return { id: "fallback", name: "Unknown Card", rarity: "common", image: "", usd: 0, usdFoil: 0 };
+    return null;
   }
 
   const weights = drawPool.map((card) => {
     const base = Math.max(card.usd, card.usdFoil, 0.05);
+    const rarity = card.rarity;
     const exp = rarity === "mythic" ? 0.34 : rarity === "rare" ? 0.28 : 0.14;
     return Math.pow(base, exp);
   });
@@ -656,11 +851,39 @@ function pickFromRarity(setData, rarity, used) {
     roll -= weights[i];
     if (roll <= 0) {
       used.add(drawPool[i].id);
-      return drawPool[i];
+      return {
+        ...drawPool[i],
+        isFoil: Boolean(chosenSheet.foil),
+      };
     }
   }
   used.add(drawPool[drawPool.length - 1].id);
-  return drawPool[drawPool.length - 1];
+  return {
+    ...drawPool[drawPool.length - 1],
+    isFoil: Boolean(chosenSheet.foil),
+  };
+}
+
+function weightedChoice(entries) {
+  const total = entries.reduce((sum, item) => sum + Number(item.weight || 0), 0);
+  if (!total) return entries[0] || null;
+  let roll = Math.random() * total;
+  for (const entry of entries) {
+    roll -= Number(entry.weight || 0);
+    if (roll <= 0) return entry;
+  }
+  return entries[entries.length - 1] || null;
+}
+
+function getCollationProfile(setDef) {
+  const productKey = state.productMode;
+  const base = MTG_PRODUCTS[productKey] || MTG_PRODUCTS.play;
+  const override = MTG_SET_COLLATION_OVERRIDES[setDef.scryfallCode]?.[productKey];
+  const profile = override || base;
+  return {
+    slots: profile.slots || [],
+    profileSource: override ? `${setDef.displayName} ${base.label} Override` : `${base.label} Default`,
+  };
 }
 
 function registerPack(cards, setDef) {
@@ -783,7 +1006,7 @@ function renderCards() {
       article.classList.add("revealed");
       name.textContent = card.name;
       slot.textContent = card.slotLabel;
-      rarity.textContent = card.rarity;
+      rarity.textContent = card.isFoil ? `${card.rarity} (foil)` : card.rarity;
       odds.textContent = "Weighted per-card pull odds enabled";
       value.textContent = formatUsd(card.value || 0);
     } else {
@@ -824,10 +1047,10 @@ function getDisplayCards() {
 }
 
 function getPackPrice(setDef) {
-  if (state.priceSourceMode === "tcgplayerSealed") {
-    return setDef.fallbackPackPrice;
-  }
-  return setDef.fallbackPackPrice;
+  const base = Number(setDef.fallbackPackPrice || MTG_DEFAULT_PACK_PRICE);
+  const productMultiplier = state.productMode === "collector" ? 3.2 : 1;
+  const sourceMultiplier = state.priceSourceMode === "tcgplayerSealed" ? 1.04 : 1;
+  return Number((base * productMultiplier * sourceMultiplier).toFixed(2));
 }
 
 function getPriceSource(setDef) {
