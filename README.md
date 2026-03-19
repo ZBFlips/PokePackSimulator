@@ -13,7 +13,8 @@ A browser-based pack-opening simulator with three entry points:
 - Session economy, ROI, QA panels, RNG audit trail, and binder tracking
 - PWA support (manifest + service worker) with offline fallback
 - Independent column scrolling on desktop for controls, play area, and sidebar
-- Keyboard accessibility for card reveal/inspection actions
+- Keyboard accessibility for card reveal and inspection actions
+- Sparkline ROI charts and gain/loss split bars in both game modes
 
 ## Security & Reliability
 
@@ -26,34 +27,72 @@ A browser-based pack-opening simulator with three entry points:
 
 - `app.js`: Pokemon mode logic
 - `mtg.js`: MTG mode logic
-- `common.js`: shared cross-mode utilities (sanitization, date/freshness, SW registration)
+- `common.js`: shared cross-mode utilities (sanitization, date/freshness, service worker, sparkline rendering)
 - `styles.css`: shared styling
-- `sw.js`: offline/runtime caching strategy
+- `sw.js`: offline and runtime caching strategy
+- `tests/consistency.test.mjs`: static integrity checks
+- `tests/e2e/smoke.spec.mjs`: browser smoke coverage for Pokemon and MTG
+- `scripts/static_server.mjs`: zero-dependency local server for browser tests
+- `scripts/refresh_snapshots.mjs`: scheduled market snapshot refresh script
 - `assets/data/*.json`: market snapshots
 - `assets/qa/*.json`: QA lockfiles
 
 ## Run Locally
 
-1. Open `C:\Users\Zac\Desktop\pokemon card sim\index.html` in your browser, or run a static server.
-2. For best PWA behavior, use a local/static hosted URL instead of `file://`.
+If you have Node 20+ installed:
+
+```powershell
+npm install
+npm run serve
+```
+
+Then open `index.html`, `mtg.html`, or `methodology.html` through the local server.
+
+If you are only browsing manually, opening the HTML files directly still works, but PWA/service-worker behavior is more reliable through a hosted or local HTTP URL.
 
 ## Automated Checks
 
-CI runs on push/PR via `.github/workflows/ci.yml`.
+CI runs on push and pull request via `.github/workflows/ci.yml`.
 
-Current automated test:
-
-- `tests/consistency.test.mjs`:
-  - verifies all Pokemon `localPackImage` assets are precached by `sw.js`
-  - checks for duplicate SW pack asset entries
-  - validates CSP presence on all HTML entry points
-  - validates snapshot `updatedAt` format
-
-Run locally (if Node is installed):
+Available commands:
 
 ```powershell
-node tests/consistency.test.mjs
+npx playwright install chromium
+npm run test:consistency
+npm run test:e2e
+npm test
 ```
+
+Current automated coverage:
+
+- `tests/consistency.test.mjs`
+  - verifies all Pokemon `localPackImage` assets are precached by `sw.js`
+  - checks for duplicate service-worker pack asset entries
+  - validates CSP presence on all HTML entry points
+  - validates snapshot `updatedAt` format
+- `tests/e2e/smoke.spec.mjs`
+  - verifies Pokemon fallback mode still opens packs when the live API is unavailable
+  - verifies analytics and ROI chart UI render after pack openings
+  - verifies MTG can load fixture-backed Scryfall responses and open packs end-to-end
+
+## Snapshot Refresh Automation
+
+Scheduled refreshes run from `.github/workflows/refresh-snapshots.yml`.
+
+The workflow expects these repository variables:
+
+- `POKEMON_SNAPSHOT_SOURCE_URL`
+- `MTG_SNAPSHOT_SOURCE_URL`
+
+You can also run the refresh locally:
+
+```powershell
+$env:POKEMON_SNAPSHOT_SOURCE_URL="https://example.com/pokemon-market-snapshot.json"
+$env:MTG_SNAPSHOT_SOURCE_URL="https://example.com/mtg-market-snapshot.json"
+npm run refresh:snapshots
+```
+
+If either variable is missing, that game mode is skipped without failing the run.
 
 ## Deploy
 

@@ -1,0 +1,40 @@
+name: Refresh Market Snapshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 13 * * 1"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Refresh snapshot files
+        env:
+          POKEMON_SNAPSHOT_SOURCE_URL: ${{ vars.POKEMON_SNAPSHOT_SOURCE_URL }}
+          MTG_SNAPSHOT_SOURCE_URL: ${{ vars.MTG_SNAPSHOT_SOURCE_URL }}
+        run: node scripts/refresh_snapshots.mjs
+
+      - name: Create refresh PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: refresh market snapshots"
+          title: "chore: refresh market snapshots"
+          body: |
+            Automated refresh for the Pokemon and MTG market snapshot files.
+          branch: codex/refresh-market-snapshots
+          delete-branch: true
+          add-paths: |
+            assets/data/pokemon-market-snapshot.json
+            assets/data/mtg-market-snapshot.json

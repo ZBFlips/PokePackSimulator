@@ -1,0 +1,18 @@
+{
+  "name": "pokemon-card-sim",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "serve": "node scripts/static_server.mjs",
+    "test:consistency": "node tests/consistency.test.mjs",
+    "test:e2e": "playwright test",
+    "test": "npm run test:consistency && npm run test:e2e",
+    "refresh:snapshots": "node scripts/refresh_snapshots.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

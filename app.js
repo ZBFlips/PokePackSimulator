@@ -4276,8 +4276,11 @@ function renderAnalyticsOverlay() {
       const deltaClass = delta >= 0 ? "analytics-up" : "analytics-down";
       return `
         <article class="analytics-row">
-          <strong>${escapeHtml(formatTierName(tier))}</strong>
-          <span>Obs ${observedPct.toFixed(1)}% (${observedCount})</span>
+          <div class="analytics-tier">
+            <strong>${escapeHtml(formatTierName(tier))}</strong>
+            <span>Obs ${observedPct.toFixed(1)}% (${observedCount})</span>
+          </div>
+          ${buildAnalyticsComparisonMeter(observedPct, expectedPct, deltaClass)}
           <span>Exp ${expectedPct.toFixed(1)}%</span>
           <span class="${deltaClass}">${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%</span>
         </article>
@@ -4681,17 +4684,10 @@ function renderEconomyPanel() {
   const avgNet = state.session.packsOpened > 0 ? net / state.session.packsOpened : 0;
   const history = state.session.packValueHistory || [];
   const pro = computeEconomyProMetrics(history);
-  const maxAbs = Math.max(1, ...history.map((entry) => Math.abs(entry)));
 
-  const bars = history
-    .slice(0, 20)
-    .reverse()
-    .map((entry) => {
-      const h = Math.max(12, Math.round((Math.abs(entry) / maxAbs) * 42));
-      const cls = entry >= 0 ? "gain" : "loss";
-      return `<span class="economy-bar ${cls}" style="height:${h}px" title="${formatUsd(entry)}"></span>`;
-    })
-    .join("");
+  const recentHistory = history.slice(0, 20).reverse();
+  const sparkline = buildEconomySparkline(recentHistory);
+  const outcomeSplit = buildEconomyOutcomeSplit(recentHistory);
 
   const setRows = Object.entries(state.session.setEconomy || {})
     .map(([setKey, stats]) => {
@@ -4729,7 +4725,12 @@ function renderEconomyPanel() {
       <article class="economy-stat"><strong>${formatUsd(pro.var95)}</strong><span>VaR 95% (Net)</span></article>
     </div>
     <div class="economy-chart-wrap">
-      <div class="economy-chart">${bars || '<span class="economy-empty">Open packs to build ROI trend.</span>'}</div>
+      <div class="economy-chart-head">
+        <strong>Recent Net Trend</strong>
+        <span>${recentHistory.length ? `${recentHistory.length} packs` : "No data yet"}</span>
+      </div>
+      <div class="economy-chart">${sparkline || '<span class="economy-empty">Open packs to build ROI trend.</span>'}</div>
+      ${outcomeSplit}
     </div>
     <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
   `;
@@ -4759,6 +4760,46 @@ function computeEconomyProMetrics(history) {
     breakEvenRate,
     var95: getPercentile(sorted, 0.05),
   };
+}
+
+function buildAnalyticsComparisonMeter(observedPct, expectedPct, deltaClass) {
+  const observedWidth = Math.max(4, Math.min(100, observedPct));
+  const expectedLeft = Math.max(0, Math.min(100, expectedPct));
+  return `
+    <div class="analytics-meter" aria-hidden="true">
+      <span class="analytics-meter-fill ${deltaClass}" style="width:${observedWidth.toFixed(1)}%"></span>
+      <span class="analytics-meter-target" style="left:${expectedLeft.toFixed(1)}%"></span>
+    </div>
+  `;
+}
+
+function buildEconomySparkline(history) {
+  if (!history.length || typeof COMMON.buildSparklineSvg !== "function") return "";
+  return COMMON.buildSparklineSvg(history, {
+    width: 340,
+    height: 96,
+    includeZero: true,
+  });
+}
+
+function buildEconomyOutcomeSplit(history) {
+  if (!history.length) return "";
+  const gainCount = history.filter((entry) => entry >= 0).length;
+  const lossCount = history.length - gainCount;
+  const gainPct = (gainCount / history.length) * 100;
+  const lossPct = 100 - gainPct;
+  return `
+    <div class="economy-outcome">
+      <div class="economy-outcome-bar" aria-hidden="true">
+        <span class="gain" style="width:${gainPct.toFixed(1)}%"></span>
+        <span class="loss" style="width:${lossPct.toFixed(1)}%"></span>
+      </div>
+      <div class="economy-outcome-copy">
+        <span>${gainCount} gainers</span>
+        <span>${lossCount} losers</span>
+      </div>
+    </div>
+  `;
 }
 
 function getPercentile(sortedValues, p) {
