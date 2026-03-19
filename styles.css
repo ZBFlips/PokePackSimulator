@@ -1498,6 +1498,7 @@ body {
     radial-gradient(1000px 460px at 100% 0%, rgba(141, 106, 255, 0.24), transparent 72%),
     linear-gradient(165deg, #070d23, #0c1532 62%, #0a132e);
   color: var(--text);
+  font-family: Rajdhani, sans-serif;
 }
 
 .bg-grid {
@@ -1571,7 +1572,10 @@ body {
 
 .controls-panel h2,
 .play-panel h2,
-.sidebar-panel h2 {
+.sidebar-panel h2,
+.pack-meta h2,
+.binder-head h2,
+.history-head h2 {
   margin: 0;
   font-family: var(--pokemon-font);
   font-size: 1.34rem;
@@ -1579,9 +1583,40 @@ body {
   color: #ecf1ff;
 }
 
-.controls-panel .control-section h2 {
-  font-size: 1.1rem;
-  font-weight: 700;
+.section-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(146, 167, 214, 0.45);
+  border-radius: 12px;
+  background: rgba(11, 21, 45, 0.82);
+  color: #edf2ff;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+
+.section-toggle-title {
+  font-family: var(--pokemon-font);
+  letter-spacing: 0.05em;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.section-toggle-icon {
+  font-family: Orbitron, Rajdhani, sans-serif;
+  font-size: 1.05rem;
+  color: #cfd8fa;
+}
+
+.section-content[hidden] {
+  display: none !important;
+}
+
+.section-content {
+  display: grid;
+  gap: 8px;
 }
 
 .pack-selector {
@@ -1637,8 +1672,8 @@ label {
   border: 1px solid rgba(132, 156, 211, 0.5);
   background: rgba(12, 22, 47, 0.88);
   color: #f4f7ff;
-  font-family: var(--pokemon-font);
-  letter-spacing: 0.05em;
+  font-family: Orbitron, Rajdhani, sans-serif;
+  letter-spacing: 0.03em;
   font-size: 0.93rem;
   font-weight: 600;
   text-transform: none;

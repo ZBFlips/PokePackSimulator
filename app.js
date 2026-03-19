@@ -38,7 +38,7 @@ const PACK_CONFIG = [
     displayName: "Paldean Fates",
     shortCode: "PAF",
     releaseLabel: "Scarlet & Violet Special Set",
-    packPrice: 5.49,
+    packPrice: 16.32,
     localPackImage: "assets/packs/paldean-fates.png",
     packImage: "",
     setAliases: ["Paldean Fates", "Scarlet & Violet-Paldean Fates", "Scarlet & Violet-Paldean-Fates"],
@@ -98,7 +98,7 @@ const PACK_CONFIG = [
     displayName: "Prismatic Evolutions",
     shortCode: "PRE",
     releaseLabel: "Scarlet & Violet Special Set",
-    packPrice: 5.49,
+    packPrice: 11.58,
     localPackImage: "assets/packs/prismatic-evolutions.png",
     packImage: "",
     setAliases: ["Prismatic Evolutions", "Scarlet & Violet-Prismatic Evolutions", "Scarlet & Violet-Prismatic-Evolutions"],
@@ -164,7 +164,7 @@ const PACK_CONFIG = [
     displayName: "Surging Sparks",
     shortCode: "SSP",
     releaseLabel: "Scarlet & Violet Expansion",
-    packPrice: 4.99,
+    packPrice: 8.0,
     localPackImage: "assets/packs/surging-sparks.png",
     packImage: "",
     setAliases: ["Surging Sparks", "Scarlet & Violet-Surging Sparks", "Scarlet & Violet-Surging-Sparks"],
@@ -222,7 +222,7 @@ const PACK_CONFIG = [
     displayName: "Obsidian Flames",
     shortCode: "OBF",
     releaseLabel: "Scarlet & Violet Expansion",
-    packPrice: 4.99,
+    packPrice: 9.75,
     localPackImage: "assets/packs/obsidian-flames.png",
     packImage: "",
     setAliases: ["Obsidian Flames", "Scarlet & Violet-Obsidian Flames", "Scarlet & Violet-Obsidian-Flames"],
@@ -278,7 +278,7 @@ const PACK_CONFIG = [
     displayName: "Temporal Forces",
     shortCode: "TEF",
     releaseLabel: "Scarlet & Violet Expansion",
-    packPrice: 4.99,
+    packPrice: 8.4,
     localPackImage: "assets/packs/temporal-forces.png",
     packImage: "",
     setAliases: ["Temporal Forces", "Scarlet & Violet-Temporal Forces", "Scarlet & Violet-Temporal-Forces"],
@@ -336,7 +336,7 @@ const PACK_CONFIG = [
     displayName: "Twilight Masquerade",
     shortCode: "TWM",
     releaseLabel: "Scarlet & Violet Expansion",
-    packPrice: 4.99,
+    packPrice: 8.0,
     localPackImage: "assets/packs/twilight-masquerade.png",
     packImage: "",
     setAliases: ["Twilight Masquerade", "Scarlet & Violet-Twilight Masquerade", "Scarlet & Violet-Twilight-Masquerade"],
@@ -394,7 +394,7 @@ const PACK_CONFIG = [
     displayName: "Evolving Skies",
     shortCode: "EVS",
     releaseLabel: "Sword & Shield Expansion",
-    packPrice: 4.49,
+    packPrice: 38.46,
     localPackImage: "assets/packs/evolving-skies.jpg",
     packImage: "",
     setAliases: ["Evolving Skies", "Sword & Shield-Evolving Skies", "Sword & Shield-Evolving-Skies"],
@@ -445,7 +445,7 @@ const PACK_CONFIG = [
     displayName: "Brilliant Stars",
     shortCode: "BRS",
     releaseLabel: "Sword & Shield Expansion",
-    packPrice: 4.49,
+    packPrice: 10.6,
     localPackImage: "assets/packs/brilliant-stars.jpg",
     packImage: "",
     setAliases: ["Brilliant Stars", "Sword & Shield-Brilliant Stars", "Sword & Shield-Brilliant-Stars"],
@@ -497,7 +497,7 @@ const PACK_CONFIG = [
     displayName: "Lost Origin",
     shortCode: "LOR",
     releaseLabel: "Sword & Shield Expansion",
-    packPrice: 4.49,
+    packPrice: 14.03,
     localPackImage: "assets/packs/lost-origin.jpg",
     packImage: "",
     setAliases: ["Lost Origin", "Sword & Shield-Lost Origin", "Sword & Shield-Lost-Origin"],
@@ -549,7 +549,7 @@ const PACK_CONFIG = [
     displayName: "Astral Radiance",
     shortCode: "ASR",
     releaseLabel: "Sword & Shield Expansion",
-    packPrice: 4.49,
+    packPrice: 9.48,
     localPackImage: "assets/packs/astral-radiance.png",
     packImage: "",
     setAliases: ["Astral Radiance", "Sword & Shield-Astral Radiance", "Sword & Shield-Astral-Radiance"],
@@ -602,7 +602,7 @@ const PACK_CONFIG = [
     displayName: "Silver Tempest",
     shortCode: "SIT",
     releaseLabel: "Sword & Shield Expansion",
-    packPrice: 4.49,
+    packPrice: 5.51,
     localPackImage: "assets/packs/silver-tempest.png",
     packImage: "",
     setAliases: ["Silver Tempest", "Sword & Shield-Silver Tempest", "Sword & Shield-Silver-Tempest"],
@@ -655,7 +655,7 @@ const PACK_CONFIG = [
     displayName: "Crown Zenith",
     shortCode: "CRZ",
     releaseLabel: "Sword & Shield Special Set",
-    packPrice: 5.29,
+    packPrice: 18.73,
     localPackImage: "assets/packs/crown-zenith.png",
     packImage: "",
     setAliases: ["Crown Zenith", "Sword & Shield-Crown Zenith", "Sword & Shield-Crown-Zenith"],
@@ -707,7 +707,7 @@ const PACK_CONFIG = [
     displayName: "Ascended Heroes",
     shortCode: "ASC",
     releaseLabel: "Mega Evolution Special Set",
-    packPrice: 5.49,
+    packPrice: 11.16,
     localPackImage: "assets/packs/ascended-heroes.png",
     packImage: "",
     setAliases: ["Ascended Heroes", "Mega Evolution-Ascended Heroes", "Mega Evolution-Ascended-Heroes"],
@@ -771,7 +771,7 @@ const PACK_CONFIG = [
     displayName: "Base Set (1999)",
     shortCode: "BS",
     releaseLabel: "Original 1999 Era",
-    packPrice: 499.99,
+    packPrice: 596.67,
     localPackImage: "assets/packs/base-set-1999.png",
     packImage: "",
     setAliases: ["Base", "Base Set", "Pokemon Base Set"],
@@ -816,7 +816,7 @@ const PACK_CONFIG = [
     displayName: "Jungle (1999)",
     shortCode: "JU",
     releaseLabel: "Original 1999 Era",
-    packPrice: 249.99,
+    packPrice: 302.0,
     localPackImage: "assets/packs/jungle-1999.png",
     packImage: "",
     setAliases: ["Jungle", "Pokemon Jungle"],
@@ -861,7 +861,7 @@ const PACK_CONFIG = [
     displayName: "Fossil (1999)",
     shortCode: "FO",
     releaseLabel: "Original 1999 Era",
-    packPrice: 219.99,
+    packPrice: 270.5,
     localPackImage: "assets/packs/fossil-1999.png",
     packImage: "",
     setAliases: ["Fossil", "Pokemon Fossil"],
@@ -1305,6 +1305,338 @@ const PACK_CONFIG = [
       { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-power-keepers/booster-pack" },
     ],
   },
+  {
+    key: "team-rocket",
+    setId: "base5",
+    displayName: "Team Rocket",
+    shortCode: "TR",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 344.67,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Team Rocket", "Pokemon Team Rocket"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.37 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.28 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.33 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-team-rocket/booster-pack" },
+    ],
+  },
+  {
+    key: "gym-heroes",
+    setId: "gym1",
+    displayName: "Gym Heroes",
+    shortCode: "GH",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 272.67,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Gym Heroes", "Pokemon Gym Heroes"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.37 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.28 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.33 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-gym-heroes/booster-pack" },
+    ],
+  },
+  {
+    key: "gym-challenge",
+    setId: "gym2",
+    displayName: "Gym Challenge",
+    shortCode: "GC2",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 303.04,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Gym Challenge", "Pokemon Gym Challenge"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.37 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.28 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.33 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-gym-challenge/booster-pack" },
+    ],
+  },
+  {
+    key: "base-set-2",
+    setId: "base4",
+    displayName: "Base Set 2",
+    shortCode: "B2",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 390.11,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Base Set 2", "Pokemon Base Set 2"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.37 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.28 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.33 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-base-set-2/booster-pack" },
+    ],
+  },
+  {
+    key: "expedition-base-set",
+    setId: "ecard1",
+    displayName: "Expedition Base Set",
+    shortCode: "EXP",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 1052.0,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Expedition Base Set", "Expedition"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.38 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.28 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.33 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.3,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.33 },
+      { label: "Rare (non-holo)", probability: 0.67 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-expedition/booster-pack" },
+    ],
+  },
+  {
+    key: "ruby-sapphire",
+    setId: "ex1",
+    displayName: "Ruby & Sapphire",
+    shortCode: "RS",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 375.36,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Ruby & Sapphire", "Pokemon Ruby & Sapphire"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.36 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.27 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.34 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.32,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.34 },
+      { label: "Rare (non-holo)", probability: 0.66 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-ruby-&-sapphire/booster-pack" },
+    ],
+  },
+  {
+    key: "ex-dragon",
+    setId: "ex3",
+    displayName: "EX Dragon",
+    shortCode: "DRG",
+    releaseLabel: "Market-Tracked Vintage Pack",
+    packPrice: 207.51,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Dragon", "EX Dragon", "Pokemon Dragon"],
+    slotOdds: {
+      reverseA: { defaultTier: "common", options: [{ tier: "uncommon", probability: 0.36 }] },
+      reverseB: { defaultTier: "uncommon", options: [{ tier: "common", probability: 0.27 }] },
+      rare: { defaultTier: "rare", options: [{ tier: "rareHolo", probability: 0.34 }] },
+    },
+    cardWeighting: {
+      marketFloor: 0.32,
+      tierExponents: { common: 0.08, uncommon: 0.1, rare: 0.16, rareHolo: 0.31 },
+    },
+    oddsHighlights: [
+      { label: "Holo Rare", probability: 0.34 },
+      { label: "Rare (non-holo)", probability: 0.66 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-dragon/booster-pack" },
+    ],
+  },
+  {
+    key: "hidden-fates",
+    setId: "sm115",
+    displayName: "Hidden Fates",
+    shortCode: "HF",
+    releaseLabel: "Modern Special Set",
+    packPrice: 41.0,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Hidden Fates", "Sun & Moon-Hidden Fates"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "shinyRare", probability: 0.22 }],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [
+          { tier: "shinyUltraRare", probability: 0.05 },
+          { tier: "illustrationRare", probability: 0.08 },
+        ],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.17 },
+          { tier: "ultraRare", probability: 0.07 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.4,
+      tierExponents: {
+        reverseFoil: 0.07,
+        shinyRare: 0.28,
+        shinyUltraRare: 0.36,
+        doubleRare: 0.24,
+        ultraRare: 0.31,
+        illustrationRare: 0.34,
+      },
+    },
+    oddsHighlights: [
+      { label: "Shiny Rare", probability: 0.22 },
+      { label: "Shiny Ultra Rare", probability: 0.05 },
+      { label: "Double Rare", probability: 0.17 },
+      { label: "Ultra Rare", probability: 0.07 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-hidden-fates/booster-pack" },
+    ],
+  },
+  {
+    key: "generations",
+    setId: "g1",
+    displayName: "Generations",
+    shortCode: "GEN",
+    releaseLabel: "Modern Special Set",
+    packPrice: 168.25,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Generations", "Pokemon Generations"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "illustrationRare", probability: 0.1 }],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "ultraRare", probability: 0.06 }],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.16 },
+          { tier: "ultraRare", probability: 0.07 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.38,
+      tierExponents: {
+        reverseFoil: 0.07,
+        doubleRare: 0.24,
+        ultraRare: 0.31,
+        illustrationRare: 0.34,
+      },
+    },
+    oddsHighlights: [
+      { label: "Illustration/Radiant Slot", probability: 0.1 },
+      { label: "Ultra Rare Slot", probability: 0.06 },
+      { label: "Double Rare", probability: 0.16 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.07 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-generations/booster-pack" },
+    ],
+  },
+  {
+    key: "phantom-forces",
+    setId: "xy4",
+    displayName: "Phantom Forces",
+    shortCode: "PF",
+    releaseLabel: "Modern Expansion",
+    packPrice: 175.0,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Phantom Forces", "XY-Phantom Forces"],
+    slotOdds: {
+      reverseA: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "illustrationRare", probability: 0.09 }],
+      },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [{ tier: "ultraRare", probability: 0.06 }],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.16 },
+          { tier: "ultraRare", probability: 0.07 },
+        ],
+      },
+    },
+    cardWeighting: {
+      marketFloor: 0.38,
+      tierExponents: {
+        reverseFoil: 0.07,
+        doubleRare: 0.24,
+        ultraRare: 0.31,
+        illustrationRare: 0.34,
+      },
+    },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.09 },
+      { label: "Ultra Rare Slot", probability: 0.06 },
+      { label: "Double Rare", probability: 0.16 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.07 },
+    ],
+    sources: [
+      { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-phantom-forces/booster-pack" },
+    ],
+  },
 ];
 
 const SLOT_TIER_TO_POOL_KEY = {
@@ -1474,6 +1806,10 @@ const dom = {
   networkStatus: document.getElementById("networkStatus"),
   installAppBtn: document.getElementById("installAppBtn"),
   packSelector: document.getElementById("packSelector"),
+  chooseSetToggleBtn: document.getElementById("chooseSetToggleBtn"),
+  chooseSetContent: document.getElementById("chooseSetContent"),
+  openSettingsToggleBtn: document.getElementById("openSettingsToggleBtn"),
+  openSettingsContent: document.getElementById("openSettingsContent"),
   packSortMode: document.getElementById("packSortMode"),
   revealMode: document.getElementById("revealMode"),
   sortMode: document.getElementById("sortMode"),
@@ -1560,6 +1896,9 @@ async function init() {
 }
 
 function wireControls() {
+  wireCollapsibleSection(dom.chooseSetToggleBtn, dom.chooseSetContent);
+  wireCollapsibleSection(dom.openSettingsToggleBtn, dom.openSettingsContent);
+
   dom.packSortMode?.addEventListener("change", () => {
     state.packSortMode = dom.packSortMode.value;
     renderPackSelector();
@@ -1700,6 +2039,25 @@ function wireControls() {
     dom.inspectCardTilt.addEventListener("pointerup", resetInspectTilt);
     dom.inspectCardTilt.addEventListener("pointercancel", resetInspectTilt);
   }
+}
+
+function wireCollapsibleSection(toggleBtn, contentEl) {
+  if (!toggleBtn || !contentEl) return;
+
+  const icon = toggleBtn.querySelector(".section-toggle-icon");
+  const sync = (expanded) => {
+    toggleBtn.setAttribute("aria-expanded", String(expanded));
+    contentEl.hidden = !expanded;
+    if (icon) {
+      icon.textContent = expanded ? "-" : "+";
+    }
+  };
+
+  sync(true);
+  toggleBtn.addEventListener("click", () => {
+    const expanded = toggleBtn.getAttribute("aria-expanded") !== "false";
+    sync(!expanded);
+  });
 }
 
 function setStatus(message, type = "") {
