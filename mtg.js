@@ -1177,6 +1177,10 @@ function setStatus(message, type = "") {
   dom.loadStatus.textContent = message;
   dom.loadStatus.classList.remove("ready", "error");
   if (type) dom.loadStatus.classList.add(type);
+  dom.loadStatus.classList.remove("is-pulsing");
+  void dom.loadStatus.offsetWidth;
+  dom.loadStatus.classList.add("is-pulsing");
+  window.setTimeout(() => dom.loadStatus?.classList.remove("is-pulsing"), 420);
 }
 
 function getCurrentSetDef() {
@@ -1218,10 +1222,13 @@ function selectSet(setKey) {
   if (!setKey || state.selectedSetKey === setKey) {
     return;
   }
+  const nextSet = MTG_SETS.find((set) => set.key === setKey);
+  if (!nextSet) return;
   state.selectedSetKey = setKey;
   state.currentPack = null;
   state.revealedIds = new Set();
   sanitizeCurrentSetChaseTargets();
+  triggerSetSwapCelebration(nextSet);
   renderSetSelect();
   renderHeader();
   renderOddsQaPanel();
@@ -1230,6 +1237,23 @@ function selectSet(setKey) {
   renderChasePanel();
   renderCards();
   loadSetData(setKey);
+}
+
+function triggerSetSwapCelebration(setDef) {
+  applySetTheme(setDef);
+  if (dom.packArt) {
+    dom.packArt.classList.remove("opening");
+    void dom.packArt.offsetWidth;
+    dom.packArt.classList.add("opening");
+    window.setTimeout(() => dom.packArt?.classList.remove("opening"), 720);
+  }
+  if (dom.playPanel) {
+    dom.playPanel.classList.remove("screen-shake", "mtg-legendary-flare");
+    void dom.playPanel.offsetWidth;
+    dom.playPanel.classList.add("mtg-legendary-flare");
+    window.setTimeout(() => dom.playPanel?.classList.remove("mtg-legendary-flare"), 760);
+  }
+  setStatus(`Channeling ${setDef.displayName}...`);
 }
 
 function renderSetSelect() {
@@ -3048,30 +3072,47 @@ function playOpenFx(setDef, cards) {
     window.setTimeout(() => dom.packArt?.classList.remove("opening"), ux.animMs);
   }
   if (dom.playPanel) {
-    dom.playPanel.classList.remove("screen-shake");
+    dom.playPanel.classList.remove("screen-shake", "mtg-legendary-flare");
+    void dom.playPanel.offsetWidth;
+    dom.playPanel.classList.add("mtg-legendary-flare");
     if (ux.mode === "hype" && (top.rarity === "mythic" || top.value >= 30)) {
       dom.playPanel.classList.add("screen-shake");
       window.setTimeout(() => dom.playPanel?.classList.remove("screen-shake"), Math.round(ux.animMs * 0.8));
     }
+    window.setTimeout(() => dom.playPanel?.classList.remove("mtg-legendary-flare"), Math.max(ux.animMs, 700));
   }
   try {
     const setToneOffset = Math.abs(hashString32(setDef.key || "set")) % 120;
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = top.rarity === "mythic" ? "triangle" : "sine";
-    osc.frequency.value = (top.rarity === "mythic" ? 660 : 440) + setToneOffset;
-    gain.gain.value = 0.0001;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
     const now = ctx.currentTime;
-    gain.gain.exponentialRampToValueAtTime(ux.gain, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-    osc.start(now);
-    osc.stop(now + 0.26);
+    const mythic = top.rarity === "mythic";
+    playMtgTone(ctx, now, 92 + setToneOffset * 0.25, 0.28, ux.gain * 0.56, "sawtooth", 72 + setToneOffset * 0.18);
+    playMtgTone(ctx, now + 0.04, 184 + setToneOffset * 0.15, 0.2, ux.gain * 0.42, "triangle", 220 + setToneOffset * 0.12);
+    playMtgTone(ctx, now + 0.18, mythic ? 310 : 256, mythic ? 0.24 : 0.18, ux.gain * (mythic ? 0.36 : 0.26), mythic ? "square" : "sine", mythic ? 392 : 320);
+    if (mythic || top.value >= 30) {
+      playMtgTone(ctx, now + 0.28, mythic ? 523 : 440, 0.16, ux.gain * 0.18, "triangle", mythic ? 659 : 523);
+    }
   } catch {
     // Ignore audio issues.
   }
+}
+
+function playMtgTone(ctx, startTime, startFreq, duration, gainPeak, type, endFreq = startFreq) {
+  const oscillator = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(startFreq, startTime);
+  oscillator.frequency.exponentialRampToValueAtTime(Math.max(endFreq, 1), startTime + duration);
+
+  gainNode.gain.setValueAtTime(0.0001, startTime);
+  gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainPeak), startTime + 0.025);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(ctx.destination);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + duration + 0.02);
 }
 
 function cardStat(label, value) {

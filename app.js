@@ -2682,6 +2682,10 @@ function setStatus(message, type = "") {
   if (type) {
     dom.loadStatus.classList.add(type);
   }
+  dom.loadStatus.classList.remove("is-pulsing");
+  void dom.loadStatus.offsetWidth;
+  dom.loadStatus.classList.add("is-pulsing");
+  window.setTimeout(() => dom.loadStatus?.classList.remove("is-pulsing"), 420);
 }
 
 function initSessionStatsCollapse() {
@@ -2964,13 +2968,15 @@ async function loadPackLiveData(packKey, options = {}) {
     persistLiveSetCache(packKey, setMeta, cards);
 
     if (!silentStatus) {
-  const snapshotLabel = state.marketSnapshot.loaded ? "authoritative snapshot active" : "live + fallback mode";
-  setStatus(`Ready to rip packs (${snapshotLabel}).`, "ready");
-}
+      const snapshotLabel = state.marketSnapshot.loaded ? "authoritative snapshot active" : "live + fallback mode";
+      setStatus(`Ready to rip packs (${snapshotLabel}).`, "ready");
+      showToast(`${packDef.displayName} is live and loaded.`, "info", 2400);
+    }
   } catch (error) {
     state.loadErrors.push(`${packDef.displayName}: ${error.message}`);
     if (!silentStatus) {
       setStatus(`Using fallback data for ${packDef.displayName}.`, "error");
+      showToast(`Fallback data is in play for ${packDef.displayName}.`, "warn", 2800);
     }
   } finally {
     state.loadingPackKeys.delete(packKey);
@@ -3660,11 +3666,14 @@ function renderPackSelector() {
 
 function selectPack(packKey) {
   if (!packKey || state.selectedPackKey === packKey) return;
+  const nextPack = PACK_CONFIG.find((pack) => pack.key === packKey);
+  if (!nextPack) return;
   state.selectedPackKey = packKey;
   state.currentPack = null;
   state.revealedInstanceIds = new Set();
   state.justRevealedInstanceId = "";
   closeInspectModal();
+  triggerPackSwapCelebration(nextPack);
   renderPackSelector();
   renderChasePanel();
   renderPackHeader();
@@ -3679,6 +3688,24 @@ function selectPack(packKey) {
   renderAchievements();
   updateButtons();
   loadPackLiveData(packKey);
+}
+
+function triggerPackSwapCelebration(packDef) {
+  if (dom.packArt) {
+    dom.packArt.classList.remove("opening");
+    void dom.packArt.offsetWidth;
+    dom.packArt.classList.add("opening");
+    window.setTimeout(() => dom.packArt?.classList.remove("opening"), 520);
+  }
+  if (dom.playPanel) {
+    dom.playPanel.classList.remove("screen-shake");
+    if (packDef?.releaseLabel === "Special Set" || (getPackPriceForRoi(packDef) || 0) >= 8) {
+      dom.playPanel.classList.add("screen-shake");
+      window.setTimeout(() => dom.playPanel?.classList.remove("screen-shake"), 260);
+    }
+  }
+  playPackOpenSound();
+  showToast(`Swapped to ${packDef.displayName}. Ready to rip.`, "achievement", 2400);
 }
 
 function loadPackSearchQueryFromStorage() {
@@ -6013,8 +6040,10 @@ function playPackOpenSound() {
   if (!ctx) return;
 
   const now = ctx.currentTime;
-  playTone(ctx, now, 130, 0.12, 0.18, "triangle", 200);
-  playTone(ctx, now + 0.09, 190, 0.08, 0.12, "sawtooth", 260);
+  playTone(ctx, now, 164, 0.09, 0.12, "sine", 164);
+  playTone(ctx, now + 0.06, 220, 0.1, 0.15, "triangle", 330);
+  playTone(ctx, now + 0.14, 294, 0.11, 0.17, "square", 440);
+  playTone(ctx, now + 0.24, 392, 0.13, 0.14, "triangle", 523);
 }
 
 function playRevealSound(card) {
@@ -6026,25 +6055,28 @@ function playRevealSound(card) {
   const impact = getRevealImpact(card);
 
   if (impact === "epic") {
-    playTone(ctx, now, 420, 0.12, 0.11, "square", 620);
-    playTone(ctx, now + 0.12, 620, 0.13, 0.1, "triangle", 910);
-    playTone(ctx, now + 0.27, 910, 0.16, 0.09, "sawtooth", 1100);
+    playTone(ctx, now, 523, 0.11, 0.1, "triangle", 659);
+    playTone(ctx, now + 0.1, 659, 0.12, 0.11, "square", 784);
+    playTone(ctx, now + 0.22, 784, 0.12, 0.12, "triangle", 1046);
+    playTone(ctx, now + 0.34, 1046, 0.16, 0.1, "sine", 1318);
     return;
   }
 
   if (impact === "hot") {
-    playTone(ctx, now, 360, 0.08, 0.09, "square", 500);
-    playTone(ctx, now + 0.1, 500, 0.1, 0.08, "triangle", 700);
+    playTone(ctx, now, 392, 0.08, 0.08, "square", 523);
+    playTone(ctx, now + 0.09, 523, 0.1, 0.09, "triangle", 659);
+    playTone(ctx, now + 0.19, 659, 0.1, 0.08, "triangle", 784);
     return;
   }
 
   if (impact === "warm") {
-    playTone(ctx, now, 290, 0.07, 0.06, "triangle", 390);
-    playTone(ctx, now + 0.08, 390, 0.06, 0.05, "triangle", 460);
+    playTone(ctx, now, 330, 0.07, 0.06, "triangle", 392);
+    playTone(ctx, now + 0.08, 392, 0.07, 0.06, "triangle", 494);
     return;
   }
 
-  playTone(ctx, now, 250, 0.05, 0.045, "sine", 290);
+  playTone(ctx, now, 247, 0.05, 0.04, "sine", 294);
+  playTone(ctx, now + 0.07, 294, 0.05, 0.04, "sine", 330);
 }
 
 function playAchievementSound(unlockCount = 1) {
@@ -6053,9 +6085,10 @@ function playAchievementSound(unlockCount = 1) {
   if (!ctx) return;
   const now = ctx.currentTime;
   const step = Math.min(Math.max(unlockCount, 1), 3);
-  playTone(ctx, now, 340, 0.08, 0.06, "triangle", 420 + step * 30);
-  playTone(ctx, now + 0.09, 430, 0.1, 0.07, "triangle", 560 + step * 40);
-  playTone(ctx, now + 0.21, 560, 0.13, 0.08, "square", 780 + step * 45);
+  playTone(ctx, now, 392, 0.08, 0.06, "triangle", 494 + step * 16);
+  playTone(ctx, now + 0.09, 494, 0.1, 0.07, "triangle", 659 + step * 18);
+  playTone(ctx, now + 0.2, 659, 0.12, 0.08, "square", 784 + step * 22);
+  playTone(ctx, now + 0.33, 784, 0.14, 0.09, "sine", 988 + step * 24);
 }
 
 function playTone(ctx, startTime, startFreq, duration, gainPeak, type, endFreq = startFreq) {
