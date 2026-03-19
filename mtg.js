@@ -2,6 +2,8 @@ const SCRYFALL_API_BASE = "https://api.scryfall.com";
 const MTG_PRICE_SOURCE_STORAGE_KEY = "mtg-pack-price-source-v1";
 const MTG_DEFAULT_PACK_PRICE = 5.99;
 const MTG_PRODUCT_STORAGE_KEY = "mtg-product-mode-v1";
+const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
+const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
 
 const MTG_PRODUCTS = {
   play: {
@@ -93,6 +95,7 @@ const MTG_PRODUCTS = {
 
 const MTG_SET_COLLATION_OVERRIDES = {
   blb: {
+    notes: "Official Collecting Bloomburrow breakdown (Play/Collector composition).",
     play: {
       slots: [
         { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
@@ -100,6 +103,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
         { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
         { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
         { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 6 / Special Guest", sheet: [{ pool: "common", weight: 98.4375 }, { pool: "specialGuest", weight: 1.5625 }] },
         { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
         { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
         { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
@@ -107,11 +111,28 @@ const MTG_SET_COLLATION_OVERRIDES = {
         { label: "Wildcard", sheet: [{ pool: "common", weight: 66 }, { pool: "uncommon", weight: 19 }, { pool: "rare", weight: 11 }, { pool: "mythic", weight: 4 }] },
         { label: "Land", sheet: [{ pool: "basicLand", weight: 78 }, { pool: "land", weight: 22 }] },
         { label: "Foil", sheet: [{ pool: "common", weight: 56, foil: true }, { pool: "uncommon", weight: 28, foil: true }, { pool: "rare", weight: 13, foil: true }, { pool: "mythic", weight: 3, foil: true }] },
-        { label: "Special Guest / Bonus", optional: true, chance: 0.2, sheet: [{ pool: "specialGuest", weight: 1 }, { pool: "rare", weight: 3 }, { pool: "mythic", weight: 1 }] },
+      ],
+    },
+    collector: {
+      slots: [
+        { label: "Foil Common 1", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 2", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 3", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 4", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 5", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 1", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 2", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 3", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 4", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Land", sheet: [{ pool: "land", weight: 1, foil: true }] },
+        { label: "Foil Rare/Mythic", sheet: [{ pool: "rare", weight: 7, foil: true }, { pool: "mythic", weight: 1, foil: true }] },
+        { label: "Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7 }, { pool: "showcaseMythic", weight: 1 }] },
+        { label: "Foil Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7, foil: true }, { pool: "showcaseMythic", weight: 1, foil: true }] },
       ],
     },
   },
   dsk: {
+    notes: "Official Collecting Duskmourn: House of Horror breakdown (Play/Collector composition).",
     play: {
       slots: [
         { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
@@ -119,6 +140,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
         { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
         { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
         { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 6 / Special Guest", sheet: [{ pool: "common", weight: 98.4375 }, { pool: "specialGuest", weight: 1.5625 }] },
         { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
         { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
         { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
@@ -126,11 +148,28 @@ const MTG_SET_COLLATION_OVERRIDES = {
         { label: "Wildcard", sheet: [{ pool: "common", weight: 64 }, { pool: "uncommon", weight: 20 }, { pool: "rare", weight: 12 }, { pool: "mythic", weight: 4 }] },
         { label: "Land", sheet: [{ pool: "basicLand", weight: 74 }, { pool: "land", weight: 26 }] },
         { label: "Foil", sheet: [{ pool: "common", weight: 55, foil: true }, { pool: "uncommon", weight: 29, foil: true }, { pool: "rare", weight: 13, foil: true }, { pool: "mythic", weight: 3, foil: true }] },
-        { label: "Special Guest / Bonus", optional: true, chance: 0.22, sheet: [{ pool: "specialGuest", weight: 1 }, { pool: "rare", weight: 3 }, { pool: "mythic", weight: 1 }] },
+      ],
+    },
+    collector: {
+      slots: [
+        { label: "Foil Common 1", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 2", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 3", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 4", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 5", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 1", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 2", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 3", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 4", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Land", sheet: [{ pool: "land", weight: 1, foil: true }] },
+        { label: "Foil Rare/Mythic", sheet: [{ pool: "rare", weight: 7, foil: true }, { pool: "mythic", weight: 1, foil: true }] },
+        { label: "Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7 }, { pool: "showcaseMythic", weight: 1 }] },
+        { label: "Foil Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7, foil: true }, { pool: "showcaseMythic", weight: 1, foil: true }] },
       ],
     },
   },
   fdn: {
+    notes: "Official Collecting Foundations breakdown (Play/Collector composition).",
     play: {
       slots: [
         { label: "Common 1", sheet: [{ pool: "common", weight: 1 }] },
@@ -138,14 +177,31 @@ const MTG_SET_COLLATION_OVERRIDES = {
         { label: "Common 3", sheet: [{ pool: "common", weight: 1 }] },
         { label: "Common 4", sheet: [{ pool: "common", weight: 1 }] },
         { label: "Common 5", sheet: [{ pool: "common", weight: 1 }] },
+        { label: "Common 6 / Special Guest", sheet: [{ pool: "common", weight: 98.4375 }, { pool: "specialGuest", weight: 1.5625 }] },
         { label: "Uncommon 1", sheet: [{ pool: "uncommon", weight: 1 }] },
         { label: "Uncommon 2", sheet: [{ pool: "uncommon", weight: 1 }] },
         { label: "Uncommon 3", sheet: [{ pool: "uncommon", weight: 1 }] },
-        { label: "Rare/Mythic", sheet: [{ pool: "rare", weight: 7 }, { pool: "mythic", weight: 1 }] },
+        { label: "Rare/Mythic", sheet: [{ pool: "rare", weight: 78 }, { pool: "mythic", weight: 12.8 }, { pool: "showcaseRare", weight: 7.7 }, { pool: "showcaseMythic", weight: 1.5 }] },
         { label: "Wildcard", sheet: [{ pool: "common", weight: 68 }, { pool: "uncommon", weight: 18 }, { pool: "rare", weight: 11 }, { pool: "mythic", weight: 3 }] },
         { label: "Land", sheet: [{ pool: "basicLand", weight: 82 }, { pool: "land", weight: 18 }] },
         { label: "Foil", sheet: [{ pool: "common", weight: 58, foil: true }, { pool: "uncommon", weight: 27, foil: true }, { pool: "rare", weight: 12, foil: true }, { pool: "mythic", weight: 3, foil: true }] },
-        { label: "Special Guest / Bonus", optional: true, chance: 0.14, sheet: [{ pool: "specialGuest", weight: 1 }, { pool: "rare", weight: 4 }, { pool: "mythic", weight: 1 }] },
+      ],
+    },
+    collector: {
+      slots: [
+        { label: "Foil Common 1", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 2", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 3", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 4", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 5", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 1", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 2", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 3", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 4", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Land", sheet: [{ pool: "land", weight: 1, foil: true }] },
+        { label: "Foil Rare/Mythic", sheet: [{ pool: "rare", weight: 7, foil: true }, { pool: "mythic", weight: 1, foil: true }] },
+        { label: "Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7 }, { pool: "showcaseMythic", weight: 1 }] },
+        { label: "Foil Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7, foil: true }, { pool: "showcaseMythic", weight: 1, foil: true }] },
       ],
     },
   },
@@ -478,7 +534,14 @@ const state = {
     profitablePacks: 0,
     packValueHistory: [],
     setEconomy: {},
+    pity: {
+      mythicPlus: 0,
+      valueHit: 0,
+    },
+    chaseStats: {},
   },
+  chaseTargetsBySet: loadChaseTargets(),
+  binder: loadBinder(),
 };
 
 const dom = {
@@ -490,6 +553,9 @@ const dom = {
   displayOrder: document.getElementById("mtgDisplayOrder"),
   priceSourceMode: document.getElementById("mtgPriceSourceMode"),
   openPackBtn: document.getElementById("mtgOpenPackBtn"),
+  resetSessionBtn: document.getElementById("mtgResetSessionBtn"),
+  resetBinderBtn: document.getElementById("mtgResetBinderBtn"),
+  chasePanel: document.getElementById("mtgChasePanel"),
   packImage: document.getElementById("mtgPackImage"),
   packLogo: document.getElementById("mtgPackLogo"),
   selectedPackName: document.getElementById("mtgSelectedPackName"),
@@ -499,6 +565,7 @@ const dom = {
   packPriceSource: document.getElementById("mtgPackPriceSource"),
   openedPackSummary: document.getElementById("mtgOpenedPackSummary"),
   cardsGrid: document.getElementById("mtgCardsGrid"),
+  binderGrid: document.getElementById("mtgBinderGrid"),
   sessionStats: document.getElementById("mtgSessionStats"),
   economyPanel: document.getElementById("mtgEconomyPanel"),
   cardTemplate: document.getElementById("mtgCardTemplate"),
@@ -515,6 +582,8 @@ async function init() {
   renderHeader();
   renderSessionStats();
   renderEconomyPanel();
+  renderChasePanel();
+  renderBinder();
   renderCards();
   await loadSetData(state.selectedSetKey);
   startBackgroundPreload();
@@ -534,6 +603,7 @@ function wireControls() {
     state.revealedIds = new Set();
     renderSetSelect();
     renderHeader();
+    renderChasePanel();
     renderCards();
     loadSetData(next.key);
   });
@@ -571,9 +641,40 @@ function wireControls() {
     renderSetSelect();
     renderSessionStats();
     renderEconomyPanel();
+    renderChasePanel();
   });
 
   dom.openPackBtn?.addEventListener("click", openPack);
+
+  dom.resetSessionBtn?.addEventListener("click", () => {
+    const okay = window.confirm("Reset MTG session stats? Binder cards are kept.");
+    if (!okay) return;
+    state.session = {
+      packsOpened: 0,
+      totalValue: 0,
+      totalSpent: 0,
+      biggestHit: null,
+      profitablePacks: 0,
+      packValueHistory: [],
+      setEconomy: {},
+      pity: { mythicPlus: 0, valueHit: 0 },
+      chaseStats: {},
+    };
+    state.currentPack = null;
+    state.revealedIds = new Set();
+    renderSessionStats();
+    renderEconomyPanel();
+    renderChasePanel();
+    renderCards();
+  });
+
+  dom.resetBinderBtn?.addEventListener("click", () => {
+    const okay = window.confirm("Reset MTG binder collection data?");
+    if (!okay) return;
+    state.binder = { cards: {} };
+    persistBinder();
+    renderBinder();
+  });
 }
 
 function setStatus(message, type = "") {
@@ -667,7 +768,8 @@ function renderHeader() {
 
   if (dom.collationMeta) {
     const sourceLabel = profile.profileSource || "Default";
-    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong></span>`;
+    const note = profile.profileNote ? `<span class="pack-source-meta">${escapeHtml(profile.profileNote)}</span>` : "";
+    dom.collationMeta.innerHTML = `<span>Collation profile: <strong>${escapeHtml(sourceLabel)}</strong></span>${note}`;
   }
 
   dom.packPriceSource.innerHTML = source
@@ -700,6 +802,7 @@ async function loadSetData(setKey) {
     state.loadingSetKeys.delete(setKey);
     renderSetSelect();
     renderHeader();
+    renderChasePanel();
     if (state.backgroundSync.running) {
       state.backgroundSync.done += 1;
       setStatus(`Background loading MTG sets: ${state.backgroundSync.done}/${state.backgroundSync.total}`);
@@ -797,6 +900,8 @@ function openPack() {
   renderHeader();
   renderSessionStats();
   renderEconomyPanel();
+  renderChasePanel();
+  renderBinder();
   renderCards();
 }
 
@@ -878,11 +983,14 @@ function weightedChoice(entries) {
 function getCollationProfile(setDef) {
   const productKey = state.productMode;
   const base = MTG_PRODUCTS[productKey] || MTG_PRODUCTS.play;
-  const override = MTG_SET_COLLATION_OVERRIDES[setDef.scryfallCode]?.[productKey];
+  const setOverride = MTG_SET_COLLATION_OVERRIDES[setDef.scryfallCode] || null;
+  const override = setOverride?.[productKey];
   const profile = override || base;
+  const note = setOverride?.notes || "";
   return {
     slots: profile.slots || [],
-    profileSource: override ? `${setDef.displayName} ${base.label} Override` : `${base.label} Default`,
+    profileSource: override ? `${setDef.displayName} ${base.label} Official` : `${base.label} Default`,
+    profileNote: note,
   };
 }
 
@@ -903,6 +1011,27 @@ function registerPack(cards, setDef) {
   state.session.setEconomy[setDef.key].packs += 1;
   state.session.setEconomy[setDef.key].spent += packCost;
   state.session.setEconomy[setDef.key].value += packValue;
+
+  const hasMythicPlus = cards.some((card) => card.rarity === "mythic" || (card.value || 0) >= 25);
+  const hasValueHit = cards.some((card) => (card.value || 0) >= 10);
+  state.session.pity.mythicPlus = hasMythicPlus ? 0 : state.session.pity.mythicPlus + 1;
+  state.session.pity.valueHit = hasValueHit ? 0 : state.session.pity.valueHit + 1;
+
+  const chaseTargets = getChaseTargets(setDef.key).filter(Boolean);
+  for (const cardId of chaseTargets) {
+    const chaseKey = `${setDef.key}:${cardId}`;
+    if (!state.session.chaseStats[chaseKey]) {
+      state.session.chaseStats[chaseKey] = { hits: 0, lastHitPack: 0 };
+    }
+    if (cards.some((card) => card.id === cardId)) {
+      state.session.chaseStats[chaseKey].hits += 1;
+      state.session.chaseStats[chaseKey].lastHitPack = state.session.packsOpened;
+    }
+  }
+
+  ingestCardsIntoBinder(cards, setDef.key);
+  persistBinder();
+
   const best = cards.reduce((top, card) => (card.value > (top?.value || 0) ? card : top), null);
   if (best && (!state.session.biggestHit || best.value > state.session.biggestHit.value)) {
     state.session.biggestHit = best;
@@ -918,7 +1047,90 @@ function renderSessionStats() {
     cardStat("Total Spent", formatUsd(state.session.totalSpent)),
     cardStat("Net", formatUsd(net)),
     cardStat("Biggest Hit", biggest ? `${biggest.name} (${formatUsd(biggest.value)})` : "None yet"),
+    cardStat("Pity Mythic+", state.session.pity.mythicPlus.toLocaleString()),
+    cardStat("Pity Value Hit", state.session.pity.valueHit.toLocaleString()),
   ].join("");
+}
+
+function renderChasePanel() {
+  if (!dom.chasePanel) return;
+  const setDef = getCurrentSetDef();
+  const setData = state.setData[setDef.key];
+  const targets = getChaseTargets(setDef.key);
+  const candidates = getChaseCandidates(setData);
+
+  const selectMarkup = [];
+  for (let i = 0; i < 2; i += 1) {
+    const selectedId = targets[i] || "";
+    const options = [
+      `<option value="">No chase selected</option>`,
+      ...candidates.map((card) => `<option value="${card.id}"${card.id === selectedId ? " selected" : ""}>${escapeHtml(card.name)} (${formatUsd(card.usd || card.usdFoil || 0)})</option>`),
+    ].join("");
+    selectMarkup.push(`
+      <div class="control-group">
+        <label for="mtgChaseSelect${i}">Chase Slot ${i + 1}</label>
+        <select id="mtgChaseSelect${i}" data-mtg-chase-slot="${i}">
+          ${options}
+        </select>
+      </div>
+    `);
+  }
+
+  const trackerRows = targets
+    .map((id) => setData?.cards?.find((card) => card.id === id))
+    .filter(Boolean)
+    .map((card) => {
+      const key = `${setDef.key}:${card.id}`;
+      const stats = state.session.chaseStats[key] || { hits: 0, lastHitPack: 0 };
+      const ago = stats.lastHitPack > 0 ? Math.max(0, state.session.packsOpened - stats.lastHitPack) : state.session.packsOpened;
+      return `<li><strong>${escapeHtml(card.name)}</strong><span>Hits: ${stats.hits}</span><em>Packs since hit: ${ago}</em></li>`;
+    })
+    .join("");
+
+  const pityMythic = state.session.pity.mythicPlus;
+  const pityValue = state.session.pity.valueHit;
+  dom.chasePanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Chase Tracker + Pity</strong>
+      <span>Track targeted cards and dry streak counters.</span>
+    </div>
+    <div class="chase-controls">${selectMarkup.join("")}</div>
+    <div class="pity-grid">
+      <div class="pity-meter ${getPityHeat(pityMythic, 14)}">
+        <div class="pity-row"><strong>Mythic+ Pity</strong><span>${pityMythic} packs</span></div>
+        <div class="pity-bar"><span style="width:${Math.min(100, Math.round((pityMythic / 14) * 100))}%"></span></div>
+      </div>
+      <div class="pity-meter ${getPityHeat(pityValue, 8)}">
+        <div class="pity-row"><strong>Value Hit Pity ($10+)</strong><span>${pityValue} packs</span></div>
+        <div class="pity-bar"><span style="width:${Math.min(100, Math.round((pityValue / 8) * 100))}%"></span></div>
+      </div>
+    </div>
+    <ul class="chase-tracker-list">${trackerRows || "<li><em>No chase cards selected yet.</em></li>"}</ul>
+  `;
+
+  dom.chasePanel.querySelectorAll("[data-mtg-chase-slot]").forEach((node) => {
+    node.addEventListener("change", () => {
+      const slot = Number(node.dataset.mtgChaseSlot);
+      const next = getChaseTargets(setDef.key);
+      next[slot] = node.value || "";
+      setChaseTargets(setDef.key, next.filter(Boolean));
+      renderChasePanel();
+    });
+  });
+}
+
+function getChaseCandidates(setData) {
+  if (!setData?.cards?.length) return [];
+  return [...setData.cards]
+    .filter((card) => Math.max(card.usd || 0, card.usdFoil || 0) > 0)
+    .sort((a, b) => Math.max(b.usd || 0, b.usdFoil || 0) - Math.max(a.usd || 0, a.usdFoil || 0))
+    .slice(0, 40);
+}
+
+function getPityHeat(value, warmThreshold) {
+  if (value >= warmThreshold) return "hot";
+  if (value >= Math.round(warmThreshold * 0.6)) return "warm";
+  return "cool";
 }
 
 function renderEconomyPanel() {
@@ -1044,6 +1256,100 @@ function getDisplayCards() {
     cards.sort((a, b) => a.standardIndex - b.standardIndex);
   }
   return cards;
+}
+
+function ingestCardsIntoBinder(cards, setKey) {
+  for (const card of cards) {
+    const existing = state.binder.cards[card.id];
+    if (existing) {
+      existing.count += 1;
+      existing.bestValue = Math.max(existing.bestValue, card.value || 0);
+      existing.lastPulledAt = Date.now();
+      continue;
+    }
+    state.binder.cards[card.id] = {
+      id: card.id,
+      name: card.name,
+      image: card.image,
+      rarity: card.rarity,
+      setKey,
+      count: 1,
+      bestValue: card.value || 0,
+      lastPulledAt: Date.now(),
+    };
+  }
+}
+
+function renderBinder() {
+  if (!dom.binderGrid) return;
+  const entries = Object.values(state.binder.cards).sort((a, b) => (b.lastPulledAt || 0) - (a.lastPulledAt || 0));
+  if (!entries.length) {
+    dom.binderGrid.classList.add("empty");
+    dom.binderGrid.innerHTML = "No cards in your MTG binder yet.";
+    return;
+  }
+
+  dom.binderGrid.classList.remove("empty");
+  dom.binderGrid.innerHTML = entries
+    .map((card) => `
+      <article class="binder-entry">
+        <img src="${card.image || ""}" alt="${escapeHtml(card.name)}" />
+        <div class="binder-entry-copy">
+          <h3>${escapeHtml(card.name)}</h3>
+          <p>${escapeHtml(card.rarity || "Card")}</p>
+          <p>x${card.count} - Best ${formatUsd(card.bestValue || 0)}</p>
+        </div>
+      </article>
+    `)
+    .join("");
+}
+
+function getChaseTargets(setKey) {
+  return state.chaseTargetsBySet[setKey] || [];
+}
+
+function setChaseTargets(setKey, targets) {
+  state.chaseTargetsBySet[setKey] = targets.slice(0, 2);
+  persistChaseTargets();
+}
+
+function loadChaseTargets() {
+  try {
+    const raw = window.localStorage.getItem(MTG_CHASE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistChaseTargets() {
+  try {
+    window.localStorage.setItem(MTG_CHASE_STORAGE_KEY, JSON.stringify(state.chaseTargetsBySet));
+  } catch {
+    // Ignore storage issues.
+  }
+}
+
+function loadBinder() {
+  try {
+    const raw = window.localStorage.getItem(MTG_BINDER_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== "object" || !parsed.cards || typeof parsed.cards !== "object") {
+      return { cards: {} };
+    }
+    return parsed;
+  } catch {
+    return { cards: {} };
+  }
+}
+
+function persistBinder() {
+  try {
+    window.localStorage.setItem(MTG_BINDER_STORAGE_KEY, JSON.stringify(state.binder));
+  } catch {
+    // Ignore storage issues.
+  }
 }
 
 function getPackPrice(setDef) {

@@ -81,6 +81,11 @@
         <div class="button-row primary-row">
           <button id="mtgOpenPackBtn" class="btn btn-primary" disabled>Generate Pack</button>
         </div>
+        <div class="button-row">
+          <button id="mtgResetSessionBtn" class="btn">Reset Session</button>
+          <button id="mtgResetBinderBtn" class="btn">Reset Binder</button>
+        </div>
+        <div id="mtgChasePanel" class="chase-panel"></div>
       </section>
 
       <section class="panel play-panel">
@@ -102,6 +107,13 @@
 
         <div id="mtgOpenedPackSummary" class="opened-pack-summary"></div>
         <div id="mtgCardsGrid" class="cards-grid"></div>
+        <section class="binder-section">
+          <div class="binder-head">
+            <h2>Collection Binder</h2>
+            <p>Tracks saved MTG pulls and duplicates.</p>
+          </div>
+          <div id="mtgBinderGrid" class="binder-grid"></div>
+        </section>
       </section>
 
       <aside class="panel sidebar-panel">
@@ -130,6 +142,6 @@
     </article>
   </template>
 
-  <script src="mtg.js?v=20260319-3"></script>
+  <script src="mtg.js?v=20260319-4"></script>
 </body>
 </html>
