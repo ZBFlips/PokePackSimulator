@@ -2,6 +2,7 @@ const SCRYFALL_API_BASE = "https://api.scryfall.com";
 const MTG_PRICE_SOURCE_STORAGE_KEY = "mtg-pack-price-source-v1";
 const MTG_DEFAULT_PACK_PRICE = 5.99;
 const MTG_PRODUCT_STORAGE_KEY = "mtg-product-mode-v1";
+const MTG_SET_SORT_STORAGE_KEY = "mtg-set-sort-mode-v1";
 const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
 const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
 const MTG_CHASE_FILTER_STORAGE_KEY = "mtg-pack-sim-chase-filter-v1";
@@ -892,7 +893,7 @@ const state = {
   selectedSetKey: MTG_SETS[0].key,
   revealMode: "all",
   displayOrder: "standard",
-  setSortMode: "release",
+  setSortMode: loadMtgSetSortMode(),
   sealedProductKey: loadProductMode(),
   productMode: "play",
   priceSourceMode: loadPriceSourceMode(),
@@ -1015,6 +1016,7 @@ async function init() {
 function wireControls() {
   dom.setSort?.addEventListener("change", () => {
     state.setSortMode = dom.setSort.value;
+    saveMtgSetSortMode(state.setSortMode);
     renderSetSelect();
     renderFidelityRegistryPanel();
   });
@@ -1238,7 +1240,9 @@ function renderSetSelect() {
     const loaded = Boolean(state.setData[setDef.key]);
     const loading = state.loadingSetKeys.has(setDef.key);
     const fidelityLabel = getCollationFidelityLabel(setDef);
-    option.textContent = `${setDef.displayName} [${fidelityLabel}] (${loading ? "loading..." : loaded ? "live" : "pending"})`;
+    const statusLabel = loading ? "loading..." : loaded ? "live" : "pending";
+    const valuePrefix = state.setSortMode === "value" ? `${formatUsd(getPackPrice(setDef))} - ` : "";
+    option.textContent = `${valuePrefix}${setDef.displayName} [${fidelityLabel}] (${statusLabel})`;
     dom.setSelect.appendChild(option);
   }
   dom.setSelect.value = state.selectedSetKey;
@@ -1252,6 +1256,26 @@ function loadProductMode() {
     // Ignore storage failures.
   }
   return "play-pack";
+}
+
+function loadMtgSetSortMode() {
+  try {
+    const value = window.localStorage.getItem(MTG_SET_SORT_STORAGE_KEY);
+    if (value === "release" || value === "alpha" || value === "value" || value === "fidelity") {
+      return value;
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+  return "release";
+}
+
+function saveMtgSetSortMode(value) {
+  try {
+    window.localStorage.setItem(MTG_SET_SORT_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures.
+  }
 }
 
 function saveProductMode(value) {

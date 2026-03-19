@@ -6,6 +6,7 @@ const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
 const COMPACT_BINDER_STORAGE_KEY = "pokemon-pack-sim-compact-binder-v1";
 const ULTRA_COMPACT_BINDER_STORAGE_KEY = "pokemon-pack-sim-ultra-compact-binder-v1";
 const PACK_PRICE_SOURCE_STORAGE_KEY = "pokemon-pack-sim-pack-price-source-v1";
+const PACK_SORT_MODE_STORAGE_KEY = "pokemon-pack-sim-pack-sort-mode-v1";
 const MARKET_VALUE_MODE_STORAGE_KEY = "pokemon-pack-sim-market-value-mode-v1";
 const OPENING_UX_MODE_STORAGE_KEY = "pokemon-pack-sim-opening-ux-mode-v1";
 const RNG_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-rng-v1";
@@ -1925,6 +1926,214 @@ const PACK_CONFIG = [
     oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
     sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-sword-&-shield/booster-pack" }],
   },
+  {
+    key: "vivid-voltage",
+    setId: "swsh4",
+    displayName: "Vivid Voltage",
+    shortCode: "VIV",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 8.18,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Vivid Voltage", "SWSH-Vivid Voltage", "Sword & Shield-Vivid Voltage"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.038 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.033 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.136 }, { tier: "ultraRare", probability: 0.048 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.34, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.038 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.033 },
+      { label: "Double Rare", probability: 0.136 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.048 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-vivid-voltage/booster-pack" }],
+  },
+  {
+    key: "fusion-strike",
+    setId: "swsh8",
+    displayName: "Fusion Strike",
+    shortCode: "FST",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 8.93,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Fusion Strike", "SWSH-Fusion Strike", "Sword & Shield-Fusion Strike"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.042 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.037 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.141 }, { tier: "ultraRare", probability: 0.051 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.35, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.042 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.037 },
+      { label: "Double Rare", probability: 0.141 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.051 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-fusion-strike/booster-pack" }],
+  },
+  {
+    key: "pokemon-go",
+    setId: "pgo",
+    displayName: "Pokemon GO",
+    shortCode: "PGO",
+    releaseLabel: "Sword & Shield Special Set",
+    packPrice: 7.74,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Pokemon GO", "Pokemon Go", "Pokemon-GO"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.072 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.06 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.162 }, { tier: "ultraRare", probability: 0.064 }] },
+    },
+    collationV2: { version: "swsh-special-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.36, tierExponents: { reverseFoil: 0.07, doubleRare: 0.24, ultraRare: 0.31, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.072 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.06 },
+      { label: "Double Rare", probability: 0.162 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.064 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-pokemon-go/booster-pack" }],
+  },
+  {
+    key: "champions-path",
+    setId: "swsh35",
+    displayName: "Champion's Path",
+    shortCode: "CPA",
+    releaseLabel: "Sword & Shield Special Set",
+    packPrice: 16.81,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Champion's Path", "Champions Path", "SWSH-Champion's Path"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.062 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.058 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.156 }, { tier: "ultraRare", probability: 0.066 }] },
+    },
+    collationV2: { version: "swsh-special-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.37, tierExponents: { reverseFoil: 0.07, doubleRare: 0.24, ultraRare: 0.31, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.062 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.058 },
+      { label: "Double Rare", probability: 0.156 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.066 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-champion's-path/booster-pack" }],
+  },
+  {
+    key: "shining-fates",
+    setId: "swsh45",
+    displayName: "Shining Fates",
+    shortCode: "SHF",
+    releaseLabel: "Sword & Shield Special Set",
+    packPrice: 9.88,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Shining Fates", "SWSH-Shining Fates", "Sword & Shield-Shining Fates"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "shinyRare", probability: 0.214 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "shinyUltraRare", probability: 0.061 }, { tier: "specialIllustrationRare", probability: 0.015 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.152 }, { tier: "ultraRare", probability: 0.064 }] },
+    },
+    collationV2: { version: "swsh-special-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.38, tierExponents: { reverseFoil: 0.07, shinyRare: 0.28, shinyUltraRare: 0.36, doubleRare: 0.24, ultraRare: 0.31, specialIllustrationRare: 0.5 } },
+    oddsHighlights: [
+      { label: "Shiny Rare", probability: 0.214 },
+      { label: "Shiny Ultra Rare", probability: 0.061 },
+      { label: "Double Rare", probability: 0.152 },
+      { label: "Ultra Rare", probability: 0.064 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-shining-fates/booster-pack" }],
+  },
+  {
+    key: "sun-moon-base",
+    setId: "sm1",
+    displayName: "Sun & Moon Base",
+    shortCode: "SUM",
+    releaseLabel: "Sun & Moon Expansion",
+    packPrice: 13.6,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Sun & Moon", "Sun & Moon Base", "SM-Sun & Moon"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.03 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.027 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.124 }, { tier: "ultraRare", probability: 0.041 }] },
+    },
+    collationV2: { version: "sm-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.32, tierExponents: { reverseFoil: 0.07, doubleRare: 0.22, ultraRare: 0.29, illustrationRare: 0.33 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.03 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.027 },
+      { label: "Double Rare", probability: 0.124 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.041 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-sun-&-moon/booster-pack" }],
+  },
+  {
+    key: "guardians-rising",
+    setId: "sm2",
+    displayName: "Guardians Rising",
+    shortCode: "GRI",
+    releaseLabel: "Sun & Moon Expansion",
+    packPrice: 17.45,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Guardians Rising", "SM-Guardians Rising"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.032 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.028 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.127 }, { tier: "ultraRare", probability: 0.043 }] },
+    },
+    collationV2: { version: "sm-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.33, tierExponents: { reverseFoil: 0.07, doubleRare: 0.22, ultraRare: 0.29, illustrationRare: 0.33 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.032 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.028 },
+      { label: "Double Rare", probability: 0.127 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.043 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-guardians-rising/booster-pack" }],
+  },
+  {
+    key: "ultra-prism",
+    setId: "sm5",
+    displayName: "Ultra Prism",
+    shortCode: "UPR",
+    releaseLabel: "Sun & Moon Expansion",
+    packPrice: 18.75,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Ultra Prism", "SM-Ultra Prism"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.033 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.031 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.129 }, { tier: "ultraRare", probability: 0.046 }] },
+    },
+    collationV2: { version: "sm-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.33, tierExponents: { reverseFoil: 0.07, doubleRare: 0.22, ultraRare: 0.29, illustrationRare: 0.33 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.033 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.031 },
+      { label: "Double Rare", probability: 0.129 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.046 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-ultra-prism/booster-pack" }],
+  },
 ];
 
 const SLOT_TIER_TO_POOL_KEY = {
@@ -2033,7 +2242,7 @@ const state = {
   selectedPackKey: PACK_CONFIG[0].key,
   revealMode: "all",
   sortMode: "standard",
-  packSortMode: "release",
+  packSortMode: loadPackSortModeFromStorage(),
   packPriceSourceMode: loadPackPriceSourceModeFromStorage(),
   marketValueMode: loadMarketValueModeFromStorage(),
   openingUxMode: loadOpeningUxModeFromStorage(),
@@ -2225,6 +2434,7 @@ function wireControls() {
 
   dom.packSortMode?.addEventListener("change", () => {
     state.packSortMode = dom.packSortMode.value;
+    persistPackSortMode();
     renderPackSelector();
     renderSimulationLab();
     renderFidelityRegistryPanel();
@@ -3386,8 +3596,10 @@ function renderPackSelector() {
     const isLive = state.liveLoadedPackKeys.has(packDef.key);
     const isLoading = state.loadingPackKeys.has(packDef.key);
     const loadLabel = isLoading ? "loading..." : isLive ? "live" : "fallback";
-
-    option.textContent = `${packDef.displayName} (${loadLabel})`;
+    const priceLabel = formatUsd(getPackPriceForRoi(packDef));
+    option.textContent = state.packSortMode === "value"
+      ? `${priceLabel} - ${packDef.displayName} (${loadLabel})`
+      : `${packDef.displayName} (${loadLabel})`;
     select.appendChild(option);
   }
 
@@ -3431,7 +3643,12 @@ function getSortedPackDefs() {
   }
 
   if (state.packSortMode === "value") {
-    packs.sort((a, b) => getPackPriceForRoi(b) - getPackPriceForRoi(a) || a.displayName.localeCompare(b.displayName));
+    packs.sort(
+      (a, b) =>
+        getPackPriceForRoi(b) - getPackPriceForRoi(a) ||
+        getPackReleaseTimestamp(b.key) - getPackReleaseTimestamp(a.key) ||
+        a.displayName.localeCompare(b.displayName),
+    );
     return packs;
   }
 
@@ -3620,6 +3837,26 @@ function loadPackPriceSourceModeFromStorage() {
     // Ignore storage read errors.
   }
   return "pricecharting";
+}
+
+function loadPackSortModeFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(PACK_SORT_MODE_STORAGE_KEY);
+    if (raw === "release" || raw === "alpha" || raw === "value" || raw === "fidelity") {
+      return raw;
+    }
+  } catch {
+    // Ignore storage read errors.
+  }
+  return "release";
+}
+
+function persistPackSortMode() {
+  try {
+    window.localStorage.setItem(PACK_SORT_MODE_STORAGE_KEY, state.packSortMode);
+  } catch {
+    // Ignore storage write errors.
+  }
 }
 
 function loadMarketValueModeFromStorage() {

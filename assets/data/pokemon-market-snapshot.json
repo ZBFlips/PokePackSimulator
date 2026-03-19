@@ -6,6 +6,10 @@
                    "label":  "Public market snapshot (PriceCharting + TCGplayer sealed)"
                },
     "packPrices":  {
+                       "fusion-strike":  {
+                                             "pricecharting":  8.93,
+                                             "tcgplayerSealed":  9.29
+                                         },
                        "temporal-forces":  {
                                                "pricecharting":  8.4,
                                                "tcgplayerSealed":  8.74
@@ -46,6 +50,14 @@
                                                    "pricecharting":  7.42,
                                                    "tcgplayerSealed":  7.72
                                                },
+                       "shining-fates":  {
+                                             "pricecharting":  9.88,
+                                             "tcgplayerSealed":  10.28
+                                         },
+                       "ultra-prism":  {
+                                           "pricecharting":  18.75,
+                                           "tcgplayerSealed":  19.5
+                                       },
                        "holon-phantoms":  {
                                               "pricecharting":  1231.62,
                                               "tcgplayerSealed":  1280.88
@@ -70,6 +82,10 @@
                                               "pricecharting":  10.49,
                                               "tcgplayerSealed":  10.91
                                           },
+                       "guardians-rising":  {
+                                                "pricecharting":  17.45,
+                                                "tcgplayerSealed":  18.15
+                                            },
                        "prismatic-evolutions":  {
                                                     "pricecharting":  11.58,
                                                     "tcgplayerSealed":  12.04
@@ -93,6 +109,10 @@
                        "ruby-sapphire":  {
                                              "pricecharting":  375.36,
                                              "tcgplayerSealed":  390.37
+                                         },
+                       "sun-moon-base":  {
+                                             "pricecharting":  13.6,
+                                             "tcgplayerSealed":  14.14
                                          },
                        "neo-revelation":  {
                                               "pricecharting":  599.99,
@@ -130,6 +150,10 @@
                                              "pricecharting":  580.45,
                                              "tcgplayerSealed":  603.67
                                          },
+                       "champions-path":  {
+                                              "pricecharting":  16.81,
+                                              "tcgplayerSealed":  17.48
+                                          },
                        "power-keepers":  {
                                              "pricecharting":  468,
                                              "tcgplayerSealed":  486.72
@@ -166,6 +190,10 @@
                                               "pricecharting":  8,
                                               "tcgplayerSealed":  8.32
                                           },
+                       "vivid-voltage":  {
+                                             "pricecharting":  8.18,
+                                             "tcgplayerSealed":  8.51
+                                         },
                        "neo-genesis":  {
                                            "pricecharting":  479,
                                            "tcgplayerSealed":  498.16
@@ -198,6 +226,10 @@
                                          "pricecharting":  207.51,
                                          "tcgplayerSealed":  215.81
                                      },
+                       "pokemon-go":  {
+                                          "pricecharting":  7.74,
+                                          "tcgplayerSealed":  8.05
+                                      },
                        "legendary-collection":  {
                                                     "pricecharting":  1846.41,
                                                     "tcgplayerSealed":  1920.27

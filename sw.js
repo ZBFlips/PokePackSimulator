@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v20260319-8";
+const CACHE_VERSION = "v20260319-9";
 const STATIC_CACHE = `pack-sim-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `pack-sim-runtime-${CACHE_VERSION}`;
 const API_CACHE = `pack-sim-api-${CACHE_VERSION}`;
