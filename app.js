@@ -3463,12 +3463,13 @@ function getCardWeight(packDef, poolKey, card) {
 }
 
 function buildApproxPackOdds(packDef, weightedPools) {
+  const slotOdds = packDef.slotOdds || {};
   const slotPlan = [
     { count: 4, outcomes: [{ tier: "common", probability: 1 }] },
     { count: 3, outcomes: [{ tier: "uncommon", probability: 1 }] },
-    { count: 1, outcomes: expandSlotOutcomes(packDef.slotOdds.reverseA) },
-    { count: 1, outcomes: expandSlotOutcomes(packDef.slotOdds.reverseB) },
-    { count: 1, outcomes: expandSlotOutcomes(packDef.slotOdds.rare) },
+    { count: 1, outcomes: expandSlotOutcomes(slotOdds.reverseA || { defaultTier: "common", options: [] }) },
+    { count: 1, outcomes: expandSlotOutcomes(slotOdds.reverseB || { defaultTier: "common", options: [] }) },
+    { count: 1, outcomes: expandSlotOutcomes(slotOdds.rare || { defaultTier: "rare", options: [] }) },
     { count: 1, outcomes: [{ tier: "energy", probability: 1 }] },
   ];
 
