@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v20260318-1";
+const CACHE_VERSION = "v20260319-2";
 const STATIC_CACHE = `pack-sim-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `pack-sim-runtime-${CACHE_VERSION}`;
 const API_CACHE = `pack-sim-api-${CACHE_VERSION}`;
@@ -6,8 +6,10 @@ const API_CACHE = `pack-sim-api-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "./index.html",
+  "./mtg.html",
   "./styles.css",
   "./app.js",
+  "./mtg.js",
   "./manifest.webmanifest",
   "./assets/icons/icon-192.svg",
   "./assets/icons/icon-512.svg",
