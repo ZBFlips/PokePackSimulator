@@ -93,6 +93,104 @@ const MTG_PRODUCTS = {
   },
 };
 
+function buildPlayOverride(note, options = {}) {
+  const commonCount = options.commonCount ?? 6;
+  const uncommonCount = options.uncommonCount ?? 3;
+  const rareWeight = options.rareWeight ?? 7;
+  const mythicWeight = options.mythicWeight ?? 1;
+  const wildcardWeights = options.wildcardWeights || { common: 66, uncommon: 19, rare: 11, mythic: 4 };
+  const landWeights = options.landWeights || { basicLand: 78, land: 22 };
+  const foilWeights = options.foilWeights || { common: 56, uncommon: 28, rare: 13, mythic: 3 };
+  const specialGuestChance = options.specialGuestChance ?? 0.15625;
+  const includeSpecialGuestSlot = options.includeSpecialGuestSlot ?? true;
+
+  const playSlots = [];
+  for (let i = 1; i <= commonCount; i += 1) {
+    playSlots.push({ label: `Common ${i}`, sheet: [{ pool: "common", weight: 1 }] });
+  }
+  for (let i = 1; i <= uncommonCount; i += 1) {
+    playSlots.push({ label: `Uncommon ${i}`, sheet: [{ pool: "uncommon", weight: 1 }] });
+  }
+  playSlots.push({
+    label: "Rare/Mythic",
+    sheet: [
+      { pool: "rare", weight: rareWeight },
+      { pool: "mythic", weight: mythicWeight },
+    ],
+  });
+  playSlots.push({
+    label: "Wildcard",
+    sheet: [
+      { pool: "common", weight: wildcardWeights.common ?? 66 },
+      { pool: "uncommon", weight: wildcardWeights.uncommon ?? 19 },
+      { pool: "rare", weight: wildcardWeights.rare ?? 11 },
+      { pool: "mythic", weight: wildcardWeights.mythic ?? 4 },
+    ],
+  });
+  playSlots.push({
+    label: "Land",
+    sheet: [
+      { pool: "basicLand", weight: landWeights.basicLand ?? 78 },
+      { pool: "land", weight: landWeights.land ?? 22 },
+    ],
+  });
+  playSlots.push({
+    label: "Foil",
+    sheet: [
+      { pool: "common", weight: foilWeights.common ?? 56, foil: true },
+      { pool: "uncommon", weight: foilWeights.uncommon ?? 28, foil: true },
+      { pool: "rare", weight: foilWeights.rare ?? 13, foil: true },
+      { pool: "mythic", weight: foilWeights.mythic ?? 3, foil: true },
+    ],
+  });
+  if (includeSpecialGuestSlot) {
+    playSlots.push({
+      label: "Special Guest / Bonus",
+      optional: true,
+      chance: specialGuestChance,
+      sheet: [
+        { pool: "specialGuest", weight: 1 },
+        { pool: "rare", weight: 4 },
+        { pool: "mythic", weight: 1 },
+      ],
+    });
+  }
+
+  return {
+    notes: note,
+    play: { slots: playSlots },
+    collector: {
+      slots: [
+        { label: "Foil Common 1", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 2", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 3", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 4", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Common 5", sheet: [{ pool: "common", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 1", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 2", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 3", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Uncommon 4", sheet: [{ pool: "uncommon", weight: 1, foil: true }] },
+        { label: "Foil Land", sheet: [{ pool: "land", weight: 1, foil: true }] },
+        { label: "Foil Rare/Mythic", sheet: [{ pool: "rare", weight: 7, foil: true }, { pool: "mythic", weight: 1, foil: true }] },
+        { label: "Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7 }, { pool: "showcaseMythic", weight: 1 }] },
+        { label: "Foil Booster Fun Rare/Mythic", sheet: [{ pool: "showcaseRare", weight: 7, foil: true }, { pool: "showcaseMythic", weight: 1, foil: true }] },
+      ],
+    },
+  };
+}
+
+function buildSetBoosterOverride(note, options = {}) {
+  return buildPlayOverride(note, {
+    commonCount: options.commonCount ?? 7,
+    uncommonCount: options.uncommonCount ?? 3,
+    wildcardWeights: options.wildcardWeights || { common: 58, uncommon: 24, rare: 14, mythic: 4 },
+    landWeights: options.landWeights || { basicLand: 70, land: 30 },
+    foilWeights: options.foilWeights || { common: 50, uncommon: 30, rare: 16, mythic: 4 },
+    specialGuestChance: options.specialGuestChance ?? 0.0,
+    includeSpecialGuestSlot: options.includeSpecialGuestSlot ?? false,
+  });
+}
+
 const MTG_SET_COLLATION_OVERRIDES = {
   blb: {
     notes: "Official Collecting Bloomburrow breakdown (Play/Collector composition).",
@@ -205,6 +303,122 @@ const MTG_SET_COLLATION_OVERRIDES = {
       ],
     },
   },
+  mkm: buildPlayOverride("Official Collecting Murders at Karlov Manor breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 64, uncommon: 21, rare: 11, mythic: 4 },
+    landWeights: { basicLand: 76, land: 24 },
+    foilWeights: { common: 55, uncommon: 29, rare: 13, mythic: 3 },
+    includeSpecialGuestSlot: false,
+  }),
+  otj: buildPlayOverride("Official Collecting Outlaws of Thunder Junction breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 63, uncommon: 21, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 74, land: 26 },
+    foilWeights: { common: 54, uncommon: 30, rare: 13, mythic: 3 },
+    includeSpecialGuestSlot: true,
+    specialGuestChance: 0.15625,
+  }),
+  lci: buildPlayOverride("Official Collecting The Lost Caverns of Ixalan breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 64, uncommon: 20, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 77, land: 23 },
+    foilWeights: { common: 55, uncommon: 29, rare: 13, mythic: 3 },
+    includeSpecialGuestSlot: false,
+  }),
+  woe: buildSetBoosterOverride("Official Collecting Wilds of Eldraine breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 56, uncommon: 25, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 69, land: 31 },
+  }),
+  mat: buildSetBoosterOverride("Official Collecting March of the Machine: The Aftermath breakdown (Set/Collector composition).", {
+    commonCount: 5,
+    uncommonCount: 3,
+    wildcardWeights: { common: 44, uncommon: 34, rare: 17, mythic: 5 },
+    landWeights: { basicLand: 62, land: 38 },
+  }),
+  mom: buildSetBoosterOverride("Official Collecting March of the Machine breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 55, uncommon: 25, rare: 15, mythic: 5 },
+    landWeights: { basicLand: 68, land: 32 },
+  }),
+  one: buildSetBoosterOverride("Official Collecting Phyrexia: All Will Be One breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 57, uncommon: 24, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 68, land: 32 },
+  }),
+  bro: buildSetBoosterOverride("Official Collecting The Brothers' War breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 56, uncommon: 25, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 67, land: 33 },
+  }),
+  dmu: buildSetBoosterOverride("Official Collecting Dominaria United breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 58, uncommon: 23, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 70, land: 30 },
+  }),
+  snc: buildSetBoosterOverride("Official Collecting Streets of New Capenna breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 58, uncommon: 23, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 70, land: 30 },
+  }),
+  neo: buildSetBoosterOverride("Official Collecting Kamigawa: Neon Dynasty breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 57, uncommon: 24, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 69, land: 31 },
+  }),
+  vow: buildSetBoosterOverride("Official Collecting Innistrad: Crimson Vow breakdown (Set/Collector composition).", {
+    commonCount: 7,
+    wildcardWeights: { common: 58, uncommon: 23, rare: 14, mythic: 5 },
+    landWeights: { basicLand: 70, land: 30 },
+  }),
+  dft: buildPlayOverride("Official Collecting Aetherdrift breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 64, uncommon: 20, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 75, land: 25 },
+    includeSpecialGuestSlot: false,
+  }),
+  tdm: buildPlayOverride("Official Collecting Tarkir: Dragonstorm breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 63, uncommon: 21, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 75, land: 25 },
+    includeSpecialGuestSlot: false,
+  }),
+  fin: buildPlayOverride("Official Collecting Final Fantasy breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 62, uncommon: 22, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 73, land: 27 },
+    includeSpecialGuestSlot: false,
+  }),
+  eoe: buildPlayOverride("Official Collecting Edge of Eternities breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 63, uncommon: 21, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 74, land: 26 },
+    includeSpecialGuestSlot: false,
+  }),
+  spm: buildPlayOverride("Official Collecting Marvel's Spider-Man breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 61, uncommon: 23, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 73, land: 27 },
+    includeSpecialGuestSlot: false,
+  }),
+  tla: buildPlayOverride("Official Collecting Avatar: The Last Airbender breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 61, uncommon: 23, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 73, land: 27 },
+    includeSpecialGuestSlot: false,
+  }),
+  ecl: buildPlayOverride("Official Collecting Lorwyn Eclipsed breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 62, uncommon: 22, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 74, land: 26 },
+    includeSpecialGuestSlot: false,
+  }),
+  tmt: buildPlayOverride("Official Collecting Teenage Mutant Ninja Turtles breakdown (Play/Collector composition).", {
+    commonCount: 6,
+    wildcardWeights: { common: 60, uncommon: 24, rare: 12, mythic: 4 },
+    landWeights: { basicLand: 72, land: 28 },
+    includeSpecialGuestSlot: false,
+  }),
 };
 
 const MTG_SETS = [
@@ -943,28 +1157,12 @@ function pickFromSheet(setData, slotDefinition, used) {
   if (!drawPool.length) {
     return null;
   }
-
-  const weights = drawPool.map((card) => {
-    const base = Math.max(card.usd, card.usdFoil, 0.05);
-    const rarity = card.rarity;
-    const exp = rarity === "mythic" ? 0.34 : rarity === "rare" ? 0.28 : 0.14;
-    return Math.pow(base, exp);
-  });
-  const total = weights.reduce((sum, value) => sum + value, 0);
-  let roll = Math.random() * total;
-  for (let i = 0; i < drawPool.length; i += 1) {
-    roll -= weights[i];
-    if (roll <= 0) {
-      used.add(drawPool[i].id);
-      return {
-        ...drawPool[i],
-        isFoil: Boolean(chosenSheet.foil),
-      };
-    }
-  }
-  used.add(drawPool[drawPool.length - 1].id);
+  // Important: card market price must never influence pull odds.
+  // Slot-sheet rarity weighting is handled above; card selection inside a sheet is uniform.
+  const picked = drawPool[Math.floor(Math.random() * drawPool.length)];
+  used.add(picked.id);
   return {
-    ...drawPool[drawPool.length - 1],
+    ...picked,
     isFoil: Boolean(chosenSheet.foil),
   };
 }
