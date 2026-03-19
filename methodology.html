@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260319-34" />
+  <link rel="stylesheet" href="styles.css?v=20260319-35" />
 </head>
 <body>
   <div class="bg-grid"></div>
@@ -39,7 +39,15 @@
         <ul class="qa-slot-list">
           <li><span>Pokemon</span><strong>Treatment-aware preference order from TCGplayer (holo/reverse/normal by tier).</strong></li>
           <li><span>MTG</span><strong>Treatment-aware selection (nonfoil, foil, and booster-fun pools where available).</strong></li>
+          <li><span>Pricing modes</span><strong>Blended, Conservative, and Premium market-value modes are user-selectable per game.</strong></li>
           <li><span>Fallbacks</span><strong>Cardmarket/Scryfall fallback only when primary treatment pricing is unavailable.</strong></li>
+        </ul>
+
+        <h2>Authoritative Snapshot Pipeline</h2>
+        <p class="pack-select-meta">Versioned local market snapshots provide deterministic pack-price baselines and optional per-card override maps. Live APIs remain available for enrichment and fallback.</p>
+        <ul class="qa-slot-list">
+          <li><span>Pokemon snapshot</span><strong><code>assets/data/pokemon-market-snapshot.json</code></strong></li>
+          <li><span>MTG snapshot</span><strong><code>assets/data/mtg-market-snapshot.json</code></strong></li>
         </ul>
 
         <h2>QA Lockfiles</h2>

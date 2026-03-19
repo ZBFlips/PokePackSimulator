@@ -6,6 +6,9 @@ const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
 const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
 const MTG_CHASE_FILTER_STORAGE_KEY = "mtg-pack-sim-chase-filter-v1";
 const MTG_RNG_SETTINGS_STORAGE_KEY = "mtg-pack-sim-rng-v1";
+const MTG_MARKET_VALUE_MODE_STORAGE_KEY = "mtg-pack-sim-market-value-mode-v1";
+const MTG_OPENING_UX_MODE_STORAGE_KEY = "mtg-pack-sim-opening-ux-mode-v1";
+const MTG_MARKET_SNAPSHOT_URL = "./assets/data/mtg-market-snapshot.json";
 const MTG_QA_WINDOW_SIZE = 50;
 const MTG_EXACT_TEMPLATE_VERSION = "exact-template-v1";
 const MTG_AUDIT_TRAIL_LIMIT = 150;
@@ -787,7 +790,16 @@ const state = {
   sealedProductKey: loadProductMode(),
   productMode: "play",
   priceSourceMode: loadPriceSourceMode(),
+  marketValueMode: loadMtgMarketValueMode(),
+  openingUxMode: loadMtgOpeningUxMode(),
   setData: {},
+  marketSnapshot: {
+    loaded: false,
+    source: null,
+    packPrices: {},
+    cardOverrides: {},
+    updatedAt: new Date().toISOString().slice(0, 10),
+  },
   loadingSetKeys: new Set(),
   backgroundPreloadStarted: false,
   backgroundSync: {
@@ -836,10 +848,14 @@ const dom = {
   revealMode: document.getElementById("mtgRevealMode"),
   displayOrder: document.getElementById("mtgDisplayOrder"),
   priceSourceMode: document.getElementById("mtgPriceSourceMode"),
+  marketValueMode: document.getElementById("mtgMarketValueMode"),
+  openingUxMode: document.getElementById("mtgOpeningUxMode"),
   openPackBtn: document.getElementById("mtgOpenPackBtn"),
   resetSessionBtn: document.getElementById("mtgResetSessionBtn"),
   resetBinderBtn: document.getElementById("mtgResetBinderBtn"),
   chasePanel: document.getElementById("mtgChasePanel"),
+  packArt: document.getElementById("mtgPackArt"),
+  playPanel: document.querySelector(".play-panel"),
   packImage: document.getElementById("mtgPackImage"),
   packLogo: document.getElementById("mtgPackLogo"),
   selectedPackName: document.getElementById("mtgSelectedPackName"),
@@ -868,6 +884,7 @@ init().catch((error) => {
 async function init() {
   syncProductModeFromSealedSelection();
   await loadMtgQaLockfile();
+  await loadMtgMarketSnapshot();
   wireControls();
   renderSetSelect();
   renderHeader();
@@ -955,6 +972,25 @@ function wireControls() {
     renderChasePanel();
   });
 
+  dom.marketValueMode?.addEventListener("change", () => {
+    state.marketValueMode = dom.marketValueMode.value;
+    saveMtgMarketValueMode(state.marketValueMode);
+    if (state.currentPack?.length) {
+      state.currentPack = state.currentPack.map((card) => {
+        const valuation = resolveMtgCardValue(card);
+        return { ...card, value: valuation.value, valuationBasis: valuation.basis };
+      });
+    }
+    renderCards();
+    renderSessionStats();
+    renderEconomyPanel();
+  });
+
+  dom.openingUxMode?.addEventListener("change", () => {
+    state.openingUxMode = dom.openingUxMode.value;
+    saveMtgOpeningUxMode(state.openingUxMode);
+  });
+
   dom.openPackBtn?.addEventListener("click", openPack);
 
   dom.resetSessionBtn?.addEventListener("click", () => {
@@ -1040,6 +1076,12 @@ function renderSetSelect() {
     dom.productSelect.value = state.sealedProductKey;
   }
   dom.priceSourceMode.value = state.priceSourceMode;
+  if (dom.marketValueMode) {
+    dom.marketValueMode.value = state.marketValueMode;
+  }
+  if (dom.openingUxMode) {
+    dom.openingUxMode.value = state.openingUxMode;
+  }
   dom.setSelect.innerHTML = "";
   for (const setDef of getSortedSets()) {
     const option = document.createElement("option");
@@ -1102,6 +1144,7 @@ function renderHeader() {
     `<span class="pack-stat">${setData?.dataQuality?.boosterEligible || 0}/${setData?.dataQuality?.totalSeen || 0} booster-eligible cards</span>`,
     `<span class="pack-stat">Pack price ${formatUsd(price)} (${product.label})</span>`,
     `<span class="pack-stat">Sealed cost ${formatUsd(productCost)} (${sealedProduct.packCount} pack${sealedProduct.packCount > 1 ? "s" : ""})</span>`,
+    `<span class="pack-stat">Pricing mode ${escapeHtml(getMtgMarketValueModeLabel())}</span>`,
     `<span class="pack-stat">Release ${escapeHtml(release)}</span>`,
     `<span class="pack-stat">${profile.slots.length} slots (${product.label})</span>`,
   ].join("");
@@ -1115,7 +1158,7 @@ function renderHeader() {
 
   dom.packPriceSource.innerHTML = source
     ? `<span>Pack market source: <a href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a></span>
-       <span class="pack-source-meta">Last updated: ${formatDateLabel(new Date().toISOString().slice(0, 10))}</span>`
+       <span class="pack-source-meta">Last updated: ${formatDateLabel(state.marketSnapshot.updatedAt || new Date().toISOString().slice(0, 10))}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>`
     : "<span>Pack market source unavailable.</span>";
 
   dom.openPackBtn.disabled = !setData;
@@ -1201,7 +1244,8 @@ async function preloadSetsSequentially(setKeys) {
   }
   if (state.backgroundSync.running) {
     state.backgroundSync.running = false;
-    setStatus("Ready to open MTG packs.", "ready");
+    const mode = state.marketSnapshot.loaded ? "authoritative snapshot active" : "live + fallback mode";
+    setStatus(`Ready to open MTG packs (${mode}).`, "ready");
   }
 }
 
@@ -1235,17 +1279,19 @@ function normalizeCard(raw) {
       ["showcase", "extendedart", "borderless", "etched", "inverted", "shatteredglass"].includes(effect),
     );
 
+  const prices = applyMtgPriceOverrides(raw.id, raw.oracle_id, raw.prices || {});
   return {
     id: raw.id,
+    oracleId: raw.oracle_id || "",
     name: raw.name || "Unknown",
     collectorNumber: raw.collector_number || "",
     rarity: raw.rarity || "common",
     typeLine: raw.type_line || "",
     setCode: raw.set || "",
     image: raw.image_uris?.normal || raw.card_faces?.[0]?.image_uris?.normal || "",
-    usd: Number(raw.prices?.usd || 0),
-    usdFoil: Number(raw.prices?.usd_foil || 0),
-    usdEtched: Number(raw.prices?.usd_etched || 0),
+    usd: Number(prices.usd || 0),
+    usdFoil: Number(prices.usd_foil || 0),
+    usdEtched: Number(prices.usd_etched || 0),
     boosterEligible,
     isBoosterFunTreatment,
     isBasicLand: /basic land/i.test(raw.type_line || ""),
@@ -1257,6 +1303,19 @@ function normalizeCard(raw) {
     fullArt: raw.full_art === true,
     borderColor: raw.border_color || "",
     variation: raw.variation === true,
+  };
+}
+
+function applyMtgPriceOverrides(cardId, oracleId, prices) {
+  const byId = state.marketSnapshot.cardOverrides?.byId?.[cardId] || null;
+  const byOracle = state.marketSnapshot.cardOverrides?.byOracleId?.[oracleId || ""] || null;
+  const override = byId || byOracle;
+  if (!override || typeof override !== "object") {
+    return prices || {};
+  }
+  return {
+    ...(prices || {}),
+    ...override,
   };
 }
 
@@ -1339,10 +1398,12 @@ function simulatePack(setData, options = {}) {
   const pushCard = (slotLabel, slotDefinition) => {
     const picked = pickFromSheet(setData, slotDefinition, used, rng);
     if (!picked) return;
+    const valuation = resolveMtgCardValue(picked);
     cards.push({
       ...picked,
       slotLabel,
-      value: resolveMtgCardValue(picked),
+      value: valuation.value,
+      valuationBasis: valuation.basis,
       instanceId: `${picked.id}-${setProductKey}-${packIndex}-${cards.length + 1}-${Math.floor(rng() * 1e9)}`,
       standardIndex: cards.length + 1,
       packIndex,
@@ -1405,25 +1466,38 @@ function weightedChoice(entries, rng = state.rng.generator) {
 }
 
 function resolveMtgCardValue(card) {
-  if (!card) return 0;
-  if (card.isFoil) {
-    if (card.frameEffects?.includes("etched") && Number.isFinite(card.usdEtched) && card.usdEtched > 0) {
-      return Number(card.usdEtched.toFixed(2));
+  if (!card) return { value: 0, basis: "No price" };
+  const candidates = [];
+  if (Number.isFinite(card.usd) && card.usd > 0) candidates.push({ key: "usd", value: Number(card.usd) });
+  if (Number.isFinite(card.usdFoil) && card.usdFoil > 0) candidates.push({ key: "usd_foil", value: Number(card.usdFoil) });
+  if (Number.isFinite(card.usdEtched) && card.usdEtched > 0) candidates.push({ key: "usd_etched", value: Number(card.usdEtched) });
+  if (!candidates.length) return { value: 0, basis: "No market data" };
+
+  const preferredFoil = card.frameEffects?.includes("etched")
+    ? ["usd_etched", "usd_foil", "usd"]
+    : card.isFoil
+      ? ["usd_foil", "usd_etched", "usd"]
+      : ["usd", "usd_foil", "usd_etched"];
+
+  const ordered = preferredFoil
+    .map((key) => candidates.find((item) => item.key === key))
+    .filter(Boolean);
+  const choose = (mode) => {
+    if (mode === "conservative") {
+      return candidates.reduce((best, item) => (item.value < best.value ? item : best), candidates[0]);
     }
-    if (Number.isFinite(card.usdFoil) && card.usdFoil > 0) {
-      return Number(card.usdFoil.toFixed(2));
+    if (mode === "premium") {
+      return candidates.reduce((best, item) => (item.value > best.value ? item : best), candidates[0]);
     }
-  }
-  if (Number.isFinite(card.usd) && card.usd > 0) {
-    return Number(card.usd.toFixed(2));
-  }
-  if (Number.isFinite(card.usdFoil) && card.usdFoil > 0) {
-    return Number(card.usdFoil.toFixed(2));
-  }
-  if (Number.isFinite(card.usdEtched) && card.usdEtched > 0) {
-    return Number(card.usdEtched.toFixed(2));
-  }
-  return 0;
+    return ordered[0] || candidates[0];
+  };
+
+  const chosen = choose(state.marketValueMode);
+  const modeTag = state.marketValueMode || "blended";
+  return {
+    value: Number(chosen.value.toFixed(2)),
+    basis: `${chosen.key} (${modeTag})`,
+  };
 }
 
 function getCollationProfile(setDef) {
@@ -1756,6 +1830,7 @@ function renderEconomyPanel() {
   const hitRate = state.session.packsOpened > 0 ? (state.session.profitablePacks / state.session.packsOpened) * 100 : 0;
   const avgNet = state.session.packsOpened > 0 ? net / state.session.packsOpened : 0;
   const history = state.session.packValueHistory || [];
+  const pro = computeEconomyProMetrics(history);
   const maxAbs = Math.max(1, ...history.map((entry) => Math.abs(entry)));
 
   const bars = history
@@ -1793,12 +1868,54 @@ function renderEconomyPanel() {
       <article class="economy-stat"><strong>${roi.toFixed(1)}%</strong><span>ROI</span></article>
       <article class="economy-stat"><strong>${hitRate.toFixed(1)}%</strong><span>Profitable Packs</span></article>
       <article class="economy-stat"><strong>${formatUsd(avgNet)}</strong><span>Avg Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.median)}</strong><span>Median Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.p10)}</strong><span>P10 Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.p90)}</strong><span>P90 Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.stdDev)}</strong><span>Std Dev Net</span></article>
+      <article class="economy-stat"><strong>${pro.breakEvenRate.toFixed(1)}%</strong><span>Break-even Probability</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.var95)}</strong><span>VaR 95% (Net)</span></article>
     </div>
     <div class="economy-chart-wrap">
       <div class="economy-chart">${bars || '<span class="economy-empty">Open packs to build ROI trend.</span>'}</div>
     </div>
     <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
   `;
+}
+
+function computeEconomyProMetrics(history) {
+  if (!Array.isArray(history) || !history.length) {
+    return {
+      median: 0,
+      p10: 0,
+      p90: 0,
+      stdDev: 0,
+      breakEvenRate: 0,
+      var95: 0,
+    };
+  }
+  const sorted = [...history].sort((a, b) => a - b);
+  const mean = history.reduce((sum, value) => sum + value, 0) / history.length;
+  const variance = history.reduce((sum, value) => sum + (value - mean) ** 2, 0) / history.length;
+  const stdDev = Math.sqrt(Math.max(0, variance));
+  const breakEvenRate = (history.filter((value) => value >= 0).length / history.length) * 100;
+  return {
+    median: getPercentile(sorted, 0.5),
+    p10: getPercentile(sorted, 0.1),
+    p90: getPercentile(sorted, 0.9),
+    stdDev,
+    breakEvenRate,
+    var95: getPercentile(sorted, 0.05),
+  };
+}
+
+function getPercentile(sortedValues, p) {
+  if (!Array.isArray(sortedValues) || !sortedValues.length) return 0;
+  const rank = Math.max(0, Math.min(sortedValues.length - 1, (sortedValues.length - 1) * p));
+  const lower = Math.floor(rank);
+  const upper = Math.ceil(rank);
+  if (lower === upper) return Number(sortedValues[lower] || 0);
+  const weight = rank - lower;
+  return Number(((sortedValues[lower] || 0) * (1 - weight) + (sortedValues[upper] || 0) * weight).toFixed(2));
 }
 
 function renderOddsQaPanel() {
@@ -2334,6 +2451,8 @@ function exportMtgProfileData() {
       sealedProductKey: state.sealedProductKey,
       productMode: state.productMode,
       priceSourceMode: state.priceSourceMode,
+      marketValueMode: state.marketValueMode,
+      openingUxMode: state.openingUxMode,
       rng: {
         mode: state.rng.mode,
         seed: state.rng.seed,
@@ -2376,6 +2495,14 @@ function importMtgProfileData(rawText) {
       state.priceSourceMode = payload.priceSourceMode;
       savePriceSourceMode(state.priceSourceMode);
     }
+    if (payload.marketValueMode === "blended" || payload.marketValueMode === "conservative" || payload.marketValueMode === "premium") {
+      state.marketValueMode = payload.marketValueMode;
+      saveMtgMarketValueMode(state.marketValueMode);
+    }
+    if (payload.openingUxMode === "quick" || payload.openingUxMode === "standard" || payload.openingUxMode === "hype") {
+      state.openingUxMode = payload.openingUxMode;
+      saveMtgOpeningUxMode(state.openingUxMode);
+    }
     if (payload.rng && typeof payload.rng === "object") {
       state.rng.mode = payload.rng.mode === "random" ? "random" : "seeded";
       reseedRng(payload.rng.seed || state.rng.seed);
@@ -2405,9 +2532,34 @@ function applySetTheme(setDef) {
   document.body.classList.add(`mtg-era-${era}`);
 }
 
+function getMtgOpeningUxProfile() {
+  const mode = state.openingUxMode || "standard";
+  if (mode === "quick") {
+    return { mode, animMs: 320, gain: 0.06 };
+  }
+  if (mode === "hype") {
+    return { mode, animMs: 980, gain: 0.11 };
+  }
+  return { mode: "standard", animMs: 640, gain: 0.08 };
+}
+
 function playOpenFx(setDef, cards) {
   const top = cards.reduce((best, card) => (card.value > (best?.value || 0) ? card : best), null);
   if (!top) return;
+  const ux = getMtgOpeningUxProfile();
+  if (dom.packArt) {
+    dom.packArt.classList.remove("opening");
+    void dom.packArt.offsetWidth;
+    dom.packArt.classList.add("opening");
+    window.setTimeout(() => dom.packArt?.classList.remove("opening"), ux.animMs);
+  }
+  if (dom.playPanel) {
+    dom.playPanel.classList.remove("screen-shake");
+    if (ux.mode === "hype" && (top.rarity === "mythic" || top.value >= 30)) {
+      dom.playPanel.classList.add("screen-shake");
+      window.setTimeout(() => dom.playPanel?.classList.remove("screen-shake"), Math.round(ux.animMs * 0.8));
+    }
+  }
   try {
     const setToneOffset = Math.abs(hashString32(setDef.key || "set")) % 120;
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2419,7 +2571,7 @@ function playOpenFx(setDef, cards) {
     osc.connect(gain);
     gain.connect(ctx.destination);
     const now = ctx.currentTime;
-    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(ux.gain, now + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
     osc.start(now);
     osc.stop(now + 0.26);
@@ -2465,8 +2617,11 @@ function renderCards() {
       name.textContent = card.name;
       slot.textContent = card.packIndex > 1 ? `Pack ${card.packIndex} - ${card.slotLabel}` : card.slotLabel;
       rarity.textContent = card.isFoil ? `${card.rarity} (foil)` : card.rarity;
-      odds.textContent = "Weighted per-card pull odds enabled";
+      odds.textContent = `Weighted per-card pull odds enabled | ${card.valuationBasis || "market blend"}`;
       value.textContent = formatUsd(card.value || 0);
+      if (card.valuationBasis) {
+        value.title = `Pricing basis: ${card.valuationBasis}`;
+      }
     } else {
       article.classList.add("can-reveal");
       article.addEventListener("click", () => {
@@ -2632,6 +2787,12 @@ function persistBinder() {
 }
 
 function getPackPrice(setDef) {
+  const snapshotEntry = state.marketSnapshot.packPrices?.[setDef.key] || null;
+  const snapshotMode = snapshotEntry?.[state.priceSourceMode] || null;
+  const snapshotPackPrice = Number(state.productMode === "collector" ? snapshotMode?.collector : snapshotMode?.play);
+  if (Number.isFinite(snapshotPackPrice) && snapshotPackPrice > 0) {
+    return Number(snapshotPackPrice.toFixed(2));
+  }
   const preset = MTG_PACK_PRICE_PRESETS[setDef.key] || null;
   const base =
     state.productMode === "collector"
@@ -2648,7 +2809,16 @@ function getSealedProductCost(setDef) {
 }
 
 function getPriceSource(setDef) {
+  if (state.marketSnapshot.source?.label && state.marketSnapshot.source?.url) {
+    return state.marketSnapshot.source;
+  }
   return setDef.priceSources?.[state.priceSourceMode] || setDef.priceSources?.scryfall || null;
+}
+
+function getMtgMarketValueModeLabel() {
+  if (state.marketValueMode === "conservative") return "Conservative";
+  if (state.marketValueMode === "premium") return "Premium";
+  return "Blended";
 }
 
 function loadPriceSourceMode() {
@@ -2666,6 +2836,60 @@ function savePriceSourceMode(value) {
     window.localStorage.setItem(MTG_PRICE_SOURCE_STORAGE_KEY, value);
   } catch {
     // Ignore storage failures.
+  }
+}
+
+function loadMtgMarketValueMode() {
+  try {
+    const value = window.localStorage.getItem(MTG_MARKET_VALUE_MODE_STORAGE_KEY);
+    if (value === "blended" || value === "conservative" || value === "premium") return value;
+  } catch {
+    // Ignore storage failures.
+  }
+  return "blended";
+}
+
+function saveMtgMarketValueMode(value) {
+  try {
+    window.localStorage.setItem(MTG_MARKET_VALUE_MODE_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function loadMtgOpeningUxMode() {
+  try {
+    const value = window.localStorage.getItem(MTG_OPENING_UX_MODE_STORAGE_KEY);
+    if (value === "quick" || value === "standard" || value === "hype") return value;
+  } catch {
+    // Ignore storage failures.
+  }
+  return "standard";
+}
+
+function saveMtgOpeningUxMode(value) {
+  try {
+    window.localStorage.setItem(MTG_OPENING_UX_MODE_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+async function loadMtgMarketSnapshot() {
+  try {
+    const response = await fetch(MTG_MARKET_SNAPSHOT_URL);
+    if (!response.ok) return;
+    const parsed = await response.json();
+    if (!parsed || typeof parsed !== "object") return;
+    state.marketSnapshot = {
+      loaded: true,
+      source: parsed.source || null,
+      packPrices: parsed.packPrices && typeof parsed.packPrices === "object" ? parsed.packPrices : {},
+      cardOverrides: parsed.cardOverrides && typeof parsed.cardOverrides === "object" ? parsed.cardOverrides : {},
+      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString().slice(0, 10),
+    };
+  } catch {
+    // Snapshot is optional.
   }
 }
 

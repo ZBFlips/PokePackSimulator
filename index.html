@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260319-34" />
+  <link rel="stylesheet" href="styles.css?v=20260319-35" />
 </head>
 <body>
   <div class="bg-grid"></div>
@@ -81,6 +81,24 @@
               <select id="priceSourceMode">
                 <option value="pricecharting">PriceCharting (Public)</option>
                 <option value="tcgplayerSealed">TCGplayer Sealed (Public)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="marketValueMode">Card market value mode</label>
+              <select id="marketValueMode">
+                <option value="blended">Blended (recommended)</option>
+                <option value="conservative">Conservative floor</option>
+                <option value="premium">Premium ceiling</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="openingUxMode">Opening cinematic mode</label>
+              <select id="openingUxMode">
+                <option value="quick">Quick rip</option>
+                <option value="standard">Standard</option>
+                <option value="hype">Hype mode</option>
               </select>
             </div>
 
@@ -214,6 +232,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260319-34"></script>
+  <script src="app.js?v=20260319-35"></script>
 </body>
 </html>

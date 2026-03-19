@@ -1,0 +1,177 @@
+﻿{
+    "version":  "pokemon-market-snapshot-v1",
+    "updatedAt":  "2026-03-19",
+    "source":  {
+                   "url":  "https://www.pricecharting.com/category/pokemon-cards",
+                   "label":  "Public market snapshot (PriceCharting + TCGplayer sealed)"
+               },
+    "packPrices":  {
+                       "temporal-forces":  {
+                                               "pricecharting":  8.4,
+                                               "tcgplayerSealed":  8.74
+                                           },
+                       "paldean-fates":  {
+                                             "pricecharting":  16.32,
+                                             "tcgplayerSealed":  16.97
+                                         },
+                       "crystal-guardians":  {
+                                                 "pricecharting":  805,
+                                                 "tcgplayerSealed":  837.2
+                                             },
+                       "obsidian-flames":  {
+                                               "pricecharting":  9.75,
+                                               "tcgplayerSealed":  10.14
+                                           },
+                       "team-rocket-returns":  {
+                                                   "pricecharting":  1247.39,
+                                                   "tcgplayerSealed":  1297.29
+                                               },
+                       "twilight-masquerade":  {
+                                                   "pricecharting":  8,
+                                                   "tcgplayerSealed":  8.32
+                                               },
+                       "unseen-forces":  {
+                                             "pricecharting":  830,
+                                             "tcgplayerSealed":  863.2
+                                         },
+                       "skyridge":  {
+                                        "pricecharting":  2087.5,
+                                        "tcgplayerSealed":  2171
+                                    },
+                       "holon-phantoms":  {
+                                              "pricecharting":  1231.62,
+                                              "tcgplayerSealed":  1280.88
+                                          },
+                       "lost-origin":  {
+                                           "pricecharting":  14.03,
+                                           "tcgplayerSealed":  14.59
+                                       },
+                       "jungle-1999":  {
+                                           "pricecharting":  302,
+                                           "tcgplayerSealed":  314.08
+                                       },
+                       "generations":  {
+                                           "pricecharting":  168.25,
+                                           "tcgplayerSealed":  174.98
+                                       },
+                       "gym-challenge":  {
+                                             "pricecharting":  303.04,
+                                             "tcgplayerSealed":  315.16
+                                         },
+                       "prismatic-evolutions":  {
+                                                    "pricecharting":  11.58,
+                                                    "tcgplayerSealed":  12.04
+                                                },
+                       "aquapolis":  {
+                                         "pricecharting":  1099.05,
+                                         "tcgplayerSealed":  1143.01
+                                     },
+                       "gym-heroes":  {
+                                          "pricecharting":  272.67,
+                                          "tcgplayerSealed":  283.58
+                                      },
+                       "ruby-sapphire":  {
+                                             "pricecharting":  375.36,
+                                             "tcgplayerSealed":  390.37
+                                         },
+                       "neo-revelation":  {
+                                              "pricecharting":  599.99,
+                                              "tcgplayerSealed":  623.99
+                                          },
+                       "crown-zenith":  {
+                                            "pricecharting":  18.73,
+                                            "tcgplayerSealed":  19.48
+                                        },
+                       "brilliant-stars":  {
+                                               "pricecharting":  10.6,
+                                               "tcgplayerSealed":  11.02
+                                           },
+                       "dragon-frontiers":  {
+                                                "pricecharting":  1022.96,
+                                                "tcgplayerSealed":  1063.88
+                                            },
+                       "fossil-1999":  {
+                                           "pricecharting":  270.5,
+                                           "tcgplayerSealed":  281.32
+                                       },
+                       "hidden-fates":  {
+                                            "pricecharting":  41,
+                                            "tcgplayerSealed":  42.64
+                                        },
+                       "base-set-2":  {
+                                          "pricecharting":  390.11,
+                                          "tcgplayerSealed":  405.71
+                                      },
+                       "fire-red-leaf-green":  {
+                                                   "pricecharting":  935.99,
+                                                   "tcgplayerSealed":  973.43
+                                               },
+                       "neo-discovery":  {
+                                             "pricecharting":  580.45,
+                                             "tcgplayerSealed":  603.67
+                                         },
+                       "power-keepers":  {
+                                             "pricecharting":  468,
+                                             "tcgplayerSealed":  486.72
+                                         },
+                       "deoxys":  {
+                                      "pricecharting":  1187.87,
+                                      "tcgplayerSealed":  1235.38
+                                  },
+                       "evolving-skies":  {
+                                              "pricecharting":  38.46,
+                                              "tcgplayerSealed":  40
+                                          },
+                       "silver-tempest":  {
+                                              "pricecharting":  5.51,
+                                              "tcgplayerSealed":  5.73
+                                          },
+                       "astral-radiance":  {
+                                               "pricecharting":  9.48,
+                                               "tcgplayerSealed":  9.86
+                                           },
+                       "team-rocket":  {
+                                           "pricecharting":  344.67,
+                                           "tcgplayerSealed":  358.46
+                                       },
+                       "surging-sparks":  {
+                                              "pricecharting":  8,
+                                              "tcgplayerSealed":  8.32
+                                          },
+                       "neo-genesis":  {
+                                           "pricecharting":  479,
+                                           "tcgplayerSealed":  498.16
+                                       },
+                       "base-set-1999":  {
+                                             "pricecharting":  596.67,
+                                             "tcgplayerSealed":  620.54
+                                         },
+                       "ascended-heroes":  {
+                                               "pricecharting":  11.16,
+                                               "tcgplayerSealed":  11.61
+                                           },
+                       "phantom-forces":  {
+                                              "pricecharting":  175,
+                                              "tcgplayerSealed":  182
+                                          },
+                       "expedition-base-set":  {
+                                                   "pricecharting":  1052,
+                                                   "tcgplayerSealed":  1094.08
+                                               },
+                       "neo-destiny":  {
+                                           "pricecharting":  817.5,
+                                           "tcgplayerSealed":  850.2
+                                       },
+                       "ex-dragon":  {
+                                         "pricecharting":  207.51,
+                                         "tcgplayerSealed":  215.81
+                                     },
+                       "legendary-collection":  {
+                                                    "pricecharting":  1846.41,
+                                                    "tcgplayerSealed":  1920.27
+                                                }
+                   },
+    "cardOverrides":  {
+
+                      }
+}

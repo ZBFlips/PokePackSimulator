@@ -4,7 +4,10 @@ const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
 const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
 const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
 const PACK_PRICE_SOURCE_STORAGE_KEY = "pokemon-pack-sim-pack-price-source-v1";
+const MARKET_VALUE_MODE_STORAGE_KEY = "pokemon-pack-sim-market-value-mode-v1";
+const OPENING_UX_MODE_STORAGE_KEY = "pokemon-pack-sim-opening-ux-mode-v1";
 const RNG_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-rng-v1";
+const POKEMON_MARKET_SNAPSHOT_URL = "./assets/data/pokemon-market-snapshot.json";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v3-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
@@ -18,6 +21,20 @@ const HISTORY_LIMIT = 30;
 const RNG_AUDIT_LIMIT = 120;
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
 const MARKET_PRICE_LAST_REFRESH_ISO = "2026-03-19";
+const DEFAULT_POKEMON_COLLATION_PROFILE = {
+  version: "v2",
+  fidelity: "official-slot",
+  note: "Official slot model with per-slot weighted pools and pack-level de-duplication safeguards.",
+  slots: [
+    { labelPrefix: "Common", count: 4, tier: "common" },
+    { labelPrefix: "Uncommon", count: 3, tier: "uncommon" },
+    { label: "Reverse Slot A", slotOddsKey: "reverseA" },
+    { label: "Reverse Slot B", slotOddsKey: "reverseB" },
+    { label: "Rare Slot", slotOddsKey: "rare" },
+    { label: "Energy", count: 1, tier: "energy" },
+  ],
+  uniqueWithinPack: true,
+};
 const PACK_MARKET_SOURCE_OVERRIDES = {
   "paldean-fates": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-paldean-fates/booster-pack" },
   "prismatic-evolutions": { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-prismatic-evolutions/booster-pack" },
@@ -1769,8 +1786,17 @@ const state = {
   sortMode: "standard",
   packSortMode: "release",
   packPriceSourceMode: loadPackPriceSourceModeFromStorage(),
+  marketValueMode: loadMarketValueModeFromStorage(),
+  openingUxMode: loadOpeningUxModeFromStorage(),
   soundEnabled: loadSoundEnabledFromStorage(),
   soundSettings: loadSoundSettingsFromStorage(),
+  marketSnapshot: {
+    loaded: false,
+    source: null,
+    packPrices: {},
+    cardOverrides: {},
+    updatedAt: MARKET_PRICE_LAST_REFRESH_ISO,
+  },
   setData: {},
   currentPack: null,
   revealedInstanceIds: new Set(),
@@ -1845,6 +1871,8 @@ const dom = {
   revealMode: document.getElementById("revealMode"),
   sortMode: document.getElementById("sortMode"),
   priceSourceMode: document.getElementById("priceSourceMode"),
+  marketValueMode: document.getElementById("marketValueMode"),
+  openingUxMode: document.getElementById("openingUxMode"),
   soundToggle: document.getElementById("soundToggle"),
   resetSessionBtn: document.getElementById("resetSessionBtn"),
   resetBinderBtn: document.getElementById("resetBinderBtn"),
@@ -1901,6 +1929,7 @@ init().catch((error) => {
 async function init() {
   wireControls();
   await loadPokemonQaLockfile();
+  await loadPokemonMarketSnapshot();
   syncSoundControlState();
   seedFallbackData();
   const cachedSets = hydrateLiveSetCache();
@@ -1956,6 +1985,29 @@ function wireControls() {
     renderEconomyPanel();
     renderSimulationLab();
     renderFidelityRegistryPanel();
+  });
+
+  dom.marketValueMode?.addEventListener("change", () => {
+    state.marketValueMode = dom.marketValueMode.value;
+    persistMarketValueMode();
+    if (state.currentPack?.length) {
+      state.currentPack = state.currentPack.map((card) => {
+        const valuation = resolvePulledCardValue(card, card.pulledTier || card.tier, card.variant || "");
+        return {
+          ...card,
+          value: valuation.value,
+          valuationBasis: valuation.basis,
+        };
+      });
+    }
+    renderCards();
+    renderEconomyPanel();
+    renderSessionStats();
+  });
+
+  dom.openingUxMode?.addEventListener("change", () => {
+    state.openingUxMode = dom.openingUxMode.value;
+    persistOpeningUxMode();
   });
 
   dom.revealMode.addEventListener("change", () => {
@@ -2408,8 +2460,9 @@ async function loadPackLiveData(packKey, options = {}) {
     persistLiveSetCache(packKey, setMeta, cards);
 
     if (!silentStatus) {
-      setStatus("Ready to rip packs.", "ready");
-    }
+  const snapshotLabel = state.marketSnapshot.loaded ? "authoritative snapshot active" : "live + fallback mode";
+  setStatus(`Ready to rip packs (${snapshotLabel}).`, "ready");
+}
   } catch (error) {
     state.loadErrors.push(`${packDef.displayName}: ${error.message}`);
     if (!silentStatus) {
@@ -2589,7 +2642,7 @@ function cleanName(value) {
 
 function normalizeCard(rawCard) {
   const tier = rarityToTier(rawCard.rarity);
-  const priceVariants = extractPriceVariants(rawCard);
+  const priceVariants = applyPokemonPriceOverrides(rawCard.id, extractPriceVariants(rawCard));
   return {
     id: rawCard.id,
     name: rawCard.name ?? "Unknown Card",
@@ -2620,6 +2673,21 @@ function extractPriceVariants(rawCard) {
     }
   }
   return out;
+}
+
+function applyPokemonPriceOverrides(cardId, variants) {
+  const next = { ...(variants || {}) };
+  const override = state.marketSnapshot.cardOverrides?.[cardId];
+  if (!override || typeof override !== "object") {
+    return next;
+  }
+  for (const [key, value] of Object.entries(override)) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) {
+      next[key] = Number(n.toFixed(2));
+    }
+  }
+  return next;
 }
 
 function findMarketValue(rawCard, tier) {
@@ -2694,7 +2762,10 @@ function getPreferredVariantKeys(tier) {
 function resolvePulledCardValue(card, tier, variant = "") {
   const variants = card?.priceVariants || {};
   if (!variants || typeof variants !== "object") {
-    return Number(card?.marketValue || 0);
+    return {
+      value: Number(card?.marketValue || 0),
+      basis: "Fallback market value",
+    };
   }
 
   const variantHint = String(variant || "").toLowerCase();
@@ -2710,12 +2781,70 @@ function resolvePulledCardValue(card, tier, variant = "") {
     keys = getPreferredVariantKeys(tier);
   }
 
-  for (const key of keys) {
-    if (typeof variants[key] === "number" && Number.isFinite(variants[key]) && variants[key] > 0) {
-      return Number(variants[key].toFixed(2));
-    }
+  const candidates = keys
+    .map((key) => ({ key, value: Number(variants[key] || 0) }))
+    .filter((entry) => Number.isFinite(entry.value) && entry.value > 0);
+
+  if (!candidates.length) {
+    return {
+      value: Number(card?.marketValue || 0),
+      basis: "Fallback market value",
+    };
   }
-  return Number(card?.marketValue || 0);
+
+  if (state.marketValueMode === "conservative") {
+    const chosen = candidates.reduce((best, entry) => (entry.value < best.value ? entry : best), candidates[0]);
+    return {
+      value: Number(chosen.value.toFixed(2)),
+      basis: `${chosen.key} (conservative mode)`,
+    };
+  }
+
+  if (state.marketValueMode === "premium") {
+    const chosen = candidates.reduce((best, entry) => (entry.value > best.value ? entry : best), candidates[0]);
+    return {
+      value: Number(chosen.value.toFixed(2)),
+      basis: `${chosen.key} (premium mode)`,
+    };
+  }
+
+  const chosen = candidates[0];
+  return {
+    value: Number(chosen.value.toFixed(2)),
+    basis: `${chosen.key} (blended mode)`,
+  };
+}
+
+function getMarketValueModeLabel() {
+  if (state.marketValueMode === "conservative") return "Conservative";
+  if (state.marketValueMode === "premium") return "Premium";
+  return "Blended";
+}
+
+function getOpeningUxProfile() {
+  const mode = state.openingUxMode || "standard";
+  if (mode === "quick") {
+    return {
+      mode,
+      packAnimationMs: 360,
+      revealFxMs: 520,
+      confettiPower: 0.8,
+    };
+  }
+  if (mode === "hype") {
+    return {
+      mode,
+      packAnimationMs: 980,
+      revealFxMs: 1320,
+      confettiPower: 1.8,
+    };
+  }
+  return {
+    mode: "standard",
+    packAnimationMs: 700,
+    revealFxMs: 780,
+    confettiPower: 1.2,
+  };
 }
 
 function rarityToTier(rarityValue) {
@@ -2962,6 +3091,12 @@ function renderPackSelector() {
   if (dom.priceSourceMode) {
     dom.priceSourceMode.value = state.packPriceSourceMode;
   }
+  if (dom.marketValueMode) {
+    dom.marketValueMode.value = state.marketValueMode;
+  }
+  if (dom.openingUxMode) {
+    dom.openingUxMode.value = state.openingUxMode;
+  }
 
   for (const packDef of getSortedPackDefs()) {
     const option = document.createElement("option");
@@ -3044,6 +3179,7 @@ function renderPackHeader() {
   const packDef = getCurrentPackDef();
   const setData = state.setData[packDef.key];
   const priceData = getActivePackPriceData(packDef);
+  const collation = getPokemonCollationProfile(packDef);
 
   dom.selectedPackName.textContent = packDef.displayName;
   dom.selectedPackSub.textContent = packDef.releaseLabel;
@@ -3073,6 +3209,8 @@ function renderPackHeader() {
     stats.push("<span class=\"pack-stat\">Set data unavailable</span>");
   }
   stats.push(`<span class="pack-stat">Pack price ${formatUsd(priceData.price)}</span>`);
+  stats.push(`<span class="pack-stat">Pricing mode ${getMarketValueModeLabel()}</span>`);
+  stats.push(`<span class="pack-stat">Collation ${escapeHtml(collation.version || "v2")}</span>`);
   stats.push(`<span class="pack-stat">${packDef.shortCode}</span>`);
   dom.packStats.innerHTML = stats.join("");
 
@@ -3087,7 +3225,7 @@ function renderPackHeader() {
         : `<span class="pack-source-badge">${escapeHtml(priceData.sourceModeLabel)}</span>`;
       dom.packPriceSource.innerHTML = `
         <span>Pack market source: <a href="${pricingSource.url}" target="_blank" rel="noreferrer">${escapeHtml(pricingSource.label)}</a></span>
-        <span class="pack-source-meta">Last updated: ${updatedLabel}</span>
+        <span class="pack-source-meta">Last updated: ${updatedLabel}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>
         ${fallbackBadge}
       `;
     }
@@ -3095,6 +3233,10 @@ function renderPackHeader() {
 }
 
 function getPackPricingSource(packDef) {
+  const snapshotSource = state.marketSnapshot.source;
+  if (snapshotSource?.label && snapshotSource?.url) {
+    return snapshotSource;
+  }
   const override = PACK_MARKET_SOURCE_OVERRIDES[packDef?.key || ""];
   if (override) {
     return override;
@@ -3109,6 +3251,18 @@ function getPackPricingSource(packDef) {
 }
 
 function getActivePackPriceData(packDef) {
+  const snapshotEntry = state.marketSnapshot.packPrices?.[packDef?.key || ""] || null;
+  const snapshotModePrice = Number(snapshotEntry?.[state.packPriceSourceMode]);
+  if (Number.isFinite(snapshotModePrice) && snapshotModePrice > 0) {
+    return {
+      price: Number(snapshotModePrice.toFixed(2)),
+      source: getPackPricingSource(packDef),
+      updatedAt: state.marketSnapshot.updatedAt || MARKET_PRICE_LAST_REFRESH_ISO,
+      sourceModeLabel: state.packPriceSourceMode === "tcgplayerSealed" ? "TCGplayer Sealed" : "PriceCharting",
+      fallbackApplied: false,
+    };
+  }
+
   const defaultPrice = Number(packDef?.packPrice || DEFAULT_PACK_PRICE);
   const defaultSource = getPackPricingSource(packDef);
   const defaultData = {
@@ -3138,7 +3292,16 @@ function getActivePackPriceData(packDef) {
   };
 }
 
-function getTcgplayerSealedPackPrice() {
+function getTcgplayerSealedPackPrice(packDef) {
+  const snapshotEntry = state.marketSnapshot.packPrices?.[packDef?.key || ""] || null;
+  const snapshotPrice = Number(snapshotEntry?.tcgplayerSealed);
+  if (Number.isFinite(snapshotPrice) && snapshotPrice > 0) {
+    return {
+      price: Number(snapshotPrice.toFixed(2)),
+      source: getPackPricingSource(packDef),
+      updatedAt: state.marketSnapshot.updatedAt || MARKET_PRICE_LAST_REFRESH_ISO,
+    };
+  }
   return null;
 }
 
@@ -3163,6 +3326,64 @@ function loadPackPriceSourceModeFromStorage() {
     // Ignore storage read errors.
   }
   return "pricecharting";
+}
+
+function loadMarketValueModeFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(MARKET_VALUE_MODE_STORAGE_KEY);
+    if (raw === "blended" || raw === "conservative" || raw === "premium") {
+      return raw;
+    }
+  } catch {
+    // Ignore storage read errors.
+  }
+  return "blended";
+}
+
+function persistMarketValueMode() {
+  try {
+    window.localStorage.setItem(MARKET_VALUE_MODE_STORAGE_KEY, state.marketValueMode);
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function loadOpeningUxModeFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(OPENING_UX_MODE_STORAGE_KEY);
+    if (raw === "quick" || raw === "standard" || raw === "hype") {
+      return raw;
+    }
+  } catch {
+    // Ignore storage read errors.
+  }
+  return "standard";
+}
+
+function persistOpeningUxMode() {
+  try {
+    window.localStorage.setItem(OPENING_UX_MODE_STORAGE_KEY, state.openingUxMode);
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+async function loadPokemonMarketSnapshot() {
+  try {
+    const response = await fetch(POKEMON_MARKET_SNAPSHOT_URL);
+    if (!response.ok) return;
+    const parsed = await response.json();
+    if (!parsed || typeof parsed !== "object") return;
+    state.marketSnapshot = {
+      loaded: true,
+      source: parsed.source || null,
+      packPrices: parsed.packPrices && typeof parsed.packPrices === "object" ? parsed.packPrices : {},
+      cardOverrides: parsed.cardOverrides && typeof parsed.cardOverrides === "object" ? parsed.cardOverrides : {},
+      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : MARKET_PRICE_LAST_REFRESH_ISO,
+    };
+  } catch {
+    // Snapshot is optional; fallback logic remains active.
+  }
 }
 
 function persistPackPriceSourceMode() {
@@ -3499,15 +3720,20 @@ function ensureSetAnalytics(setKey) {
 }
 
 function getExpectedTierCountsForPack(packDef) {
-  const expected = {
-    common: 4,
-    uncommon: 3,
-    energy: 1,
-  };
-
-  addExpectedSlotOutcomes(expected, packDef.slotOdds.reverseA);
-  addExpectedSlotOutcomes(expected, packDef.slotOdds.reverseB);
-  addExpectedSlotOutcomes(expected, packDef.slotOdds.rare);
+  const expected = {};
+  const profile = getPokemonCollationProfile(packDef);
+  for (const slot of profile.slots) {
+    const count = Number(slot.count || 1);
+    if (slot.slotOddsKey) {
+      const slotConfig = packDef.slotOdds?.[slot.slotOddsKey];
+      for (let i = 0; i < count; i += 1) {
+        addExpectedSlotOutcomes(expected, slotConfig);
+      }
+      continue;
+    }
+    if (!slot.tier) continue;
+    expected[slot.tier] = (expected[slot.tier] || 0) + count;
+  }
 
   return expected;
 }
@@ -3606,14 +3832,30 @@ function openPack() {
   updateButtons();
 }
 
+function getPokemonCollationProfile(packDef) {
+  const packProfile = packDef?.collationV2 && typeof packDef.collationV2 === "object" ? packDef.collationV2 : {};
+  return {
+    ...DEFAULT_POKEMON_COLLATION_PROFILE,
+    ...packProfile,
+    slots: Array.isArray(packProfile.slots) && packProfile.slots.length ? packProfile.slots : DEFAULT_POKEMON_COLLATION_PROFILE.slots,
+  };
+}
+
 function simulatePack(packDef, setData, options = {}) {
-  const usedIds = new Set();
+  const profile = getPokemonCollationProfile(packDef);
+  const usedIds = profile.uniqueWithinPack
+    ? new Set()
+    : {
+        has: () => false,
+        add: () => {},
+      };
   const result = [];
   const rng = options.rng || getRng();
 
   const pushCard = (slotLabel, tier, variant = "") => {
     const picked = pickCardFromTier(setData, tier, usedIds, variant, rng);
     const packPullOdds = setData.approxCardOdds.get(picked.id) || 0;
+    const valuation = resolvePulledCardValue(picked, tier, variant);
     result.push({
       ...picked,
       slotLabel,
@@ -3621,23 +3863,26 @@ function simulatePack(packDef, setData, options = {}) {
       pulledTierLabel: variant || TIER_LABEL[tier] || picked.rarity || "Hit",
       standardIndex: result.length + 1,
       instanceId: `${picked.id}-${result.length}-${Date.now()}-${Math.floor(rng() * 1e9).toString(16)}`,
-      value: resolvePulledCardValue(picked, tier, variant),
+      value: valuation.value,
+      valuationBasis: valuation.basis,
       packPullOdds,
       setKey: packDef.key,
     });
   };
 
-  for (let i = 0; i < 4; i += 1) {
-    pushCard(`Common ${i + 1}`, "common");
+  for (const slot of profile.slots) {
+    const count = Math.max(1, Number(slot.count || 1));
+    for (let i = 0; i < count; i += 1) {
+      let slotLabel = slot.label || `${slot.labelPrefix || "Slot"} ${count > 1 ? i + 1 : ""}`.trim();
+      let tier = slot.tier || "";
+      if (slot.slotOddsKey) {
+        const slotConfig = packDef.slotOdds?.[slot.slotOddsKey] || { defaultTier: "common", options: [] };
+        tier = rollSlot(slotConfig, rng);
+      }
+      if (!tier) continue;
+      pushCard(slotLabel, tier, slot.variant || "");
+    }
   }
-  for (let i = 0; i < 3; i += 1) {
-    pushCard(`Uncommon ${i + 1}`, "uncommon");
-  }
-
-  pushCard("Reverse Slot A", rollSlot(packDef.slotOdds.reverseA, rng));
-  pushCard("Reverse Slot B", rollSlot(packDef.slotOdds.reverseB, rng));
-  pushCard("Rare Slot", rollSlot(packDef.slotOdds.rare, rng));
-  pushCard("Energy", "energy");
 
   return result;
 }
@@ -3839,6 +4084,7 @@ function renderEconomyPanel() {
   const hitRate = state.session.packsOpened > 0 ? (state.session.profitablePacks / state.session.packsOpened) * 100 : 0;
   const avgNet = state.session.packsOpened > 0 ? net / state.session.packsOpened : 0;
   const history = state.session.packValueHistory || [];
+  const pro = computeEconomyProMetrics(history);
   const maxAbs = Math.max(1, ...history.map((entry) => Math.abs(entry)));
 
   const bars = history
@@ -3879,12 +4125,54 @@ function renderEconomyPanel() {
       <article class="economy-stat"><strong>${roi.toFixed(1)}%</strong><span>ROI</span></article>
       <article class="economy-stat"><strong>${hitRate.toFixed(1)}%</strong><span>Profitable Packs</span></article>
       <article class="economy-stat"><strong>${formatUsd(avgNet)}</strong><span>Avg Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.median)}</strong><span>Median Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.p10)}</strong><span>P10 Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.p90)}</strong><span>P90 Net / Pack</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.stdDev)}</strong><span>Std Dev Net</span></article>
+      <article class="economy-stat"><strong>${pro.breakEvenRate.toFixed(1)}%</strong><span>Break-even Probability</span></article>
+      <article class="economy-stat"><strong>${formatUsd(pro.var95)}</strong><span>VaR 95% (Net)</span></article>
     </div>
     <div class="economy-chart-wrap">
       <div class="economy-chart">${bars || '<span class="economy-empty">Open packs to build ROI trend.</span>'}</div>
     </div>
     <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
   `;
+}
+
+function computeEconomyProMetrics(history) {
+  if (!Array.isArray(history) || !history.length) {
+    return {
+      median: 0,
+      p10: 0,
+      p90: 0,
+      stdDev: 0,
+      breakEvenRate: 0,
+      var95: 0,
+    };
+  }
+  const sorted = [...history].sort((a, b) => a - b);
+  const mean = history.reduce((sum, value) => sum + value, 0) / history.length;
+  const variance = history.reduce((sum, value) => sum + (value - mean) ** 2, 0) / history.length;
+  const stdDev = Math.sqrt(Math.max(0, variance));
+  const breakEvenRate = (history.filter((value) => value >= 0).length / history.length) * 100;
+  return {
+    median: getPercentile(sorted, 0.5),
+    p10: getPercentile(sorted, 0.1),
+    p90: getPercentile(sorted, 0.9),
+    stdDev,
+    breakEvenRate,
+    var95: getPercentile(sorted, 0.05),
+  };
+}
+
+function getPercentile(sortedValues, p) {
+  if (!Array.isArray(sortedValues) || !sortedValues.length) return 0;
+  const rank = Math.max(0, Math.min(sortedValues.length - 1, (sortedValues.length - 1) * p));
+  const lower = Math.floor(rank);
+  const upper = Math.ceil(rank);
+  if (lower === upper) return Number(sortedValues[lower] || 0);
+  const weight = rank - lower;
+  return Number(((sortedValues[lower] || 0) * (1 - weight) + (sortedValues[upper] || 0) * weight).toFixed(2));
 }
 
 function renderSimulationLab() {
@@ -4215,7 +4503,8 @@ function renderFidelityRegistryPanel() {
     .map((packDef) => {
       const fidelity = getPackFidelity(packDef);
       const lockLabel = hasPokemonLockfileSet(packDef.key) ? "lockfile" : "no lockfile";
-      return `<li><span>${escapeHtml(packDef.displayName)} <em>${lockLabel}</em></span><strong>${escapeHtml(fidelity.label)}</strong></li>`;
+      const collation = getPokemonCollationProfile(packDef);
+      return `<li><span>${escapeHtml(packDef.displayName)} <em>${lockLabel}</em> <em>${escapeHtml(collation.version || "v2")}</em></span><strong>${escapeHtml(fidelity.label)}</strong></li>`;
     })
     .join("");
   dom.fidelityRegistryPanel.innerHTML = `
@@ -4235,8 +4524,13 @@ function hasPokemonLockfileSet(packKey) {
 function getPackFidelity(packDef) {
   const setData = state.setData[packDef.key];
   const hasLiveData = state.liveLoadedPackKeys.has(packDef.key) && Boolean(setData?.cards?.length);
-  const hasStructuredSlots = Boolean(packDef.slotOdds?.reverseA?.options?.length && packDef.slotOdds?.rare?.options?.length);
+  const profile = getPokemonCollationProfile(packDef);
+  const hasStructuredSlots = Array.isArray(profile.slots) && profile.slots.length > 0;
   const hasCommunitySources = (packDef.oddsSources || []).length > 0;
+  const hasLockfile = hasPokemonLockfileSet(packDef.key);
+  if (hasLiveData && hasStructuredSlots && hasCommunitySources && hasLockfile) {
+    return { label: "Exact", level: "exact" };
+  }
   if (hasLiveData && hasStructuredSlots && hasCommunitySources) {
     return { label: "Official-slot", level: "official-slot" };
   }
@@ -4288,6 +4582,8 @@ function exportPokemonProfileData() {
       soundEnabled: state.soundEnabled,
       soundSettings: state.soundSettings,
       packPriceSourceMode: state.packPriceSourceMode,
+      marketValueMode: state.marketValueMode,
+      openingUxMode: state.openingUxMode,
       session: state.session,
     },
   };
@@ -4337,6 +4633,14 @@ function importPokemonProfileData(rawText) {
     if (payload.packPriceSourceMode === "pricecharting" || payload.packPriceSourceMode === "tcgplayerSealed") {
       state.packPriceSourceMode = payload.packPriceSourceMode;
       persistPackPriceSourceMode();
+    }
+    if (payload.marketValueMode === "blended" || payload.marketValueMode === "conservative" || payload.marketValueMode === "premium") {
+      state.marketValueMode = payload.marketValueMode;
+      persistMarketValueMode();
+    }
+    if (payload.openingUxMode === "quick" || payload.openingUxMode === "standard" || payload.openingUxMode === "hype") {
+      state.openingUxMode = payload.openingUxMode;
+      persistOpeningUxMode();
     }
     if (payload.session && typeof payload.session === "object") {
       state.session = {
@@ -4663,8 +4967,12 @@ function renderCards() {
       name.textContent = card.name;
       slotLabel.textContent = card.slotLabel;
       rarity.textContent = card.variant ? `${card.variant} (${card.rarity})` : card.rarity;
-      odds.textContent = card.packPullOdds > 0 ? `Approx specific odds: 1 in ${Math.max(1, Math.round(1 / card.packPullOdds)).toLocaleString()}` : "Approx specific odds: n/a";
+      const oddsLabel = card.packPullOdds > 0 ? `Approx specific odds: 1 in ${Math.max(1, Math.round(1 / card.packPullOdds)).toLocaleString()}` : "Approx specific odds: n/a";
+      odds.textContent = `${oddsLabel} | ${card.valuationBasis || "Market blend"}`;
       value.textContent = card.value > 0 ? `${formatUsd(card.value)}` : "No market data";
+      if (card.valuationBasis) {
+        value.title = `Pricing basis: ${card.valuationBasis}`;
+      }
     } else {
       if (state.revealMode === "step") {
         article.classList.add("can-reveal");
@@ -4719,6 +5027,7 @@ function revealCardByClick(card) {
 }
 
 function triggerPackAnimation() {
+  const ux = getOpeningUxProfile();
   dom.packArt.classList.remove("opening");
   dom.fxLayer.classList.remove("burst");
   dom.playPanel.classList.remove("screen-shake");
@@ -4732,10 +5041,11 @@ function triggerPackAnimation() {
     dom.packArt.classList.remove("opening");
     dom.fxLayer.classList.remove("burst");
     dom.playPanel.classList.remove("screen-shake");
-  }, 700);
+  }, ux.packAnimationMs);
 }
 
 function triggerRevealCinematic(card) {
+  const ux = getOpeningUxProfile();
   const impact = getRevealImpact(card);
   triggerHapticForImpact(impact);
   dom.fxLayer.classList.remove("burst-cool", "burst-warm", "burst-hot", "burst-epic");
@@ -4753,10 +5063,14 @@ function triggerRevealCinematic(card) {
     dom.playPanel.classList.add("screen-shake");
   }
 
+  if (impact === "epic" || (impact === "hot" && ux.mode === "hype")) {
+    triggerConfettiBurst(ux.confettiPower);
+  }
+
   window.setTimeout(() => {
     dom.fxLayer.classList.remove("burst", "burst-cool", "burst-warm", "burst-hot", "burst-epic");
     dom.playPanel.classList.remove("screen-shake");
-  }, impact === "epic" ? 1050 : 780);
+  }, Math.max(460, impact === "epic" ? ux.revealFxMs : Math.round(ux.revealFxMs * 0.82)));
 }
 
 function playPackOpenSound() {
@@ -5171,7 +5485,9 @@ function openInspectModal(card) {
   dom.inspectCardOdds.textContent = card.packPullOdds > 0
     ? `Approx odds: 1 in ${Math.max(1, Math.round(1 / card.packPullOdds)).toLocaleString()}`
     : "Approx odds: n/a";
-  dom.inspectCardValue.textContent = card.value > 0 ? `Market value: ${formatUsd(card.value)}` : "No market data";
+  dom.inspectCardValue.textContent = card.value > 0
+    ? `Market value: ${formatUsd(card.value)}${card.valuationBasis ? ` (${card.valuationBasis})` : ""}`
+    : "No market data";
   dom.inspectModal.hidden = false;
   dom.inspectModal.classList.add("open");
 }

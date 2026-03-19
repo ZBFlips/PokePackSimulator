@@ -1,0 +1,248 @@
+﻿{
+    "version":  "mtg-market-snapshot-v1",
+    "updatedAt":  "2026-03-19",
+    "source":  {
+                   "url":  "https://scryfall.com",
+                   "label":  "Public market snapshot (Scryfall + TCGplayer sealed)"
+               },
+    "packPrices":  {
+                       "bloomburrow":  {
+                                           "scryfall":  {
+                                                            "play":  5.79,
+                                                            "collector":  18.53
+                                                        },
+                                           "tcgplayerSealed":  {
+                                                                   "play":  6.02,
+                                                                   "collector":  19.4
+                                                               }
+                                       },
+                       "outlaws-of-thunder-junction":  {
+                                                           "scryfall":  {
+                                                                            "play":  5.99,
+                                                                            "collector":  19.17
+                                                                        },
+                                                           "tcgplayerSealed":  {
+                                                                                   "play":  6.23,
+                                                                                   "collector":  20.07
+                                                                               }
+                                                       },
+                       "aetherdrift":  {
+                                           "scryfall":  {
+                                                            "play":  6.29,
+                                                            "collector":  20.13
+                                                        },
+                                           "tcgplayerSealed":  {
+                                                                   "play":  6.54,
+                                                                   "collector":  21.07
+                                                               }
+                                       },
+                       "play-pack":  {
+                                         "scryfall":  {
+                                                          "play":  7.49,
+                                                          "collector":  23.97
+                                                      },
+                                         "tcgplayerSealed":  {
+                                                                 "play":  7.79,
+                                                                 "collector":  25.09
+                                                             }
+                                     },
+                       "edge-of-eternities":  {
+                                                  "scryfall":  {
+                                                                   "play":  6.89,
+                                                                   "collector":  22.05
+                                                               },
+                                                  "tcgplayerSealed":  {
+                                                                          "play":  7.17,
+                                                                          "collector":  23.08
+                                                                      }
+                                              },
+                       "the-lost-caverns-of-ixalan":  {
+                                                          "scryfall":  {
+                                                                           "play":  5.69,
+                                                                           "collector":  18.21
+                                                                       },
+                                                          "tcgplayerSealed":  {
+                                                                                  "play":  5.92,
+                                                                                  "collector":  19.06
+                                                                              }
+                                                      },
+                       "wilds-of-eldraine":  {
+                                                 "scryfall":  {
+                                                                  "play":  5.49,
+                                                                  "collector":  17.57
+                                                              },
+                                                 "tcgplayerSealed":  {
+                                                                         "play":  5.71,
+                                                                         "collector":  18.39
+                                                                     }
+                                             },
+                       "lorwyn-eclipsed":  {
+                                               "scryfall":  {
+                                                                "play":  7.19,
+                                                                "collector":  23.01
+                                                            },
+                                               "tcgplayerSealed":  {
+                                                                       "play":  7.48,
+                                                                       "collector":  24.09
+                                                                   }
+                                           },
+                       "murders-at-karlov-manor":  {
+                                                       "scryfall":  {
+                                                                        "play":  5.79,
+                                                                        "collector":  18.53
+                                                                    },
+                                                       "tcgplayerSealed":  {
+                                                                               "play":  6.02,
+                                                                               "collector":  19.4
+                                                                           }
+                                                   },
+                       "dominaria-united":  {
+                                                "scryfall":  {
+                                                                 "play":  5.09,
+                                                                 "collector":  16.29
+                                                             },
+                                                "tcgplayerSealed":  {
+                                                                        "play":  5.29,
+                                                                        "collector":  17.05
+                                                                    }
+                                            },
+                       "march-of-the-machine-aftermath":  {
+                                                              "scryfall":  {
+                                                                               "play":  4.89,
+                                                                               "collector":  15.65
+                                                                           },
+                                                              "tcgplayerSealed":  {
+                                                                                      "play":  5.09,
+                                                                                      "collector":  16.38
+                                                                                  }
+                                                          },
+                       "innistrad-crimson-vow":  {
+                                                     "scryfall":  {
+                                                                      "play":  4.79,
+                                                                      "collector":  15.33
+                                                                  },
+                                                     "tcgplayerSealed":  {
+                                                                             "play":  4.98,
+                                                                             "collector":  16.05
+                                                                         }
+                                                 },
+                       "streets-of-new-capenna":  {
+                                                      "scryfall":  {
+                                                                       "play":  4.99,
+                                                                       "collector":  15.97
+                                                                   },
+                                                      "tcgplayerSealed":  {
+                                                                              "play":  5.19,
+                                                                              "collector":  16.72
+                                                                          }
+                                                  },
+                       "tarkir-dragonstorm":  {
+                                                  "scryfall":  {
+                                                                   "play":  6.59,
+                                                                   "collector":  21.09
+                                                               },
+                                                  "tcgplayerSealed":  {
+                                                                          "play":  6.85,
+                                                                          "collector":  22.08
+                                                                      }
+                                              },
+                       "avatar-last-airbender":  {
+                                                     "scryfall":  {
+                                                                      "play":  7.39,
+                                                                      "collector":  23.65
+                                                                  },
+                                                     "tcgplayerSealed":  {
+                                                                             "play":  7.69,
+                                                                             "collector":  24.76
+                                                                         }
+                                                 },
+                       "the-brothers-war":  {
+                                                "scryfall":  {
+                                                                 "play":  5.19,
+                                                                 "collector":  16.61
+                                                             },
+                                                "tcgplayerSealed":  {
+                                                                        "play":  5.4,
+                                                                        "collector":  17.39
+                                                                    }
+                                            },
+                       "final-fantasy":  {
+                                             "scryfall":  {
+                                                              "play":  8.19,
+                                                              "collector":  26.21
+                                                          },
+                                             "tcgplayerSealed":  {
+                                                                     "play":  8.52,
+                                                                     "collector":  27.44
+                                                                 }
+                                         },
+                       "marvel-spider-man":  {
+                                                 "scryfall":  {
+                                                                  "play":  7.89,
+                                                                  "collector":  25.25
+                                                              },
+                                                 "tcgplayerSealed":  {
+                                                                         "play":  8.21,
+                                                                         "collector":  26.43
+                                                                     }
+                                             },
+                       "kamigawa-neon-dynasty":  {
+                                                     "scryfall":  {
+                                                                      "play":  5.29,
+                                                                      "collector":  16.93
+                                                                  },
+                                                     "tcgplayerSealed":  {
+                                                                             "play":  5.5,
+                                                                             "collector":  17.72
+                                                                         }
+                                                 },
+                       "duskmourn":  {
+                                         "scryfall":  {
+                                                          "play":  6.29,
+                                                          "collector":  20.13
+                                                      },
+                                         "tcgplayerSealed":  {
+                                                                 "play":  6.54,
+                                                                 "collector":  21.07
+                                                             }
+                                     },
+                       "phyrexia-all-will-be-one":  {
+                                                        "scryfall":  {
+                                                                         "play":  5.29,
+                                                                         "collector":  16.93
+                                                                     },
+                                                        "tcgplayerSealed":  {
+                                                                                "play":  5.5,
+                                                                                "collector":  17.72
+                                                                            }
+                                                    },
+                       "march-of-the-machine":  {
+                                                    "scryfall":  {
+                                                                     "play":  5.39,
+                                                                     "collector":  17.25
+                                                                 },
+                                                    "tcgplayerSealed":  {
+                                                                            "play":  5.61,
+                                                                            "collector":  18.06
+                                                                        }
+                                                },
+                       "foundations":  {
+                                           "scryfall":  {
+                                                            "play":  6.09,
+                                                            "collector":  19.49
+                                                        },
+                                           "tcgplayerSealed":  {
+                                                                   "play":  6.33,
+                                                                   "collector":  20.4
+                                                               }
+                                       }
+                   },
+    "cardOverrides":  {
+                          "byOracleId":  {
+
+                                         },
+                          "byId":  {
+
+                                   }
+                      }
+}
