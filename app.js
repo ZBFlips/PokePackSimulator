@@ -2434,7 +2434,10 @@ async function init() {
   if (state.liveLoadedPackKeys.has(state.selectedPackKey)) {
     setStatus("Ready to rip packs.", "ready");
   } else {
-    loadPackLiveData(state.selectedPackKey);
+    void loadPackLiveData(state.selectedPackKey).catch((error) => {
+      console.warn(error);
+      setStatus("Using fallback cards while the API is unavailable.", "error");
+    });
   }
   startBackgroundPreload();
 }
@@ -3653,7 +3656,9 @@ function renderPackSelector() {
     renderProfileDataPanel();
     renderAchievements();
     updateButtons();
-    loadPackLiveData(nextPack.key);
+    void loadPackLiveData(nextPack.key).catch((error) => {
+      console.warn(error);
+    });
   });
 
   const helper = document.createElement("p");
@@ -3687,7 +3692,9 @@ function selectPack(packKey) {
   renderProfileDataPanel();
   renderAchievements();
   updateButtons();
-  loadPackLiveData(packKey);
+  void loadPackLiveData(packKey).catch((error) => {
+    console.warn(error);
+  });
 }
 
 function triggerPackSwapCelebration(packDef) {
@@ -3748,7 +3755,7 @@ function renderPackVault() {
   const fallbackCount = packs.length - liveCount;
 
   dom.packVaultSummary.innerHTML = `
-    <span class="pack-source-badge">Pokédex ${packs.length}</span>
+    <span class="pack-source-badge">Pokedex ${packs.length}</span>
     <span class="pack-source-badge">${readyCount} ready</span>
     <span class="pack-source-badge">${liveCount} live</span>
     <span class="pack-source-badge">${fallbackCount} fallback</span>

@@ -1019,7 +1019,10 @@ async function init() {
   renderChasePanel();
   renderBinder();
   renderCards();
-  await loadSetData(state.selectedSetKey);
+  await loadSetData(state.selectedSetKey).catch((error) => {
+    console.warn(error);
+    setStatus("Using fallback MTG data while the API is unavailable.", "error");
+  });
   startBackgroundPreload();
 }
 
@@ -1236,7 +1239,10 @@ function selectSet(setKey) {
   renderFidelityRegistryPanel();
   renderChasePanel();
   renderCards();
-  loadSetData(setKey);
+  void loadSetData(setKey).catch((error) => {
+    console.warn(error);
+    setStatus("Using fallback MTG data while the API is unavailable.", "error");
+  });
 }
 
 function triggerSetSwapCelebration(setDef) {
