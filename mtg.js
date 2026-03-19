@@ -4,12 +4,117 @@ const MTG_DEFAULT_PACK_PRICE = 5.99;
 
 const MTG_SETS = [
   {
+    key: "teenage-mutant-ninja-turtles",
+    scryfallCode: "tmt",
+    displayName: "Teenage Mutant Ninja Turtles",
+    releaseLabel: "Recent Release",
+    releaseDate: "2026-03-06",
+    fallbackPackPrice: 7.49,
+    packImage: "https://svgs.scryfall.io/sets/tmt.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/tmt" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Teenage+Mutant+Ninja+Turtles+play+booster" },
+    },
+  },
+  {
+    key: "lorwyn-eclipsed",
+    scryfallCode: "ecl",
+    displayName: "Lorwyn Eclipsed",
+    releaseLabel: "Recent Release",
+    releaseDate: "2026-01-23",
+    fallbackPackPrice: 7.19,
+    packImage: "https://svgs.scryfall.io/sets/ecl.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/ecl" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Lorwyn+Eclipsed+play+booster" },
+    },
+  },
+  {
+    key: "avatar-last-airbender",
+    scryfallCode: "tla",
+    displayName: "Avatar: The Last Airbender",
+    releaseLabel: "Recent Release",
+    releaseDate: "2025-11-21",
+    fallbackPackPrice: 7.39,
+    packImage: "https://svgs.scryfall.io/sets/tla.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/tla" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Avatar+The+Last+Airbender+play+booster" },
+    },
+  },
+  {
+    key: "marvel-spider-man",
+    scryfallCode: "spm",
+    displayName: "Marvel's Spider-Man",
+    releaseLabel: "Recent Release",
+    releaseDate: "2025-09-26",
+    fallbackPackPrice: 7.89,
+    packImage: "https://svgs.scryfall.io/sets/spm.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/spm" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Marvel+Spider-Man+play+booster" },
+    },
+  },
+  {
+    key: "edge-of-eternities",
+    scryfallCode: "eoe",
+    displayName: "Edge of Eternities",
+    releaseLabel: "Recent Release",
+    releaseDate: "2025-08-01",
+    fallbackPackPrice: 6.89,
+    packImage: "https://svgs.scryfall.io/sets/eoe.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/eoe" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Edge+of+Eternities+play+booster" },
+    },
+  },
+  {
+    key: "final-fantasy",
+    scryfallCode: "fin",
+    displayName: "Final Fantasy",
+    releaseLabel: "Recent Release",
+    releaseDate: "2025-06-13",
+    fallbackPackPrice: 8.19,
+    packImage: "https://svgs.scryfall.io/sets/fin.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/fin" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Final+Fantasy+play+booster" },
+    },
+  },
+  {
+    key: "tarkir-dragonstorm",
+    scryfallCode: "tdm",
+    displayName: "Tarkir: Dragonstorm",
+    releaseLabel: "Recent Release",
+    releaseDate: "2025-04-11",
+    fallbackPackPrice: 6.59,
+    packImage: "https://svgs.scryfall.io/sets/tdm.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/tdm" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Tarkir+Dragonstorm+play+booster" },
+    },
+  },
+  {
+    key: "aetherdrift",
+    scryfallCode: "dft",
+    displayName: "Aetherdrift",
+    releaseLabel: "Recent Release",
+    releaseDate: "2025-02-14",
+    fallbackPackPrice: 6.29,
+    packImage: "https://svgs.scryfall.io/sets/dft.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/dft" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Aetherdrift+play+booster" },
+    },
+  },
+  {
     key: "bloomburrow",
     scryfallCode: "blb",
     displayName: "Bloomburrow",
     releaseLabel: "Play Booster Era",
+    releaseDate: "2024-08-02",
     fallbackPackPrice: 5.79,
-    packImage: "https://cards.scryfall.io/art_crop/front/4/9/49f9b58a-9f76-48cc-9ec2-4974f1195d9f.jpg",
+    packImage: "https://svgs.scryfall.io/sets/blb.svg",
     priceSources: {
       scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/blb" },
       tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Bloomburrow+play+booster" },
@@ -20,8 +125,9 @@ const MTG_SETS = [
     scryfallCode: "dsk",
     displayName: "Duskmourn: House of Horror",
     releaseLabel: "Play Booster Era",
+    releaseDate: "2024-09-27",
     fallbackPackPrice: 6.29,
-    packImage: "https://cards.scryfall.io/art_crop/front/a/8/a8f3bf4a-f454-468f-a3a5-0cc030ee0632.jpg",
+    packImage: "https://svgs.scryfall.io/sets/dsk.svg",
     priceSources: {
       scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/dsk" },
       tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Duskmourn+play+booster" },
@@ -32,11 +138,168 @@ const MTG_SETS = [
     scryfallCode: "fdn",
     displayName: "Foundations",
     releaseLabel: "Play Booster Era",
+    releaseDate: "2024-11-15",
     fallbackPackPrice: 6.09,
-    packImage: "https://cards.scryfall.io/art_crop/front/b/8/b870d945-5f6d-4387-8e3d-3ebd86db68f2.jpg",
+    packImage: "https://svgs.scryfall.io/sets/fdn.svg",
     priceSources: {
       scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/fdn" },
       tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Foundations+play+booster" },
+    },
+  },
+  {
+    key: "outlaws-of-thunder-junction",
+    scryfallCode: "otj",
+    displayName: "Outlaws of Thunder Junction",
+    releaseLabel: "Recent Release",
+    releaseDate: "2024-04-19",
+    fallbackPackPrice: 5.99,
+    packImage: "https://svgs.scryfall.io/sets/otj.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/otj" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Outlaws+of+Thunder+Junction+play+booster" },
+    },
+  },
+  {
+    key: "murders-at-karlov-manor",
+    scryfallCode: "mkm",
+    displayName: "Murders at Karlov Manor",
+    releaseLabel: "Recent Release",
+    releaseDate: "2024-02-09",
+    fallbackPackPrice: 5.79,
+    packImage: "https://svgs.scryfall.io/sets/mkm.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/mkm" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Murders+at+Karlov+Manor+play+booster" },
+    },
+  },
+  {
+    key: "the-lost-caverns-of-ixalan",
+    scryfallCode: "lci",
+    displayName: "The Lost Caverns of Ixalan",
+    releaseLabel: "Recent Release",
+    releaseDate: "2023-11-17",
+    fallbackPackPrice: 5.69,
+    packImage: "https://svgs.scryfall.io/sets/lci.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/lci" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=The+Lost+Caverns+of+Ixalan+play+booster" },
+    },
+  },
+  {
+    key: "wilds-of-eldraine",
+    scryfallCode: "woe",
+    displayName: "Wilds of Eldraine",
+    releaseLabel: "Recent Release",
+    releaseDate: "2023-09-08",
+    fallbackPackPrice: 5.49,
+    packImage: "https://svgs.scryfall.io/sets/woe.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/woe" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Wilds+of+Eldraine+set+booster" },
+    },
+  },
+  {
+    key: "march-of-the-machine-aftermath",
+    scryfallCode: "mat",
+    displayName: "March of the Machine: The Aftermath",
+    releaseLabel: "Recent Release",
+    releaseDate: "2023-05-12",
+    fallbackPackPrice: 4.89,
+    packImage: "https://svgs.scryfall.io/sets/mat.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/mat" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=March+of+the+Machine+Aftermath+booster" },
+    },
+  },
+  {
+    key: "march-of-the-machine",
+    scryfallCode: "mom",
+    displayName: "March of the Machine",
+    releaseLabel: "Recent Release",
+    releaseDate: "2023-04-21",
+    fallbackPackPrice: 5.39,
+    packImage: "https://svgs.scryfall.io/sets/mom.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/mom" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=March+of+the+Machine+set+booster" },
+    },
+  },
+  {
+    key: "phyrexia-all-will-be-one",
+    scryfallCode: "one",
+    displayName: "Phyrexia: All Will Be One",
+    releaseLabel: "Recent Release",
+    releaseDate: "2023-02-10",
+    fallbackPackPrice: 5.29,
+    packImage: "https://svgs.scryfall.io/sets/one.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/one" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Phyrexia+All+Will+Be+One+set+booster" },
+    },
+  },
+  {
+    key: "the-brothers-war",
+    scryfallCode: "bro",
+    displayName: "The Brothers' War",
+    releaseLabel: "Recent Release",
+    releaseDate: "2022-11-18",
+    fallbackPackPrice: 5.19,
+    packImage: "https://svgs.scryfall.io/sets/bro.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/bro" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Brothers+War+set+booster" },
+    },
+  },
+  {
+    key: "dominaria-united",
+    scryfallCode: "dmu",
+    displayName: "Dominaria United",
+    releaseLabel: "Recent Release",
+    releaseDate: "2022-09-09",
+    fallbackPackPrice: 5.09,
+    packImage: "https://svgs.scryfall.io/sets/dmu.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/dmu" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Dominaria+United+set+booster" },
+    },
+  },
+  {
+    key: "streets-of-new-capenna",
+    scryfallCode: "snc",
+    displayName: "Streets of New Capenna",
+    releaseLabel: "Recent Release",
+    releaseDate: "2022-04-29",
+    fallbackPackPrice: 4.99,
+    packImage: "https://svgs.scryfall.io/sets/snc.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/snc" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Streets+of+New+Capenna+set+booster" },
+    },
+  },
+  {
+    key: "kamigawa-neon-dynasty",
+    scryfallCode: "neo",
+    displayName: "Kamigawa: Neon Dynasty",
+    releaseLabel: "Recent Release",
+    releaseDate: "2022-02-18",
+    fallbackPackPrice: 5.29,
+    packImage: "https://svgs.scryfall.io/sets/neo.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/neo" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Kamigawa+Neon+Dynasty+set+booster" },
+    },
+  },
+  {
+    key: "innistrad-crimson-vow",
+    scryfallCode: "vow",
+    displayName: "Innistrad: Crimson Vow",
+    releaseLabel: "Recent Release",
+    releaseDate: "2021-11-19",
+    fallbackPackPrice: 4.79,
+    packImage: "https://svgs.scryfall.io/sets/vow.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/vow" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Innistrad+Crimson+Vow+set+booster" },
     },
   },
 ];
@@ -49,6 +312,12 @@ const state = {
   priceSourceMode: loadPriceSourceMode(),
   setData: {},
   loadingSetKeys: new Set(),
+  backgroundPreloadStarted: false,
+  backgroundSync: {
+    running: false,
+    done: 0,
+    total: MTG_SETS.length,
+  },
   currentPack: null,
   revealedIds: new Set(),
   session: {
@@ -56,6 +325,9 @@ const state = {
     totalValue: 0,
     totalSpent: 0,
     biggestHit: null,
+    profitablePacks: 0,
+    packValueHistory: [],
+    setEconomy: {},
   },
 };
 
@@ -76,6 +348,7 @@ const dom = {
   openedPackSummary: document.getElementById("mtgOpenedPackSummary"),
   cardsGrid: document.getElementById("mtgCardsGrid"),
   sessionStats: document.getElementById("mtgSessionStats"),
+  economyPanel: document.getElementById("mtgEconomyPanel"),
   cardTemplate: document.getElementById("mtgCardTemplate"),
 };
 
@@ -89,8 +362,10 @@ async function init() {
   renderSetSelect();
   renderHeader();
   renderSessionStats();
+  renderEconomyPanel();
   renderCards();
   await loadSetData(state.selectedSetKey);
+  startBackgroundPreload();
 }
 
 function wireControls() {
@@ -130,6 +405,7 @@ function wireControls() {
     renderHeader();
     renderSetSelect();
     renderSessionStats();
+    renderEconomyPanel();
   });
 
   dom.openPackBtn?.addEventListener("click", openPack);
@@ -158,7 +434,9 @@ function getSortedSets() {
 }
 
 function getReleaseTimestamp(setKey) {
-  const release = state.setData[setKey]?.setMeta?.released_at;
+  const fromMeta = state.setData[setKey]?.setMeta?.released_at;
+  const fromConfig = MTG_SETS.find((set) => set.key === setKey)?.releaseDate;
+  const release = fromMeta || fromConfig;
   if (!release) return 0;
   const ts = Date.parse(`${release}T00:00:00Z`);
   return Number.isFinite(ts) ? ts : 0;
@@ -228,6 +506,44 @@ async function loadSetData(setKey) {
     state.loadingSetKeys.delete(setKey);
     renderSetSelect();
     renderHeader();
+    if (state.backgroundSync.running) {
+      state.backgroundSync.done += 1;
+      setStatus(`Background loading MTG sets: ${state.backgroundSync.done}/${state.backgroundSync.total}`);
+      if (state.backgroundSync.done >= state.backgroundSync.total) {
+        state.backgroundSync.running = false;
+        setStatus("Ready to open MTG packs.", "ready");
+      }
+    }
+  }
+}
+
+function startBackgroundPreload() {
+  if (state.backgroundPreloadStarted) return;
+  state.backgroundPreloadStarted = true;
+  state.backgroundSync.running = true;
+  state.backgroundSync.total = MTG_SETS.length;
+  state.backgroundSync.done = state.setData[state.selectedSetKey] ? 1 : 0;
+  setStatus(`Background loading MTG sets: ${state.backgroundSync.done}/${state.backgroundSync.total}`);
+  const remaining = MTG_SETS.map((set) => set.key).filter((key) => key !== state.selectedSetKey);
+  preloadSetsSequentially(remaining).catch((error) => {
+    console.error(error);
+    state.backgroundSync.running = false;
+    setStatus("MTG background loading encountered an issue.", "error");
+  });
+}
+
+async function preloadSetsSequentially(setKeys) {
+  for (const setKey of setKeys) {
+    if (!state.setData[setKey]) {
+      await loadSetData(setKey);
+    } else if (state.backgroundSync.running) {
+      state.backgroundSync.done += 1;
+      setStatus(`Background loading MTG sets: ${state.backgroundSync.done}/${state.backgroundSync.total}`);
+    }
+  }
+  if (state.backgroundSync.running) {
+    state.backgroundSync.running = false;
+    setStatus("Ready to open MTG packs.", "ready");
   }
 }
 
@@ -282,6 +598,7 @@ function openPack() {
   registerPack(pack, setDef);
   renderHeader();
   renderSessionStats();
+  renderEconomyPanel();
   renderCards();
 }
 
@@ -352,6 +669,17 @@ function registerPack(cards, setDef) {
   state.session.packsOpened += 1;
   state.session.totalValue += packValue;
   state.session.totalSpent += packCost;
+  if (packValue >= packCost) {
+    state.session.profitablePacks += 1;
+  }
+  state.session.packValueHistory.unshift(packValue - packCost);
+  state.session.packValueHistory = state.session.packValueHistory.slice(0, 40);
+  if (!state.session.setEconomy[setDef.key]) {
+    state.session.setEconomy[setDef.key] = { packs: 0, spent: 0, value: 0 };
+  }
+  state.session.setEconomy[setDef.key].packs += 1;
+  state.session.setEconomy[setDef.key].spent += packCost;
+  state.session.setEconomy[setDef.key].value += packValue;
   const best = cards.reduce((top, card) => (card.value > (top?.value || 0) ? card : top), null);
   if (best && (!state.session.biggestHit || best.value > state.session.biggestHit.value)) {
     state.session.biggestHit = best;
@@ -368,6 +696,60 @@ function renderSessionStats() {
     cardStat("Net", formatUsd(net)),
     cardStat("Biggest Hit", biggest ? `${biggest.name} (${formatUsd(biggest.value)})` : "None yet"),
   ].join("");
+}
+
+function renderEconomyPanel() {
+  if (!dom.economyPanel) return;
+  const spent = state.session.totalSpent || 0;
+  const value = state.session.totalValue || 0;
+  const net = value - spent;
+  const roi = spent > 0 ? (net / spent) * 100 : 0;
+  const hitRate = state.session.packsOpened > 0 ? (state.session.profitablePacks / state.session.packsOpened) * 100 : 0;
+  const avgNet = state.session.packsOpened > 0 ? net / state.session.packsOpened : 0;
+  const history = state.session.packValueHistory || [];
+  const maxAbs = Math.max(1, ...history.map((entry) => Math.abs(entry)));
+
+  const bars = history
+    .slice(0, 20)
+    .reverse()
+    .map((entry) => {
+      const h = Math.max(12, Math.round((Math.abs(entry) / maxAbs) * 42));
+      const cls = entry >= 0 ? "gain" : "loss";
+      return `<span class="economy-bar ${cls}" style="height:${h}px" title="${formatUsd(entry)}"></span>`;
+    })
+    .join("");
+
+  const setRows = Object.entries(state.session.setEconomy || {})
+    .map(([setKey, stats]) => {
+      const setDef = MTG_SETS.find((set) => set.key === setKey);
+      const setName = setDef?.displayName || setKey;
+      const setNet = (stats.value || 0) - (stats.spent || 0);
+      const setRoi = stats.spent > 0 ? (setNet / stats.spent) * 100 : 0;
+      return { setName, packs: stats.packs || 0, setNet, setRoi };
+    })
+    .sort((a, b) => b.setNet - a.setNet)
+    .slice(0, 4)
+    .map((row) => `<li><span>${escapeHtml(row.setName)} (${row.packs})</span><strong>${formatUsd(row.setNet)} (${row.setRoi.toFixed(1)}%)</strong></li>`)
+    .join("");
+
+  dom.economyPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Economy Dashboard + ROI</strong>
+      <span>Tracks spend vs pull value in real time.</span>
+    </div>
+    <div class="economy-grid">
+      <article class="economy-stat"><strong>${formatUsd(spent)}</strong><span>Total Spent</span></article>
+      <article class="economy-stat"><strong>${formatUsd(value)}</strong><span>Total Value</span></article>
+      <article class="economy-stat ${net >= 0 ? "good" : "bad"}"><strong>${formatUsd(net)}</strong><span>Net</span></article>
+      <article class="economy-stat"><strong>${roi.toFixed(1)}%</strong><span>ROI</span></article>
+      <article class="economy-stat"><strong>${hitRate.toFixed(1)}%</strong><span>Profitable Packs</span></article>
+      <article class="economy-stat"><strong>${formatUsd(avgNet)}</strong><span>Avg Net / Pack</span></article>
+    </div>
+    <div class="economy-chart-wrap">
+      <div class="economy-chart">${bars || '<span class="economy-empty">Open packs to build ROI trend.</span>'}</div>
+    </div>
+    <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
+  `;
 }
 
 function cardStat(label, value) {
