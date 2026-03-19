@@ -804,76 +804,36 @@ select {
 }
 
 .set-vault-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
-
-.set-vault-card {
-  display: grid;
-  gap: 10px;
-  text-align: left;
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(160, 220, 255, 0.2);
-  background:
-    linear-gradient(180deg, rgba(14, 31, 49, 0.96), rgba(7, 18, 31, 0.96));
-  color: inherit;
-  cursor: pointer;
-  width: 100%;
-}
-
-.set-vault-card:hover {
-  border-color: rgba(255, 226, 122, 0.48);
-  transform: translateY(-1px);
-}
-
-.set-vault-card.is-selected {
-  border-color: rgba(255, 226, 122, 0.82);
-  box-shadow: 0 0 0 1px rgba(255, 226, 122, 0.18), 0 14px 26px rgba(255, 220, 122, 0.12);
-}
-
-.set-vault-art {
-  width: 100%;
-  aspect-ratio: 0.72;
-  object-fit: contain;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(180deg, rgba(20, 40, 65, 0.9), rgba(8, 18, 31, 0.98));
-}
-
-.set-vault-copy {
-  display: grid;
-  gap: 3px;
-}
-
-.set-vault-copy strong {
-  color: #f4fbff;
-  font-size: 0.94rem;
-  line-height: 1.1;
-}
-
-.set-vault-copy span {
-  color: #bdd4ef;
-  font-size: 0.8rem;
-}
-
-.set-vault-meta,
-.set-vault-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.set-vault-meta .pack-source-badge {
-  font-size: 0.72rem;
-}
-
-.set-vault-footer {
-  color: #9fb5d5;
+.vault-select-label {
+  display: block;
+  color: #dfe9fb;
   font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.set-vault-select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(160, 220, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(19, 28, 48, 0.98), rgba(11, 18, 31, 0.98));
+  color: #f4fbff;
+  font: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.set-vault-select:focus {
+  outline: 2px solid rgba(255, 226, 122, 0.5);
+  outline-offset: 2px;
 }
 
 .set-vault-empty {

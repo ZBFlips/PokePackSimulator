@@ -3751,7 +3751,6 @@ function renderPackVault() {
   if (!dom.packVault || !dom.packVaultSummary) return;
   const query = String(state.packSearchQuery || "").trim().toLowerCase();
   const packs = getSortedPackDefs().filter((packDef) => matchesPackSearch(packDef, query));
-  const packLookup = new Map(packs.map((packDef) => [packDef.key, packDef]));
   const readyCount = packs.filter((packDef) => Boolean(state.setData[packDef.key]?.cards?.length)).length;
   const liveCount = packs.filter((packDef) => state.liveLoadedPackKeys.has(packDef.key)).length;
   const fallbackCount = packs.length - liveCount;
@@ -3763,57 +3762,33 @@ function renderPackVault() {
     <span class="pack-source-badge">${fallbackCount} fallback</span>
   `;
 
-  dom.packVault.innerHTML = packs
-    .map((packDef) => {
-      const isLive = state.liveLoadedPackKeys.has(packDef.key);
-      const isLoading = state.loadingPackKeys.has(packDef.key);
-      const isSelected = state.selectedPackKey === packDef.key;
-      const loadLabel = isLoading ? "Loading" : isLive ? "Live" : "Fallback";
-      const priceLabel = formatUsd(getPackPriceForRoi(packDef));
-      const fidelity = getPackFidelity(packDef).label;
-      const source = getPackPricingSource(packDef);
-      return `
-        <button class="set-vault-card ${isSelected ? "is-selected" : ""}" type="button" data-pack-key="${escapeHtml(packDef.key)}" aria-pressed="${isSelected ? "true" : "false"}">
-          <img class="set-vault-art" data-pack-key="${escapeHtml(packDef.key)}" src="${escapeHtml(createPackPlaceholderDataUri(packDef))}" alt="${escapeHtml(packDef.displayName)} pack art" loading="lazy" />
-          <div class="set-vault-copy">
-            <strong>${escapeHtml(packDef.displayName)}</strong>
-            <span>${escapeHtml(packDef.releaseLabel)}</span>
-            <span>${escapeHtml(packDef.shortCode || packDef.key)}</span>
-          </div>
-          <div class="set-vault-meta">
-            <span class="pack-source-badge">${escapeHtml(loadLabel)}</span>
-            <span class="pack-source-badge">${escapeHtml(fidelity)}</span>
-            <span class="pack-source-badge">${escapeHtml(priceLabel)}</span>
-          </div>
-          <div class="set-vault-footer">
-            <span>${escapeHtml(source?.label || "No price source")}</span>
-            <span>${isSelected ? "Selected" : "Tap to open"}</span>
-          </div>
-        </button>
-      `;
-    })
-    .join("");
+  const selectMarkup = `
+    <label class="vault-select-label" for="packVaultSelect">Quick pick</label>
+    <select id="packVaultSelect" class="set-vault-select" aria-label="Choose a pack from the vault">
+      ${packs
+        .map((packDef) => {
+          const isLive = state.liveLoadedPackKeys.has(packDef.key);
+          const isLoading = state.loadingPackKeys.has(packDef.key);
+          const loadLabel = isLoading ? "Loading" : isLive ? "Live" : "Fallback";
+          const priceLabel = formatUsd(getPackPriceForRoi(packDef));
+          const fidelity = getPackFidelity(packDef).label;
+          return `
+            <option value="${escapeHtml(packDef.key)}" ${state.selectedPackKey === packDef.key ? "selected" : ""}>
+              ${escapeHtml(packDef.displayName)} - ${escapeHtml(packDef.shortCode || packDef.key)} - ${escapeHtml(loadLabel)} - ${escapeHtml(fidelity)} - ${escapeHtml(priceLabel)}
+            </option>
+          `;
+        })
+        .join("")}
+    </select>
+  `;
+  dom.packVault.innerHTML = selectMarkup;
 
-  dom.packVault.querySelectorAll(".set-vault-art[data-pack-key]").forEach((imgEl) => {
-    const packDef = packLookup.get(imgEl.getAttribute("data-pack-key"));
-    if (!packDef) return;
-    applyImageWithFallback(imgEl, [
-      packDef.localPackImage,
-      packDef.packImage,
-      getSetSymbolUrl(packDef.setId),
-      getSetLogoUrl(packDef.setId),
-      state.setData[packDef.key]?.setMeta?.images?.symbol,
-      state.setData[packDef.key]?.setMeta?.images?.logo,
-      createPackPlaceholderDataUri(packDef),
-    ]);
-  });
-
-  dom.packVault.querySelectorAll("[data-pack-key]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const nextKey = button.getAttribute("data-pack-key");
-      selectPack(nextKey);
+  const select = dom.packVault.querySelector("#packVaultSelect");
+  if (select) {
+    select.addEventListener("change", () => {
+      selectPack(select.value);
     });
-  });
+  }
 }
 
 function getSortedPackDefs() {
@@ -6820,4 +6795,5 @@ function formatUsd(value) {
     maximumFractionDigits: 2,
   }).format(value || 0);
 }
+
 

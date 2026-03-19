@@ -1335,45 +1335,34 @@ function renderSetVault() {
     <span class="pack-source-badge">${liveCount} ready</span>
   `;
 
-  const cards = sets
-    .map((setDef) => {
-      const loaded = Boolean(state.setData[setDef.key]);
-      const loading = state.loadingSetKeys.has(setDef.key);
-      const selected = state.selectedSetKey === setDef.key;
-      const fidelityLabel = getCollationFidelityLabel(setDef);
-      const status = loading ? "Loading" : loaded ? "Ready" : "Pending";
-      const price = formatUsd(getPackPrice(setDef));
-      const release = setDef.releaseDate || "Unknown";
-      const source = getPriceSource(setDef);
-      const sourceLabel = source?.label || "No source";
-      return `
-        <button class="set-vault-card ${selected ? "is-selected" : ""}" type="button" data-set-key="${escapeHtml(setDef.key)}" aria-pressed="${selected ? "true" : "false"}">
-          <div class="set-vault-copy">
-            <strong>${escapeHtml(setDef.displayName)}</strong>
-            <span>${escapeHtml(setDef.releaseLabel)} - ${escapeHtml(release)}</span>
-            <span>${escapeHtml(setDef.scryfallCode?.toUpperCase?.() || setDef.scryfallCode || setDef.key)}</span>
-          </div>
-          <div class="set-vault-meta">
-            <span class="pack-source-badge">${escapeHtml(status)}</span>
-            <span class="pack-source-badge">${escapeHtml(fidelityLabel)}</span>
-            <span class="pack-source-badge">${escapeHtml(price)}</span>
-          </div>
-          <div class="set-vault-footer">
-            <span>${escapeHtml(sourceLabel)}</span>
-            <span>${selected ? "Selected" : "Tap to open"}</span>
-          </div>
-        </button>
-      `;
-    })
-    .join("");
+  dom.setVault.innerHTML = sets.length
+    ? `
+      <label class="vault-select-label" for="mtgSetVaultSelect">Quick pick</label>
+      <select id="mtgSetVaultSelect" class="set-vault-select" aria-label="Choose a set from the vault">
+        ${sets
+          .map((setDef) => {
+            const loaded = Boolean(state.setData[setDef.key]);
+            const loading = state.loadingSetKeys.has(setDef.key);
+            const fidelityLabel = getCollationFidelityLabel(setDef);
+            const status = loading ? "Loading" : loaded ? "Ready" : "Pending";
+            const price = formatUsd(getPackPrice(setDef));
+            return `
+              <option value="${escapeHtml(setDef.key)}" ${state.selectedSetKey === setDef.key ? "selected" : ""}>
+                ${escapeHtml(setDef.displayName)} - ${escapeHtml(setDef.scryfallCode?.toUpperCase?.() || setDef.scryfallCode || setDef.key)} - ${escapeHtml(status)} - ${escapeHtml(fidelityLabel)} - ${escapeHtml(price)}
+              </option>
+            `;
+          })
+          .join("")}
+      </select>
+    `
+    : `<div class="set-vault-empty">No sets match that search.</div>`;
 
-  dom.setVault.innerHTML = cards || `<div class="set-vault-empty">No sets match that search.</div>`;
-  dom.setVault.querySelectorAll("[data-set-key]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const nextKey = button.getAttribute("data-set-key");
-      selectSet(nextKey);
+  const select = dom.setVault.querySelector("#mtgSetVaultSelect");
+  if (select) {
+    select.addEventListener("change", () => {
+      selectSet(select.value);
     });
-  });
+  }
 }
 
 function loadProductMode() {
@@ -3583,4 +3572,5 @@ function getSnapshotFreshnessLabel(isoDate) {
   }
   return "Snapshot freshness unknown";
 }
+
 
