@@ -3751,6 +3751,7 @@ function renderPackVault() {
   if (!dom.packVault || !dom.packVaultSummary) return;
   const query = String(state.packSearchQuery || "").trim().toLowerCase();
   const packs = getSortedPackDefs().filter((packDef) => matchesPackSearch(packDef, query));
+  const packLookup = new Map(packs.map((packDef) => [packDef.key, packDef]));
   const readyCount = packs.filter((packDef) => Boolean(state.setData[packDef.key]?.cards?.length)).length;
   const liveCount = packs.filter((packDef) => state.liveLoadedPackKeys.has(packDef.key)).length;
   const fallbackCount = packs.length - liveCount;
@@ -3773,7 +3774,7 @@ function renderPackVault() {
       const source = getPackPricingSource(packDef);
       return `
         <button class="set-vault-card ${isSelected ? "is-selected" : ""}" type="button" data-pack-key="${escapeHtml(packDef.key)}" aria-pressed="${isSelected ? "true" : "false"}">
-          <img class="set-vault-art" src="${escapeHtml(packDef.localPackImage || packDef.packImage || createPackPlaceholderDataUri(packDef))}" alt="${escapeHtml(packDef.displayName)} pack art" loading="lazy" />
+          <img class="set-vault-art" data-pack-key="${escapeHtml(packDef.key)}" src="${escapeHtml(createPackPlaceholderDataUri(packDef))}" alt="${escapeHtml(packDef.displayName)} pack art" loading="lazy" />
           <div class="set-vault-copy">
             <strong>${escapeHtml(packDef.displayName)}</strong>
             <span>${escapeHtml(packDef.releaseLabel)}</span>
@@ -3792,6 +3793,20 @@ function renderPackVault() {
       `;
     })
     .join("");
+
+  dom.packVault.querySelectorAll(".set-vault-art[data-pack-key]").forEach((imgEl) => {
+    const packDef = packLookup.get(imgEl.getAttribute("data-pack-key"));
+    if (!packDef) return;
+    applyImageWithFallback(imgEl, [
+      packDef.localPackImage,
+      packDef.packImage,
+      getSetSymbolUrl(packDef.setId),
+      getSetLogoUrl(packDef.setId),
+      state.setData[packDef.key]?.setMeta?.images?.symbol,
+      state.setData[packDef.key]?.setMeta?.images?.logo,
+      createPackPlaceholderDataUri(packDef),
+    ]);
+  });
 
   dom.packVault.querySelectorAll("[data-pack-key]").forEach((button) => {
     button.addEventListener("click", () => {
