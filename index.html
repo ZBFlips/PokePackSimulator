@@ -33,6 +33,14 @@
       <section class="panel controls-panel">
         <div class="control-section">
           <h2>1. Choose a set</h2>
+          <div class="control-group">
+            <label for="packSortMode">Sort packs by</label>
+            <select id="packSortMode">
+              <option value="release">Release date (newest first)</option>
+              <option value="alpha">Alphabetical (A-Z)</option>
+              <option value="value">Pack value (highest first)</option>
+            </select>
+          </div>
           <div id="packSelector" class="pack-selector"></div>
         </div>
 
@@ -178,6 +186,6 @@
     </article>
   </div>
 
-  <script src="app.js?v=20260318-25"></script>
+  <script src="app.js?v=20260318-26"></script>
 </body>
 </html>

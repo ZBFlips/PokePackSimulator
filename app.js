@@ -1413,6 +1413,7 @@ const state = {
   selectedPackKey: PACK_CONFIG[0].key,
   revealMode: "all",
   sortMode: "standard",
+  packSortMode: "release",
   soundEnabled: loadSoundEnabledFromStorage(),
   soundSettings: loadSoundSettingsFromStorage(),
   setData: {},
@@ -1473,6 +1474,7 @@ const dom = {
   networkStatus: document.getElementById("networkStatus"),
   installAppBtn: document.getElementById("installAppBtn"),
   packSelector: document.getElementById("packSelector"),
+  packSortMode: document.getElementById("packSortMode"),
   revealMode: document.getElementById("revealMode"),
   sortMode: document.getElementById("sortMode"),
   soundToggle: document.getElementById("soundToggle"),
@@ -1558,6 +1560,11 @@ async function init() {
 }
 
 function wireControls() {
+  dom.packSortMode?.addEventListener("change", () => {
+    state.packSortMode = dom.packSortMode.value;
+    renderPackSelector();
+  });
+
   dom.revealMode.addEventListener("change", () => {
     state.revealMode = dom.revealMode.value;
     state.justRevealedInstanceId = "";
@@ -2481,8 +2488,11 @@ function renderPackSelector() {
   const select = document.createElement("select");
   select.id = "packSelect";
   select.setAttribute("aria-label", "Choose a pack");
+  if (dom.packSortMode) {
+    dom.packSortMode.value = state.packSortMode;
+  }
 
-  for (const packDef of PACK_CONFIG) {
+  for (const packDef of getSortedPackDefs()) {
     const option = document.createElement("option");
     option.value = packDef.key;
 
@@ -2520,6 +2530,39 @@ function renderPackSelector() {
   helper.textContent = selectedPack.releaseLabel;
 
   dom.packSelector.append(select, helper);
+}
+
+function getSortedPackDefs() {
+  const packs = [...PACK_CONFIG];
+  if (state.packSortMode === "alpha") {
+    packs.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return packs;
+  }
+
+  if (state.packSortMode === "value") {
+    packs.sort((a, b) => (b.packPrice || 0) - (a.packPrice || 0) || a.displayName.localeCompare(b.displayName));
+    return packs;
+  }
+
+  packs.sort((a, b) => {
+    const aRelease = getPackReleaseTimestamp(a.key);
+    const bRelease = getPackReleaseTimestamp(b.key);
+    if (aRelease !== bRelease) {
+      return bRelease - aRelease;
+    }
+    return a.displayName.localeCompare(b.displayName);
+  });
+  return packs;
+}
+
+function getPackReleaseTimestamp(packKey) {
+  const release = state.setData[packKey]?.setMeta?.releaseDate;
+  if (typeof release !== "string" || !release) {
+    return 0;
+  }
+  const normalized = release.replace(/\//g, "-");
+  const ts = Date.parse(`${normalized}T00:00:00Z`);
+  return Number.isFinite(ts) ? ts : 0;
 }
 
 function renderPackHeader() {
