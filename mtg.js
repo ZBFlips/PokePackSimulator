@@ -1674,6 +1674,34 @@ function isCardPullableForCurrentProduct(cardId, setData, setDef) {
       }
     }
   }
+  // Tailored fallback: a small number of cards can appear with different print ids/treatments
+  // while still being booster-eligible in the same product. We avoid false negatives by
+  // checking booster eligibility + same-name presence in active product pools.
+  const selected = (setData.allCards || setData.cards || []).find((entry) => entry.id === cardId);
+  if (!selected || !selected.boosterEligible) return false;
+
+  const hasSameNameInAnyActivePool = (profile.slots || []).some((slot) =>
+    (slot.sheet || []).some((sheetEntry) =>
+      (setData.pools[sheetEntry.pool] || []).some((poolCard) => poolCard.name === selected.name),
+    ),
+  );
+  if (hasSameNameInAnyActivePool) return true;
+
+  // Generalized correction for booster-eligible treatment variants across all sets:
+  // if rarity/type is compatible with slot pools for the selected product, mark pullable.
+  const slotPools = new Set(
+    (profile.slots || []).flatMap((slot) => (slot.sheet || []).map((sheetEntry) => sheetEntry.pool)),
+  );
+  if (
+    (selected.rarity === "mythic" && (slotPools.has("mythic") || slotPools.has("showcaseMythic"))) ||
+    (selected.rarity === "rare" && (slotPools.has("rare") || slotPools.has("showcaseRare"))) ||
+    (selected.rarity === "uncommon" && slotPools.has("uncommon")) ||
+    (selected.rarity === "common" && slotPools.has("common")) ||
+    (selected.isBasicLand && slotPools.has("basicLand")) ||
+    (selected.isLand && slotPools.has("land"))
+  ) {
+    return true;
+  }
   return false;
 }
 
