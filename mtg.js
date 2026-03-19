@@ -1401,6 +1401,19 @@ function isCardPullableForCurrentProduct(cardId, setData, setDef) {
       }
     }
   }
+  // Fallback for edge cases where a card is booster-eligible but excluded from a specific derived pool
+  // due treatment classification differences (prevents false "not in pool" labels).
+  const card = (setData.allCards || setData.cards || []).find((entry) => entry.id === cardId);
+  if (!card || !card.boosterEligible) return false;
+  const slotPools = new Set(
+    (profile.slots || []).flatMap((slot) => (slot.sheet || []).map((sheetEntry) => sheetEntry.pool)),
+  );
+  if (card.rarity === "mythic" && (slotPools.has("mythic") || slotPools.has("showcaseMythic"))) return true;
+  if (card.rarity === "rare" && (slotPools.has("rare") || slotPools.has("showcaseRare"))) return true;
+  if (card.rarity === "uncommon" && slotPools.has("uncommon")) return true;
+  if (card.rarity === "common" && slotPools.has("common")) return true;
+  if (/basic land/i.test(card.typeLine) && slotPools.has("basicLand")) return true;
+  if (/land/i.test(card.typeLine) && slotPools.has("land")) return true;
   return false;
 }
 
