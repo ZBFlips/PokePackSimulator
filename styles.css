@@ -317,6 +317,18 @@ select {
   gap: 8px;
 }
 
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d7ebfd;
+}
+
+.inline-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
 .pity-grid {
   display: grid;
   gap: 8px;
@@ -390,6 +402,59 @@ select {
   color: var(--muted);
   font-style: normal;
   font-size: 0.88rem;
+}
+
+.qa-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.qa-list li {
+  border: 1px solid rgba(132, 202, 255, 0.2);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #d7ebfd;
+  background: rgba(9, 23, 41, 0.78);
+}
+
+.qa-list li strong {
+  color: #ffe180;
+  text-align: right;
+}
+
+.qa-test-summary {
+  border: 1px solid rgba(132, 202, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+  color: #d7ebfd;
+  background: rgba(9, 23, 41, 0.78);
+  display: grid;
+  gap: 4px;
+}
+
+.qa-test-summary p {
+  margin: 0;
+}
+
+.qa-slot-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.qa-slot-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
 }
 
 .odds-title {

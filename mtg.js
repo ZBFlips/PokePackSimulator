@@ -4,6 +4,8 @@ const MTG_DEFAULT_PACK_PRICE = 5.99;
 const MTG_PRODUCT_STORAGE_KEY = "mtg-product-mode-v1";
 const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
 const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
+const MTG_CHASE_FILTER_STORAGE_KEY = "mtg-pack-sim-chase-filter-v1";
+const MTG_QA_WINDOW_SIZE = 50;
 
 const MTG_PRODUCTS = {
   play: {
@@ -426,6 +428,32 @@ const MTG_SET_COLLATION_OVERRIDES = {
   }),
 };
 
+const MTG_PACK_PRICE_PRESETS = {
+  "teenage-mutant-ninja-turtles": { play: 7.49, collector: 32.99 },
+  "lorwyn-eclipsed": { play: 7.19, collector: 29.99 },
+  "avatar-last-airbender": { play: 7.39, collector: 34.99 },
+  "marvel-spider-man": { play: 7.89, collector: 36.99 },
+  "edge-of-eternities": { play: 6.89, collector: 31.99 },
+  "final-fantasy": { play: 8.19, collector: 39.99 },
+  "tarkir-dragonstorm": { play: 6.59, collector: 29.99 },
+  "aetherdrift": { play: 6.29, collector: 28.99 },
+  bloomburrow: { play: 5.79, collector: 26.99 },
+  duskmourn: { play: 6.29, collector: 31.99 },
+  foundations: { play: 6.09, collector: 29.99 },
+  "outlaws-of-thunder-junction": { play: 5.99, collector: 28.99 },
+  "murders-at-karlov-manor": { play: 5.79, collector: 27.99 },
+  "the-lost-caverns-of-ixalan": { play: 5.69, collector: 25.99 },
+  "wilds-of-eldraine": { play: 5.49, collector: 24.99 },
+  "march-of-the-machine-aftermath": { play: 4.89, collector: 19.99 },
+  "march-of-the-machine": { play: 5.39, collector: 24.99 },
+  "phyrexia-all-will-be-one": { play: 5.29, collector: 24.99 },
+  "the-brothers-war": { play: 5.19, collector: 23.99 },
+  "dominaria-united": { play: 5.09, collector: 22.99 },
+  "streets-of-new-capenna": { play: 4.99, collector: 21.99 },
+  "kamigawa-neon-dynasty": { play: 5.29, collector: 24.99 },
+  "innistrad-crimson-vow": { play: 4.79, collector: 19.99 },
+};
+
 const MTG_SETS = [
   {
     key: "teenage-mutant-ninja-turtles",
@@ -758,9 +786,15 @@ const state = {
       valueHit: 0,
     },
     chaseStats: {},
+    qaHistory: {},
   },
   chaseTargetsBySet: loadChaseTargets(),
+  chaseFilterMode: loadChaseFilterMode(),
   binder: loadBinder(),
+  qaTest: {
+    running: false,
+    resultBySetProduct: {},
+  },
 };
 
 const dom = {
@@ -787,6 +821,7 @@ const dom = {
   binderGrid: document.getElementById("mtgBinderGrid"),
   sessionStats: document.getElementById("mtgSessionStats"),
   economyPanel: document.getElementById("mtgEconomyPanel"),
+  oddsQaPanel: document.getElementById("mtgOddsQaPanel"),
   cardTemplate: document.getElementById("mtgCardTemplate"),
 };
 
@@ -801,6 +836,7 @@ async function init() {
   renderHeader();
   renderSessionStats();
   renderEconomyPanel();
+  renderOddsQaPanel();
   renderChasePanel();
   renderBinder();
   renderCards();
@@ -820,8 +856,10 @@ function wireControls() {
     state.selectedSetKey = next.key;
     state.currentPack = null;
     state.revealedIds = new Set();
+    sanitizeCurrentSetChaseTargets();
     renderSetSelect();
     renderHeader();
+    renderOddsQaPanel();
     renderChasePanel();
     renderCards();
     loadSetData(next.key);
@@ -833,10 +871,13 @@ function wireControls() {
     saveProductMode(state.productMode);
     state.currentPack = null;
     state.revealedIds = new Set();
+    sanitizeCurrentSetChaseTargets();
     renderHeader();
     renderSetSelect();
     renderSessionStats();
     renderEconomyPanel();
+    renderOddsQaPanel();
+    renderChasePanel();
     renderCards();
   });
 
@@ -878,11 +919,13 @@ function wireControls() {
       setEconomy: {},
       pity: { mythicPlus: 0, valueHit: 0 },
       chaseStats: {},
+      qaHistory: {},
     };
     state.currentPack = null;
     state.revealedIds = new Set();
     renderSessionStats();
     renderEconomyPanel();
+    renderOddsQaPanel();
     renderChasePanel();
     renderCards();
   });
@@ -1027,6 +1070,9 @@ async function loadSetData(setKey) {
         boosterEligible: boosterEligible.length,
       },
     };
+    if (setKey === state.selectedSetKey) {
+      sanitizeCurrentSetChaseTargets();
+    }
     setStatus("Ready to open MTG packs.", "ready");
   } catch (error) {
     console.error(error);
@@ -1035,6 +1081,7 @@ async function loadSetData(setKey) {
     state.loadingSetKeys.delete(setKey);
     renderSetSelect();
     renderHeader();
+    renderOddsQaPanel();
     renderChasePanel();
     if (state.backgroundSync.running) {
       state.backgroundSync.done += 1;
@@ -1110,37 +1157,53 @@ function normalizeCard(raw) {
   return {
     id: raw.id,
     name: raw.name || "Unknown",
+    collectorNumber: raw.collector_number || "",
     rarity: raw.rarity || "common",
     typeLine: raw.type_line || "",
+    setCode: raw.set || "",
     image: raw.image_uris?.normal || raw.card_faces?.[0]?.image_uris?.normal || "",
     usd: Number(raw.prices?.usd || 0),
     usdFoil: Number(raw.prices?.usd_foil || 0),
     boosterEligible,
     isBoosterFunTreatment,
+    isBasicLand: /basic land/i.test(raw.type_line || ""),
+    isLand: /land/i.test(raw.type_line || ""),
+    isSpecialGuestLike: /special guest|bonus|breaking news|masterpiece|the list/i.test(raw.name || "") || /special guest|bonus|masterpiece/i.test(raw.type_line || ""),
+    finishes: Array.isArray(raw.finishes) ? raw.finishes : [],
+    frameEffects,
+    showcase: raw.showcase === true,
+    fullArt: raw.full_art === true,
+    borderColor: raw.border_color || "",
+    variation: raw.variation === true,
   };
 }
 
 function buildPools(cards) {
-  const commonAll = cards.filter((card) => card.rarity === "common");
-  const uncommonAll = cards.filter((card) => card.rarity === "uncommon");
-  const rareAll = cards.filter((card) => card.rarity === "rare");
-  const mythicAll = cards.filter((card) => card.rarity === "mythic");
+  const specialGuestLike = cards.filter((card) => card.isSpecialGuestLike);
+  const specialGuestIds = new Set(specialGuestLike.map((card) => card.id));
+  const nonLandCards = cards.filter((card) => !card.isLand);
+  const commonAll = nonLandCards.filter((card) => card.rarity === "common");
+  const uncommonAll = nonLandCards.filter((card) => card.rarity === "uncommon");
+  const rareAll = nonLandCards.filter((card) => card.rarity === "rare" && !specialGuestIds.has(card.id));
+  const mythicAll = nonLandCards.filter((card) => card.rarity === "mythic" && !specialGuestIds.has(card.id));
   const rareBase = rareAll.filter((card) => !card.isBoosterFunTreatment);
   const mythicBase = mythicAll.filter((card) => !card.isBoosterFunTreatment);
   const boosterFunRare = rareAll.filter((card) => card.isBoosterFunTreatment);
   const boosterFunMythic = mythicAll.filter((card) => card.isBoosterFunTreatment);
+  const basicLands = cards.filter((card) => card.isBasicLand);
+  const nonBasicLands = cards.filter((card) => card.isLand && !card.isBasicLand);
 
   const byRarity = {
     common: commonAll,
     uncommon: uncommonAll,
-    // Tailored fix: keep premium treatments out of baseline play-booster rare/mythic pools.
+    // Tailored fix: keep premium treatments and special-guest style inserts out of baseline play-booster rare/mythic pools.
     rare: rareBase.length ? rareBase : rareAll,
     mythic: mythicBase.length ? mythicBase : mythicAll,
-    basicLand: cards.filter((card) => /basic land/i.test(card.typeLine)),
-    land: cards.filter((card) => /land/i.test(card.typeLine)),
-    specialGuest: cards.filter((card) => /special guest|bonus|breaking news|masterpiece|list/i.test(card.name) || /special guest|bonus|masterpiece/i.test(card.typeLine)),
-    showcaseRare: boosterFunRare.length ? boosterFunRare : rareAll,
-    showcaseMythic: boosterFunMythic.length ? boosterFunMythic : mythicAll,
+    basicLand: basicLands.length ? basicLands : nonBasicLands,
+    land: nonBasicLands.length ? nonBasicLands : basicLands,
+    specialGuest: specialGuestLike,
+    showcaseRare: boosterFunRare,
+    showcaseMythic: boosterFunMythic,
   };
   return byRarity;
 }
@@ -1157,6 +1220,7 @@ function openPack() {
   renderHeader();
   renderSessionStats();
   renderEconomyPanel();
+  renderOddsQaPanel();
   renderChasePanel();
   renderBinder();
   renderCards();
@@ -1190,7 +1254,10 @@ function simulatePack(setData) {
 }
 
 function pickFromSheet(setData, slotDefinition, used) {
-  const sheetEntries = slotDefinition?.sheet || [];
+  const sheetEntries = (slotDefinition?.sheet || []).filter((entry) => {
+    const pool = setData.pools[entry.pool] || [];
+    return pool.length > 0;
+  });
   if (!sheetEntries.length) return null;
   const chosenSheet = weightedChoice(sheetEntries);
   if (!chosenSheet) return null;
@@ -1252,6 +1319,7 @@ function formatCollationFidelityLabel(value) {
 function registerPack(cards, setDef) {
   const packValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
   const packCost = getPackPrice(setDef);
+  const setProductKey = getSetProductKey(setDef.key, state.productMode);
   state.session.packsOpened += 1;
   state.session.totalValue += packValue;
   state.session.totalSpent += packCost;
@@ -1266,6 +1334,13 @@ function registerPack(cards, setDef) {
   state.session.setEconomy[setDef.key].packs += 1;
   state.session.setEconomy[setDef.key].spent += packCost;
   state.session.setEconomy[setDef.key].value += packValue;
+
+  const qaFlags = summarizePackObservations(cards);
+  if (!state.session.qaHistory[setProductKey]) {
+    state.session.qaHistory[setProductKey] = [];
+  }
+  state.session.qaHistory[setProductKey].unshift(qaFlags);
+  state.session.qaHistory[setProductKey] = state.session.qaHistory[setProductKey].slice(0, 500);
 
   const hasMythicPlus = cards.some((card) => card.rarity === "mythic" || (card.value || 0) >= 25);
   const hasValueHit = cards.some((card) => (card.value || 0) >= 10);
@@ -1293,6 +1368,18 @@ function registerPack(cards, setDef) {
   }
 }
 
+function getSetProductKey(setKey, productMode) {
+  return `${setKey}:${productMode || "play"}`;
+}
+
+function summarizePackObservations(cards) {
+  return {
+    mythicAny: cards.some((card) => card.rarity === "mythic"),
+    foilRarePlusAny: cards.some((card) => card.isFoil && (card.rarity === "rare" || card.rarity === "mythic")),
+    showcaseRarePlusAny: cards.some((card) => card.isBoosterFunTreatment && (card.rarity === "rare" || card.rarity === "mythic")),
+  };
+}
+
 function renderSessionStats() {
   const net = state.session.totalValue - state.session.totalSpent;
   const biggest = state.session.biggestHit;
@@ -1311,18 +1398,21 @@ function renderChasePanel() {
   if (!dom.chasePanel) return;
   const setDef = getCurrentSetDef();
   const setData = state.setData[setDef.key];
+  sanitizeCurrentSetChaseTargets();
   const targets = getChaseTargets(setDef.key);
-  const candidates = getChaseCandidates(setData);
+  const selectableCandidates = getChaseCandidates(setData, setDef, { onlyPullable: true });
+  const previewCandidates = getChaseCandidates(setData, setDef, {
+    onlyPullable: state.chaseFilterMode === "pullable",
+  }).slice(0, 10);
 
   const selectMarkup = [];
   for (let i = 0; i < 2; i += 1) {
     const selectedId = targets[i] || "";
     const options = [
       `<option value="">No chase selected</option>`,
-      ...candidates.map((card) => {
-        const isPullable = isCardPullableForCurrentProduct(card.id, setData, setDef);
-        const suffix = isPullable ? "" : " [not in current product pool]";
-        return `<option value="${card.id}"${card.id === selectedId ? " selected" : ""}>${escapeHtml(card.name)} (${formatUsd(card.usd || card.usdFoil || 0)})${suffix}</option>`;
+      ...selectableCandidates.map((card) => {
+        const variantLabel = formatVariantLabel(card);
+        return `<option value="${card.id}"${card.id === selectedId ? " selected" : ""}>${escapeHtml(card.name)} ${escapeHtml(variantLabel)} (${formatUsd(card.usd || card.usdFoil || 0)})</option>`;
       }),
     ].join("");
     selectMarkup.push(`
@@ -1342,12 +1432,18 @@ function renderChasePanel() {
       const key = `${setDef.key}:${card.id}`;
       const stats = state.session.chaseStats[key] || { hits: 0, lastHitPack: 0 };
       const ago = stats.lastHitPack > 0 ? Math.max(0, state.session.packsOpened - stats.lastHitPack) : state.session.packsOpened;
-      const availability = isCardPullableForCurrentProduct(card.id, setData, setDef)
-        ? ""
-        : `<em>Not in ${escapeHtml((MTG_PRODUCTS[state.productMode] || MTG_PRODUCTS.play).label)} pool</em>`;
-      return `<li><strong>${escapeHtml(card.name)}</strong><span>Hits: ${stats.hits}</span><em>Packs since hit: ${ago}</em>${availability}</li>`;
+      const variant = formatVariantLabel(card);
+      return `<li><strong>${escapeHtml(card.name)} ${escapeHtml(variant)}</strong><span>Hits: ${stats.hits}</span><em>Packs since hit: ${ago}</em></li>`;
     })
     .join("");
+  const previewRows = previewCandidates
+    .map((card, index) => {
+      const pullable = isCardPullableForCurrentProduct(card.id, setData, setDef);
+      const note = pullable ? "" : ` <em>[outside ${escapeHtml((MTG_PRODUCTS[state.productMode] || MTG_PRODUCTS.play).label)}]</em>`;
+      return `<li>${index + 1}. ${escapeHtml(card.name)} ${escapeHtml(formatVariantLabel(card))} - ${formatUsd(card.usd || card.usdFoil || 0)}${note}</li>`;
+    })
+    .join("");
+  const presetLabel = setDef.key === "avatar-last-airbender" ? "Load Avatar Top 10 Preset" : "Load Top 10 Preset";
 
   const pityMythic = state.session.pity.mythicPlus;
   const pityValue = state.session.pity.valueHit;
@@ -1356,6 +1452,16 @@ function renderChasePanel() {
       <strong>Chase Tracker + Pity</strong>
       <span>Track targeted cards and dry streak counters.</span>
     </div>
+    <div class="control-group">
+      <label class="inline-check">
+        <input id="mtgChaseFilterToggle" type="checkbox" ${state.chaseFilterMode === "pullable" ? "checked" : ""} />
+        Show Top 10 preview for current product only
+      </label>
+    </div>
+    <div class="button-row">
+      <button id="mtgApplyTop10PresetBtn" class="btn">${presetLabel}</button>
+    </div>
+    <ul class="chase-tracker-list">${previewRows || "<li><em>No priced cards yet for this set.</em></li>"}</ul>
     <div class="chase-controls">${selectMarkup.join("")}</div>
     <div class="pity-grid">
       <div class="pity-meter ${getPityHeat(pityMythic, 14)}">
@@ -1375,23 +1481,47 @@ function renderChasePanel() {
       const slot = Number(node.dataset.mtgChaseSlot);
       const next = getChaseTargets(setDef.key);
       next[slot] = node.value || "";
-      setChaseTargets(setDef.key, next.filter(Boolean));
+      setChaseTargets(setDef.key, next.filter(Boolean), setData, setDef);
       renderChasePanel();
     });
   });
+  dom.chasePanel.querySelector("#mtgChaseFilterToggle")?.addEventListener("change", (event) => {
+    state.chaseFilterMode = event.target.checked ? "pullable" : "all";
+    persistChaseFilterMode();
+    renderChasePanel();
+  });
+  dom.chasePanel.querySelector("#mtgApplyTop10PresetBtn")?.addEventListener("click", () => {
+    const topPullable = getChaseCandidates(setData, setDef, { onlyPullable: true }).slice(0, 2);
+    setChaseTargets(setDef.key, topPullable.map((card) => card.id), setData, setDef);
+    renderChasePanel();
+  });
 }
 
-function getChaseCandidates(setData) {
+function getChaseCandidates(setData, setDef, options = {}) {
+  const onlyPullable = options.onlyPullable !== false;
   const sourceCards = setData?.allCards || setData?.cards || [];
   if (!sourceCards.length) return [];
   return [...sourceCards]
+    .filter((card) => (onlyPullable ? isCardPullableForCurrentProduct(card.id, setData, setDef) : true))
     .filter((card) => Math.max(card.usd || 0, card.usdFoil || 0) > 0)
     .sort((a, b) => Math.max(b.usd || 0, b.usdFoil || 0) - Math.max(a.usd || 0, a.usdFoil || 0))
-    .slice(0, 40);
+    .slice(0, 120);
+}
+
+function formatVariantLabel(card) {
+  const labels = [];
+  if (card.collectorNumber) labels.push(`#${card.collectorNumber}`);
+  if (card.fullArt) labels.push("Full Art");
+  if (card.showcase) labels.push("Showcase");
+  if (card.borderColor === "borderless") labels.push("Borderless");
+  if (card.variation) labels.push("Variant");
+  if (card.frameEffects?.includes("extendedart")) labels.push("Extended");
+  if (!labels.length) labels.push("Base");
+  return `[${labels.join(" / ")}]`;
 }
 
 function isCardPullableForCurrentProduct(cardId, setData, setDef) {
-  if (!setData || !cardId) return false;
+  if (!setData || !cardId || !setDef) return false;
   const profile = getCollationProfile(setDef);
   for (const slot of profile.slots || []) {
     for (const sheetEntry of slot.sheet || []) {
@@ -1401,19 +1531,6 @@ function isCardPullableForCurrentProduct(cardId, setData, setDef) {
       }
     }
   }
-  // Fallback for edge cases where a card is booster-eligible but excluded from a specific derived pool
-  // due treatment classification differences (prevents false "not in pool" labels).
-  const card = (setData.allCards || setData.cards || []).find((entry) => entry.id === cardId);
-  if (!card || !card.boosterEligible) return false;
-  const slotPools = new Set(
-    (profile.slots || []).flatMap((slot) => (slot.sheet || []).map((sheetEntry) => sheetEntry.pool)),
-  );
-  if (card.rarity === "mythic" && (slotPools.has("mythic") || slotPools.has("showcaseMythic"))) return true;
-  if (card.rarity === "rare" && (slotPools.has("rare") || slotPools.has("showcaseRare"))) return true;
-  if (card.rarity === "uncommon" && slotPools.has("uncommon")) return true;
-  if (card.rarity === "common" && slotPools.has("common")) return true;
-  if (/basic land/i.test(card.typeLine) && slotPools.has("basicLand")) return true;
-  if (/land/i.test(card.typeLine) && slotPools.has("land")) return true;
   return false;
 }
 
@@ -1475,6 +1592,218 @@ function renderEconomyPanel() {
     </div>
     <ul class="economy-set-list">${setRows || "<li><span>No set data yet.</span></li>"}</ul>
   `;
+}
+
+function renderOddsQaPanel() {
+  if (!dom.oddsQaPanel) return;
+  const setDef = getCurrentSetDef();
+  const setData = state.setData[setDef.key];
+  const product = MTG_PRODUCTS[state.productMode] || MTG_PRODUCTS.play;
+  const setProductKey = getSetProductKey(setDef.key, state.productMode);
+  const history = state.session.qaHistory[setProductKey] || [];
+  const observedWindow = history.slice(0, MTG_QA_WINDOW_SIZE);
+  const expected = setData ? computeExpectedPackRates(setData, setDef) : null;
+  const observed = computeObservedRates(observedWindow);
+  const testResult = state.qaTest.resultBySetProduct[setProductKey] || null;
+
+  const rows = [
+    qaMetricRow("Mythic in Pack", expected?.mythicAny, observed.mythicAny, observedWindow.length),
+    qaMetricRow("Foil Rare+ in Pack", expected?.foilRarePlusAny, observed.foilRarePlusAny, observedWindow.length),
+    qaMetricRow("Showcase/Alt Rare+ in Pack", expected?.showcaseRarePlusAny, observed.showcaseRarePlusAny, observedWindow.length),
+  ].join("");
+
+  const testSummary = testResult
+    ? `
+      <div class="qa-test-summary">
+        <strong>Last 10k test (${escapeHtml(formatDateLabel(testResult.dateIso))})</strong>
+        <p>Mythic ${formatPercent(testResult.metrics.mythicAny.rate)} (${formatPercent(testResult.metrics.mythicAny.ciLow)} - ${formatPercent(testResult.metrics.mythicAny.ciHigh)})</p>
+        <p>Foil Rare+ ${formatPercent(testResult.metrics.foilRarePlusAny.rate)} (${formatPercent(testResult.metrics.foilRarePlusAny.ciLow)} - ${formatPercent(testResult.metrics.foilRarePlusAny.ciHigh)})</p>
+        <ul class="qa-slot-list">${formatQaSlotSummary(testResult)}</ul>
+      </div>
+    `
+    : `<div class="qa-test-summary"><p>No 10k test yet for this set/product.</p></div>`;
+
+  const buttonLabel = state.qaTest.running ? "Running 10k test..." : "Run 10k Collation Test";
+  dom.oddsQaPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Odds QA</strong>
+      <span>Expected vs observed for ${escapeHtml(setDef.displayName)} (${escapeHtml(product.label)}).</span>
+    </div>
+    <div class="qa-grid">
+      <article class="economy-stat"><strong>${observedWindow.length}</strong><span>Observed Packs</span></article>
+      <article class="economy-stat"><strong>${setData ? "Live Pools" : "Pending"}</strong><span>Data Status</span></article>
+      <article class="economy-stat"><strong>${formatUsd(getPackPrice(setDef))}</strong><span>Preset Pack Cost</span></article>
+    </div>
+    <ul class="qa-list">${rows}</ul>
+    <div class="button-row">
+      <button id="mtgRunQaTestBtn" class="btn" ${setData && !state.qaTest.running ? "" : "disabled"}>${buttonLabel}</button>
+    </div>
+    ${testSummary}
+  `;
+
+  dom.oddsQaPanel.querySelector("#mtgRunQaTestBtn")?.addEventListener("click", () => {
+    runCollationTest(setDef.key, state.productMode);
+  });
+}
+
+function qaMetricRow(label, expected, observed, sampleSize) {
+  const observedWithCi = sampleSize > 0 ? formatPercentWithCi(observed, sampleSize) : "n/a";
+  return `<li><span>${escapeHtml(label)}</span><strong>Expected ${formatMaybePercent(expected)} | Observed ${observedWithCi}</strong></li>`;
+}
+
+function formatQaSlotSummary(testResult) {
+  const slotEntries = Object.entries(testResult.slotSummary || {});
+  if (!slotEntries.length) {
+    return "<li>No slot summary available.</li>";
+  }
+  return slotEntries
+    .slice(0, 6)
+    .map(([slotLabel, summary]) => {
+      const n = Math.max(1, Number(summary.totalSeen || 0));
+      const rarePlus = (Number(summary.rare || 0) + Number(summary.mythic || 0)) / n;
+      const noneRate = Number(summary.none || 0) / n;
+      return `<li><span>${escapeHtml(slotLabel)}</span><strong>Rare+ ${formatPercent(rarePlus)} | Empty ${formatPercent(noneRate)}</strong></li>`;
+    })
+    .join("");
+}
+
+function computeObservedRates(historyWindow) {
+  if (!historyWindow.length) {
+    return { mythicAny: 0, foilRarePlusAny: 0, showcaseRarePlusAny: 0 };
+  }
+  const total = historyWindow.length;
+  const sum = (field) => historyWindow.reduce((acc, row) => acc + (row[field] ? 1 : 0), 0) / total;
+  return {
+    mythicAny: sum("mythicAny"),
+    foilRarePlusAny: sum("foilRarePlusAny"),
+    showcaseRarePlusAny: sum("showcaseRarePlusAny"),
+  };
+}
+
+function computeExpectedPackRates(setData, setDef) {
+  const cacheKey = state.productMode;
+  setData.expectedByProduct = setData.expectedByProduct || {};
+  if (setData.expectedByProduct[cacheKey]) {
+    return setData.expectedByProduct[cacheKey];
+  }
+  const profile = getCollationProfile(setDef);
+  const chanceAny = (predicate) => {
+    let probNoHit = 1;
+    for (const slot of profile.slots || []) {
+      const p = computeSlotHitProbability(setData, slot, predicate);
+      probNoHit *= 1 - p;
+    }
+    return 1 - probNoHit;
+  };
+  const result = {
+    mythicAny: chanceAny((card) => card.rarity === "mythic"),
+    foilRarePlusAny: chanceAny((card, entry) => Boolean(entry.foil) && (card.rarity === "rare" || card.rarity === "mythic")),
+    showcaseRarePlusAny: chanceAny((card) => card.isBoosterFunTreatment && (card.rarity === "rare" || card.rarity === "mythic")),
+  };
+  setData.expectedByProduct[cacheKey] = result;
+  return result;
+}
+
+function computeSlotHitProbability(setData, slot, predicate) {
+  const entries = slot.sheet || [];
+  if (!entries.length) return 0;
+  const validEntries = entries
+    .map((entry) => {
+      const pool = setData.pools[entry.pool] || [];
+      return { entry, pool };
+    })
+    .filter((value) => value.pool.length > 0);
+  if (!validEntries.length) return 0;
+  const totalWeight = validEntries.reduce((sum, value) => sum + Number(value.entry.weight || 0), 0);
+  if (!totalWeight) return 0;
+  let slotProbability = 0;
+  for (const value of validEntries) {
+    const entryProb = Number(value.entry.weight || 0) / totalWeight;
+    const hitFrac = value.pool.filter((card) => predicate(card, value.entry)).length / value.pool.length;
+    slotProbability += entryProb * hitFrac;
+  }
+  const includeChance = slot.optional ? Number(slot.chance || 0) : 1;
+  return slotProbability * includeChance;
+}
+
+async function runCollationTest(setKey, productMode) {
+  const setDef = MTG_SETS.find((set) => set.key === setKey);
+  if (!setDef) return;
+  const setData = state.setData[setKey];
+  if (!setData || state.qaTest.running) return;
+
+  const initialProductMode = state.productMode;
+  state.qaTest.running = true;
+  renderOddsQaPanel();
+
+  const n = 10000;
+  const metricCounts = { mythicAny: 0, foilRarePlusAny: 0, showcaseRarePlusAny: 0 };
+  const slotCounts = {};
+  try {
+    state.productMode = productMode;
+    const profile = getCollationProfile(setDef);
+    for (const slot of profile.slots || []) {
+      slotCounts[slot.label] = { totalSeen: 0, none: 0, common: 0, uncommon: 0, rare: 0, mythic: 0 };
+    }
+
+    for (let i = 0; i < n; i += 1) {
+      const pack = simulatePack(setData);
+      const flags = summarizePackObservations(pack);
+      if (flags.mythicAny) metricCounts.mythicAny += 1;
+      if (flags.foilRarePlusAny) metricCounts.foilRarePlusAny += 1;
+      if (flags.showcaseRarePlusAny) metricCounts.showcaseRarePlusAny += 1;
+
+      for (const [slotLabel, slotSummary] of Object.entries(slotCounts)) {
+        const card = pack.find((entry) => entry.slotLabel === slotLabel);
+        slotSummary.totalSeen += 1;
+        if (!card) {
+          slotSummary.none += 1;
+        } else if (slotSummary[card.rarity] !== undefined) {
+          slotSummary[card.rarity] += 1;
+        } else {
+          slotSummary.common += 1;
+        }
+      }
+
+      if ((i + 1) % 1000 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
+
+    const toMetric = (count) => {
+      const rate = count / n;
+      const ci = confidenceInterval95(rate, n);
+      return { rate, ciLow: ci.low, ciHigh: ci.high };
+    };
+    const result = {
+      n,
+      dateIso: new Date().toISOString().slice(0, 10),
+      metrics: {
+        mythicAny: toMetric(metricCounts.mythicAny),
+        foilRarePlusAny: toMetric(metricCounts.foilRarePlusAny),
+        showcaseRarePlusAny: toMetric(metricCounts.showcaseRarePlusAny),
+      },
+      slotSummary: slotCounts,
+    };
+    state.qaTest.resultBySetProduct[getSetProductKey(setKey, productMode)] = result;
+  } finally {
+    state.productMode = initialProductMode;
+    state.qaTest.running = false;
+    renderHeader();
+    renderSetSelect();
+    renderOddsQaPanel();
+    renderChasePanel();
+  }
+}
+
+function confidenceInterval95(rate, sampleSize) {
+  if (!sampleSize) return { low: 0, high: 0 };
+  const z = 1.96;
+  const margin = z * Math.sqrt((rate * (1 - rate)) / sampleSize);
+  return {
+    low: Math.max(0, rate - margin),
+    high: Math.min(1, rate + margin),
+  };
 }
 
 function cardStat(label, value) {
@@ -1598,9 +1927,24 @@ function getChaseTargets(setKey) {
   return state.chaseTargetsBySet[setKey] || [];
 }
 
-function setChaseTargets(setKey, targets) {
-  state.chaseTargetsBySet[setKey] = targets.slice(0, 2);
+function setChaseTargets(setKey, targets, setData = state.setData[setKey], setDef = MTG_SETS.find((set) => set.key === setKey)) {
+  const filtered = (targets || [])
+    .filter(Boolean)
+    .filter((cardId) => isCardPullableForCurrentProduct(cardId, setData, setDef))
+    .slice(0, 2);
+  state.chaseTargetsBySet[setKey] = filtered;
   persistChaseTargets();
+}
+
+function sanitizeCurrentSetChaseTargets() {
+  const setDef = getCurrentSetDef();
+  const setData = state.setData[setDef.key];
+  if (!setData) return;
+  const current = getChaseTargets(setDef.key);
+  const filtered = current.filter((cardId) => isCardPullableForCurrentProduct(cardId, setData, setDef)).slice(0, 2);
+  if (filtered.length !== current.length || filtered.some((id, idx) => id !== current[idx])) {
+    setChaseTargets(setDef.key, filtered, setData, setDef);
+  }
 }
 
 function loadChaseTargets() {
@@ -1616,6 +1960,24 @@ function loadChaseTargets() {
 function persistChaseTargets() {
   try {
     window.localStorage.setItem(MTG_CHASE_STORAGE_KEY, JSON.stringify(state.chaseTargetsBySet));
+  } catch {
+    // Ignore storage issues.
+  }
+}
+
+function loadChaseFilterMode() {
+  try {
+    const value = window.localStorage.getItem(MTG_CHASE_FILTER_STORAGE_KEY);
+    if (value === "all" || value === "pullable") return value;
+  } catch {
+    // Ignore storage issues.
+  }
+  return "pullable";
+}
+
+function persistChaseFilterMode() {
+  try {
+    window.localStorage.setItem(MTG_CHASE_FILTER_STORAGE_KEY, state.chaseFilterMode);
   } catch {
     // Ignore storage issues.
   }
@@ -1643,10 +2005,13 @@ function persistBinder() {
 }
 
 function getPackPrice(setDef) {
-  const base = Number(setDef.fallbackPackPrice || MTG_DEFAULT_PACK_PRICE);
-  const productMultiplier = state.productMode === "collector" ? 3.2 : 1;
+  const preset = MTG_PACK_PRICE_PRESETS[setDef.key] || null;
+  const base =
+    state.productMode === "collector"
+      ? Number(preset?.collector || (setDef.fallbackPackPrice || MTG_DEFAULT_PACK_PRICE) * 3.2)
+      : Number(preset?.play || setDef.fallbackPackPrice || MTG_DEFAULT_PACK_PRICE);
   const sourceMultiplier = state.priceSourceMode === "tcgplayerSealed" ? 1.04 : 1;
-  return Number((base * productMultiplier * sourceMultiplier).toFixed(2));
+  return Number((base * sourceMultiplier).toFixed(2));
 }
 
 function getPriceSource(setDef) {
@@ -1673,6 +2038,20 @@ function savePriceSourceMode(value) {
 
 function formatUsd(value) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value || 0));
+}
+
+function formatPercent(value) {
+  return `${(Number(value || 0) * 100).toFixed(1)}%`;
+}
+
+function formatMaybePercent(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "n/a";
+  return formatPercent(Number(value));
+}
+
+function formatPercentWithCi(rate, sampleSize) {
+  const ci = confidenceInterval95(Number(rate || 0), sampleSize);
+  return `${formatPercent(rate)} (${formatPercent(ci.low)} - ${formatPercent(ci.high)})`;
 }
 
 function formatDateLabel(isoDate) {
