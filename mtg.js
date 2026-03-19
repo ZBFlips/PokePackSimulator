@@ -486,7 +486,7 @@ const MTG_PACK_PRICE_PRESETS = {
   "innistrad-crimson-vow": { play: 4.79, collector: 19.99 },
 };
 
-const MTG_SETS = [
+const MTG_SETS = COMMON.mergeSetDefinitions([
   {
     key: "teenage-mutant-ninja-turtles",
     scryfallCode: "tmt",
@@ -890,7 +890,7 @@ const MTG_SETS = [
       tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Modern+Horizons+3+play+booster" },
     },
   },
-];
+], window.PackSimImportData?.mtg || []);
 
 const state = {
   selectedSetKey: MTG_SETS[0].key,
@@ -1316,8 +1316,8 @@ function renderHeader() {
 
   dom.selectedPackName.textContent = setDef.displayName;
   dom.selectedPackSub.textContent = `${setDef.releaseLabel} - ${sealedProduct.label}`;
-  dom.packImage.src = setDef.packImage;
-  dom.packLogo.src = setData?.setMeta?.icon_svg_uri || "";
+  setMtgHeaderImage(dom.packImage, setDef.packImage, buildMtgHeaderFallback(setDef, "pack"));
+  setMtgHeaderImage(dom.packLogo, setData?.setMeta?.icon_svg_uri || "", buildMtgHeaderFallback(setDef, "logo"));
 
   dom.packStats.innerHTML = [
     `<span class="pack-stat">${setData?.cards?.length || 0} cards loaded</span>`,
@@ -1348,6 +1348,67 @@ function renderHeader() {
     : "<span>Pack market source unavailable.</span>";
 
   dom.openPackBtn.disabled = !setData;
+}
+
+function setMtgHeaderImage(imgEl, primarySrc, fallbackSrc) {
+  if (!(imgEl instanceof HTMLImageElement)) return;
+
+  const nextSrc = typeof primarySrc === "string" && primarySrc.trim() ? primarySrc.trim() : fallbackSrc;
+  const safePrimary = sanitizeHttpUrl(nextSrc);
+  const safeFallback = typeof fallbackSrc === "string" && fallbackSrc.trim() ? fallbackSrc.trim() : "";
+
+  imgEl.onerror = null;
+  imgEl.onload = null;
+
+  imgEl.onerror = () => {
+    if (!safeFallback || imgEl.dataset.fallbackApplied === "true") {
+      return;
+    }
+    imgEl.dataset.fallbackApplied = "true";
+    imgEl.src = safeFallback;
+  };
+
+  imgEl.onload = () => {
+    imgEl.dataset.fallbackApplied = "false";
+  };
+
+  imgEl.dataset.fallbackApplied = "false";
+  imgEl.src = safePrimary && safePrimary !== "#" ? safePrimary : safeFallback;
+}
+
+function buildMtgHeaderFallback(setDef, variant = "pack") {
+  const displayName = setDef?.displayName || "Magic Set";
+  const code = String(setDef?.scryfallCode || "mtg").toUpperCase();
+  const label = variant === "logo" ? code : displayName;
+  const subLabel = variant === "logo" ? "Set Symbol" : "Pack Preview";
+  const accent = variant === "logo" ? "#f6d779" : "#7fd8ff";
+  const background = variant === "logo" ? "#11253a" : "#16324f";
+  const escapedLabel = escapeSvgText(label);
+  const escapedSubLabel = escapeSvgText(subLabel);
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 448" role="img" aria-label="${escapedLabel}">
+      <defs>
+        <linearGradient id="mtgFallbackBg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${background}" />
+          <stop offset="100%" stop-color="#091523" />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="448" rx="28" fill="url(#mtgFallbackBg)" />
+      <rect x="18" y="18" width="284" height="412" rx="20" fill="none" stroke="${accent}" stroke-opacity="0.45" />
+      <text x="160" y="${variant === "logo" ? 192 : 206}" fill="${accent}" font-size="${variant === "logo" ? 74 : 34}" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">${escapedLabel}</text>
+      <text x="160" y="${variant === "logo" ? 244 : 256}" fill="#d7ecff" font-size="18" font-family="Arial, sans-serif" text-anchor="middle">${escapedSubLabel}</text>
+    </svg>
+  `)}`;
+}
+
+function escapeSvgText(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 async function loadSetData(setKey) {
@@ -2141,6 +2202,7 @@ function renderOddsQaPanel() {
   const expected = setData ? computeExpectedPackRates(setData, setDef) : null;
   const observed = computeObservedRates(observedWindow);
   const testResult = state.qaTest.resultBySetProduct[setProductKey] || null;
+  const insightSummary = buildQaInsightSummary(expected, observed, observedWindow.length);
 
   const rows = [
     qaMetricRow("Mythic in Pack", expected?.mythicAny, observed.mythicAny, observedWindow.length),
@@ -2170,6 +2232,7 @@ function renderOddsQaPanel() {
       <article class="economy-stat"><strong>${setData ? "Live Pools" : "Pending"}</strong><span>Data Status</span></article>
       <article class="economy-stat"><strong>${formatUsd(getPackPrice(setDef))}</strong><span>Preset Pack Cost</span></article>
     </div>
+    ${insightSummary}
     <ul class="qa-list">${rows}</ul>
     <div class="button-row">
       <button id="mtgRunQaTestBtn" class="btn" ${setData && !state.qaTest.running ? "" : "disabled"}>${buttonLabel}</button>
@@ -2186,6 +2249,55 @@ function renderOddsQaPanel() {
 function qaMetricRow(label, expected, observed, sampleSize) {
   const observedWithCi = sampleSize > 0 ? formatPercentWithCi(observed, sampleSize) : "n/a";
   return `<li><span>${escapeHtml(label)}</span><strong>Expected ${formatMaybePercent(expected)} | Observed ${observedWithCi}</strong></li>`;
+}
+
+function buildQaInsightSummary(expected, observed, sampleSize) {
+  if (!expected || !sampleSize) {
+    return `<div class="analytics-empty">Run a few packs to surface drift signals.</div>`;
+  }
+
+  const rows = [
+    { label: "Mythic", expected: expected.mythicAny, observed: observed.mythicAny },
+    { label: "Foil Rare+", expected: expected.foilRarePlusAny, observed: observed.foilRarePlusAny },
+    { label: "Showcase/Alt", expected: expected.showcaseRarePlusAny, observed: observed.showcaseRarePlusAny },
+  ].filter((row) => Number.isFinite(row.expected));
+
+  if (!rows.length) {
+    return `<div class="analytics-empty">No QA insight available for this set yet.</div>`;
+  }
+
+  const mapped = rows.map((row) => ({
+    ...row,
+    delta: (row.observed - row.expected) * 100,
+  }));
+  const biggest = [...mapped].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
+  const avgDelta = mapped.reduce((sum, row) => sum + row.delta, 0) / mapped.length;
+  const signal =
+    Math.abs(avgDelta) < 1
+      ? "Pack behavior is tracking very close to expectation."
+      : avgDelta > 0
+        ? "Observed rates are running a little hot overall."
+        : "Observed rates are running a little cold overall.";
+
+  return `
+    <div class="analytics-insight-grid qa-insight-grid">
+      ${mapped
+        .map(
+          (row) => `
+            <article class="analytics-insight-card qa-insight-card">
+              <strong>${row.label}</strong>
+              <span>${formatSignedPercent(row.delta)}</span>
+            </article>
+          `,
+        )
+        .join("")}
+      <article class="analytics-insight-card qa-insight-card">
+        <strong>${biggest.label}</strong>
+        <span>Largest drift ${formatSignedPercent(biggest.delta)}</span>
+      </article>
+    </div>
+    <p class="analytics-insight-copy">${escapeHtml(signal)}</p>
+  `;
 }
 
 function formatQaSlotSummary(testResult) {
@@ -2215,6 +2327,11 @@ function computeObservedRates(historyWindow) {
     foilRarePlusAny: sum("foilRarePlusAny"),
     showcaseRarePlusAny: sum("showcaseRarePlusAny"),
   };
+}
+
+function formatSignedPercent(value) {
+  const normalized = Number(value || 0);
+  return `${normalized >= 0 ? "+" : ""}${normalized.toFixed(1)}%`;
 }
 
 function computeExpectedPackRates(setData, setDef) {

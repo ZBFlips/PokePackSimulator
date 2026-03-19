@@ -59,6 +59,21 @@
     });
   }
 
+  function mergeSetDefinitions(baseSets, importedSets) {
+    const merged = new Map();
+    for (const setDef of Array.isArray(baseSets) ? baseSets : []) {
+      if (setDef && typeof setDef === "object" && setDef.key) {
+        merged.set(setDef.key, { ...setDef });
+      }
+    }
+    for (const setDef of Array.isArray(importedSets) ? importedSets : []) {
+      if (setDef && typeof setDef === "object" && setDef.key) {
+        merged.set(setDef.key, { ...setDef });
+      }
+    }
+    return [...merged.values()];
+  }
+
   function buildSparklineSvg(values, options = {}) {
     const data = Array.isArray(values) ? values.map((value) => Number(value)).filter((value) => Number.isFinite(value)) : [];
     if (!data.length) return "";
@@ -119,6 +134,7 @@
     isSnapshotStale,
     getSnapshotFreshnessLabel,
     registerServiceWorker,
+    mergeSetDefinitions,
     buildSparklineSvg,
   });
 })();

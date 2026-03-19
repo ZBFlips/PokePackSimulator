@@ -1,0 +1,62 @@
+{
+  "pokemon": [],
+  "mtg": [
+    {
+      "key": "dominaria-remastered",
+      "scryfallCode": "dmr",
+      "displayName": "Dominaria Remastered",
+      "releaseLabel": "Remastered",
+      "releaseDate": "2023-01-13",
+      "fallbackPackPrice": 6.99,
+      "packImage": "https://svgs.scryfall.io/sets/dmr.svg",
+      "priceSources": {
+        "scryfall": {
+          "label": "Scryfall + public market blend",
+          "url": "https://scryfall.com/sets/dmr"
+        },
+        "tcgplayerSealed": {
+          "label": "TCGplayer sealed search",
+          "url": "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Dominaria+Remastered+draft+booster"
+        }
+      }
+    },
+    {
+      "key": "the-lord-of-the-rings-tales-of-middle-earth",
+      "scryfallCode": "ltr",
+      "displayName": "The Lord of the Rings: Tales of Middle-earth",
+      "releaseLabel": "Universes Beyond",
+      "releaseDate": "2023-06-23",
+      "fallbackPackPrice": 8.99,
+      "packImage": "https://svgs.scryfall.io/sets/ltr.svg",
+      "priceSources": {
+        "scryfall": {
+          "label": "Scryfall + public market blend",
+          "url": "https://scryfall.com/sets/ltr"
+        },
+        "tcgplayerSealed": {
+          "label": "TCGplayer sealed search",
+          "url": "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=The+Lord+of+the+Rings+Tales+of+Middle-earth+draft+booster"
+        }
+      }
+    },
+    {
+      "key": "ravnica-remastered",
+      "scryfallCode": "rvr",
+      "displayName": "Ravnica Remastered",
+      "releaseLabel": "Remastered",
+      "releaseDate": "2024-01-12",
+      "fallbackPackPrice": 6.99,
+      "packImage": "https://svgs.scryfall.io/sets/rvr.svg",
+      "priceSources": {
+        "scryfall": {
+          "label": "Scryfall + public market blend",
+          "url": "https://scryfall.com/sets/rvr"
+        },
+        "tcgplayerSealed": {
+          "label": "TCGplayer sealed search",
+          "url": "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Ravnica+Remastered+draft+booster"
+        }
+      }
+    }
+  ]
+}

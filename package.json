@@ -7,6 +7,7 @@
   },
   "scripts": {
     "serve": "node scripts/static_server.mjs",
+    "build:sets": "node scripts/build_set_imports.mjs",
     "test:consistency": "node tests/consistency.test.mjs",
     "test:e2e": "playwright test",
     "test": "npm run test:consistency && npm run test:e2e",

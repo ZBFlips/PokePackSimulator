@@ -33,7 +33,10 @@ A browser-based pack-opening simulator with three entry points:
 - `tests/consistency.test.mjs`: static integrity checks
 - `tests/e2e/smoke.spec.mjs`: browser smoke coverage for Pokemon and MTG
 - `scripts/static_server.mjs`: zero-dependency local server for browser tests
+- `scripts/build_set_imports.mjs`: generates the data-driven set import bundle
 - `scripts/refresh_snapshots.mjs`: scheduled market snapshot refresh script
+- `assets/data/imports/set-imports.json`: source of truth for imported set definitions
+- `assets/data/set-imports.generated.js`: generated runtime bundle loaded by both entry points
 - `assets/data/*.json`: market snapshots
 - `assets/qa/*.json`: QA lockfiles
 
@@ -43,6 +46,7 @@ If you have Node 20+ installed:
 
 ```powershell
 npm install
+npm run build:sets
 npm run serve
 ```
 
@@ -93,6 +97,12 @@ npm run refresh:snapshots
 ```
 
 If either variable is missing, that game mode is skipped without failing the run.
+
+## Adding New Sets
+
+1. Add a new set definition to `assets/data/imports/set-imports.json`.
+2. Run `npm run build:sets` to regenerate `assets/data/set-imports.generated.js`.
+3. Refresh the relevant pricing snapshot if the new set should use authored market data.
 
 ## Deploy
 

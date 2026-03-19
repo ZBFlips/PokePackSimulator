@@ -77,7 +77,7 @@ const ANALYTICS_TIER_ORDER = [
   "energy",
 ];
 
-const PACK_CONFIG = [
+const PACK_CONFIG = COMMON.mergeSetDefinitions([
   {
     key: "paldean-fates",
     setId: "sv4pt5",
@@ -2138,7 +2138,7 @@ const PACK_CONFIG = [
     oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
     sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-ultra-prism/booster-pack" }],
   },
-];
+], window.PackSimImportData?.pokemon || []);
 
 const SLOT_TIER_TO_POOL_KEY = {
   common: "common",
@@ -4255,7 +4255,7 @@ function renderAnalyticsOverlay() {
   }
 
   if (!analytics || analytics.packs === 0) {
-    dom.analyticsSummary.textContent = "Open packs to compare observed pull distribution against expected odds.";
+    dom.analyticsSummary.innerHTML = "<span class=\"analytics-empty\">Open packs to compare observed pull distribution against expected odds.</span>";
     dom.analyticsRows.innerHTML = `<div class="analytics-empty">No analytics data yet for this set.</div>`;
     return;
   }
@@ -4263,7 +4263,7 @@ function renderAnalyticsOverlay() {
   const totalObserved = Object.values(analytics.observedCounts).reduce((sum, value) => sum + value, 0) || 1;
   const totalExpected = Object.values(analytics.expectedCounts).reduce((sum, value) => sum + value, 0) || 1;
 
-  dom.analyticsSummary.textContent = `${analytics.packs} packs analyzed for ${getPackDefByKey(state.selectedPackKey)?.displayName || "this set"}.`;
+  dom.analyticsSummary.innerHTML = buildAnalyticsInsightSummary(analytics, totalObserved, totalExpected);
 
   const rows = ANALYTICS_TIER_ORDER
     .map((tier) => {
@@ -4290,6 +4290,63 @@ function renderAnalyticsOverlay() {
     .join("");
 
   dom.analyticsRows.innerHTML = rows || `<div class="analytics-empty">No tier rows to display.</div>`;
+}
+
+function buildAnalyticsInsightSummary(analytics, totalObserved, totalExpected) {
+  const deltas = ANALYTICS_TIER_ORDER
+    .map((tier) => {
+      const observedCount = analytics.observedCounts[tier] || 0;
+      const expectedCount = analytics.expectedCounts[tier] || 0;
+      if (observedCount <= 0 && expectedCount <= 0) return null;
+      const observedPct = (observedCount / totalObserved) * 100;
+      const expectedPct = (expectedCount / totalExpected) * 100;
+      return {
+        tier,
+        label: formatTierName(tier),
+        observedPct,
+        expectedPct,
+        delta: observedPct - expectedPct,
+      };
+    })
+    .filter(Boolean);
+
+  if (!deltas.length) {
+    return "<span class=\"analytics-empty\">No tier summary available yet.</span>";
+  }
+
+  const byMagnitude = [...deltas].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  const strongest = byMagnitude[0];
+  const over = [...deltas].filter((item) => item.delta > 0).sort((a, b) => b.delta - a.delta)[0] || strongest;
+  const under = [...deltas].filter((item) => item.delta < 0).sort((a, b) => a.delta - b.delta)[0] || strongest;
+  const strongestDelta = strongest.delta;
+  const signal =
+    Math.abs(strongestDelta) < 1
+      ? `Distribution is tracking close to expected odds.`
+      : strongestDelta > 0
+        ? `${strongest.label} is running hot by ${formatSignedPercent(strongestDelta)}.`
+        : `${strongest.label} is running light by ${formatSignedPercent(-Math.abs(strongestDelta))}.`;
+
+  return `
+    <div class="analytics-insight-grid">
+      <article class="analytics-insight-card">
+        <strong>${analytics.packs}</strong>
+        <span>Packs tracked</span>
+      </article>
+      <article class="analytics-insight-card">
+        <strong>${strongest.label}</strong>
+        <span>Biggest drift ${formatSignedPercent(strongestDelta)}</span>
+      </article>
+      <article class="analytics-insight-card">
+        <strong>${over.label}</strong>
+        <span>Best over ${formatSignedPercent(over.delta)}</span>
+      </article>
+      <article class="analytics-insight-card">
+        <strong>${under.label}</strong>
+        <span>Best under ${formatSignedPercent(under.delta)}</span>
+      </article>
+    </div>
+    <p class="analytics-insight-copy">${escapeHtml(signal)}</p>
+  `;
 }
 
 function updateAnalyticsForPack(cards, packDef) {
@@ -4771,6 +4828,11 @@ function buildAnalyticsComparisonMeter(observedPct, expectedPct, deltaClass) {
       <span class="analytics-meter-target" style="left:${expectedLeft.toFixed(1)}%"></span>
     </div>
   `;
+}
+
+function formatSignedPercent(value) {
+  const normalized = Number(value || 0);
+  return `${normalized >= 0 ? "+" : ""}${normalized.toFixed(1)}%`;
 }
 
 function buildEconomySparkline(history) {

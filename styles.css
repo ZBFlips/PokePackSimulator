@@ -675,6 +675,41 @@ select {
   padding: 8px 2px;
 }
 
+.analytics-insight-grid,
+.qa-insight-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+}
+
+.analytics-insight-card,
+.qa-insight-card {
+  border: 1px solid rgba(150, 216, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(9, 22, 37, 0.82);
+  padding: 8px 10px;
+}
+
+.analytics-insight-card strong,
+.qa-insight-card strong {
+  display: block;
+  color: #eef7ff;
+  font-size: 0.9rem;
+}
+
+.analytics-insight-card span,
+.qa-insight-card span {
+  display: block;
+  color: #c4d9f6;
+  font-size: 0.8rem;
+}
+
+.analytics-insight-copy {
+  margin: 0;
+  color: #dbe9ff;
+  font-size: 0.86rem;
+}
+
 .pack-stage {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -717,13 +752,15 @@ select {
   place-items: center;
 }
 
-#packImage {
+#packImage,
+#mtgPackImage {
   max-height: 250px;
   max-width: 100%;
   object-fit: contain;
 }
 
-#packLogo {
+#packLogo,
+#mtgPackLogo {
   margin-top: 6px;
   max-height: 36px;
   max-width: 90%;
@@ -1659,7 +1696,8 @@ select {
     min-height: 230px;
   }
 
-  #packImage {
+  #packImage,
+  #mtgPackImage {
     max-height: 180px;
   }
 
