@@ -1678,6 +1678,253 @@ const PACK_CONFIG = [
       { label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-phantom-forces/booster-pack" },
     ],
   },
+  {
+    key: "paradox-rift",
+    setId: "sv4",
+    displayName: "Paradox Rift",
+    shortCode: "PAR",
+    releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 7.89,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Paradox Rift", "Scarlet & Violet-Paradox Rift", "Scarlet & Violet-Paradox-Rift"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "aceSpec", probability: 0.048 }] },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [
+          { tier: "illustrationRare", probability: 0.082 },
+          { tier: "specialIllustrationRare", probability: 0.017 },
+          { tier: "hyperRare", probability: 0.006 },
+        ],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.169 },
+          { tier: "ultraRare", probability: 0.069 },
+        ],
+      },
+    },
+    collationV2: { version: "sv-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.4, tierExponents: { reverseFoil: 0.06, aceSpec: 0.2, doubleRare: 0.24, ultraRare: 0.31, illustrationRare: 0.35, specialIllustrationRare: 0.5, hyperRare: 0.46 } },
+    oddsHighlights: [
+      { label: "ACE SPEC", probability: 0.048 },
+      { label: "Illustration Rare", probability: 0.082 },
+      { label: "Special Illustration Rare", probability: 0.017 },
+      { label: "Double Rare", probability: 0.169 },
+    ],
+    oddsSources: [{ label: "TCGplayer pull-rate sample", url: "https://www.tcgplayer.com/content/article/Pokemon-TCG-Paradox-Rift-Pull-Rates/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-paradox-rift/booster-pack" }],
+  },
+  {
+    key: "paldea-evolved",
+    setId: "sv2",
+    displayName: "Paldea Evolved",
+    shortCode: "PAL",
+    releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 8.14,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Paldea Evolved", "Scarlet & Violet-Paldea Evolved", "Scarlet & Violet-Paldea-Evolved"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "aceSpec", probability: 0.045 }] },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [
+          { tier: "illustrationRare", probability: 0.079 },
+          { tier: "specialIllustrationRare", probability: 0.016 },
+          { tier: "hyperRare", probability: 0.005 },
+        ],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.165 },
+          { tier: "ultraRare", probability: 0.067 },
+        ],
+      },
+    },
+    collationV2: { version: "sv-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.38, tierExponents: { reverseFoil: 0.06, aceSpec: 0.2, doubleRare: 0.24, ultraRare: 0.31, illustrationRare: 0.35, specialIllustrationRare: 0.5, hyperRare: 0.46 } },
+    oddsHighlights: [
+      { label: "Illustration Rare", probability: 0.079 },
+      { label: "Special Illustration Rare", probability: 0.016 },
+      { label: "Double Rare", probability: 0.165 },
+      { label: "Ultra Rare", probability: 0.067 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-paldea-evolved/booster-pack" }],
+  },
+  {
+    key: "scarlet-violet-base",
+    setId: "sv1",
+    displayName: "Scarlet & Violet Base",
+    shortCode: "SVI",
+    releaseLabel: "Scarlet & Violet Expansion",
+    packPrice: 7.42,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Scarlet & Violet", "Scarlet & Violet Base", "Scarlet & Violet-Scarlet & Violet"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "aceSpec", probability: 0.042 }] },
+      reverseB: {
+        defaultTier: "reverseFoil",
+        options: [
+          { tier: "illustrationRare", probability: 0.074 },
+          { tier: "specialIllustrationRare", probability: 0.013 },
+          { tier: "hyperRare", probability: 0.004 },
+        ],
+      },
+      rare: {
+        defaultTier: "rareHolo",
+        options: [
+          { tier: "doubleRare", probability: 0.162 },
+          { tier: "ultraRare", probability: 0.064 },
+        ],
+      },
+    },
+    collationV2: { version: "sv-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.35, tierExponents: { reverseFoil: 0.06, aceSpec: 0.2, doubleRare: 0.24, ultraRare: 0.31, illustrationRare: 0.35, specialIllustrationRare: 0.5, hyperRare: 0.46 } },
+    oddsHighlights: [
+      { label: "Illustration Rare", probability: 0.074 },
+      { label: "Special Illustration Rare", probability: 0.013 },
+      { label: "Double Rare", probability: 0.162 },
+      { label: "Ultra Rare", probability: 0.064 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-scarlet-&-violet/booster-pack" }],
+  },
+  {
+    key: "chilling-reign",
+    setId: "swsh6",
+    displayName: "Chilling Reign",
+    shortCode: "CRE",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 10.49,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Chilling Reign", "SWSH-Chilling Reign", "Sword & Shield-Chilling Reign"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.048 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.041 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.146 }, { tier: "ultraRare", probability: 0.056 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.35, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.048 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.041 },
+      { label: "Double Rare", probability: 0.146 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.056 },
+    ],
+    oddsSources: [{ label: "TCGplayer pull-rate sample", url: "https://www.tcgplayer.com/content/article/Pokemon-TCG-Chilling-Reign-Pull-Rates/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-chilling-reign/booster-pack" }],
+  },
+  {
+    key: "battle-styles",
+    setId: "swsh5",
+    displayName: "Battle Styles",
+    shortCode: "BST",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 8.95,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Battle Styles", "SWSH-Battle Styles", "Sword & Shield-Battle Styles"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.044 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.039 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.142 }, { tier: "ultraRare", probability: 0.053 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.35, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.044 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.039 },
+      { label: "Double Rare", probability: 0.142 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.053 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-battle-styles/booster-pack" }],
+  },
+  {
+    key: "darkness-ablaze",
+    setId: "swsh3",
+    displayName: "Darkness Ablaze",
+    shortCode: "DAA",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 9.61,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Darkness Ablaze", "SWSH-Darkness Ablaze", "Sword & Shield-Darkness Ablaze"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.039 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.034 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.138 }, { tier: "ultraRare", probability: 0.049 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.34, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.039 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.034 },
+      { label: "Double Rare", probability: 0.138 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.049 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-darkness-ablaze/booster-pack" }],
+  },
+  {
+    key: "rebel-clash",
+    setId: "swsh2",
+    displayName: "Rebel Clash",
+    shortCode: "RCL",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 8.36,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Rebel Clash", "SWSH-Rebel Clash", "Sword & Shield-Rebel Clash"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.036 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.031 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.132 }, { tier: "ultraRare", probability: 0.046 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.34, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.036 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.031 },
+      { label: "Double Rare", probability: 0.132 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.046 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-rebel-clash/booster-pack" }],
+  },
+  {
+    key: "sword-shield-base",
+    setId: "swsh1",
+    displayName: "Sword & Shield Base",
+    shortCode: "SSH",
+    releaseLabel: "Sword & Shield Expansion",
+    packPrice: 8.22,
+    localPackImage: "",
+    packImage: "",
+    setAliases: ["Sword & Shield", "Sword & Shield Base", "SWSH-Sword & Shield"],
+    slotOdds: {
+      reverseA: { defaultTier: "reverseFoil", options: [{ tier: "illustrationRare", probability: 0.032 }] },
+      reverseB: { defaultTier: "reverseFoil", options: [{ tier: "ultraRare", probability: 0.029 }] },
+      rare: { defaultTier: "rareHolo", options: [{ tier: "doubleRare", probability: 0.128 }, { tier: "ultraRare", probability: 0.044 }] },
+    },
+    collationV2: { version: "swsh-era-v2", fidelity: "official-slot" },
+    cardWeighting: { marketFloor: 0.34, tierExponents: { reverseFoil: 0.07, doubleRare: 0.23, ultraRare: 0.3, illustrationRare: 0.34 } },
+    oddsHighlights: [
+      { label: "Reverse Hit Slot", probability: 0.032 },
+      { label: "Ultra Rare (Reverse Slot)", probability: 0.029 },
+      { label: "Double Rare", probability: 0.128 },
+      { label: "Ultra Rare (Rare Slot)", probability: 0.044 },
+    ],
+    oddsSources: [{ label: "Community pull-rate sample", url: "https://www.pokebeach.com/" }],
+    sources: [{ label: "PriceCharting booster pack market", url: "https://www.pricecharting.com/game/pokemon-sword-&-shield/booster-pack" }],
+  },
 ];
 
 const SLOT_TIER_TO_POOL_KEY = {
@@ -3188,6 +3435,11 @@ function getSortedPackDefs() {
     return packs;
   }
 
+  if (state.packSortMode === "fidelity") {
+    packs.sort((a, b) => getFidelityRank(getPackFidelity(b).label) - getFidelityRank(getPackFidelity(a).label) || a.displayName.localeCompare(b.displayName));
+    return packs;
+  }
+
   packs.sort((a, b) => {
     const aRelease = getPackReleaseTimestamp(a.key);
     const bRelease = getPackReleaseTimestamp(b.key);
@@ -3197,6 +3449,14 @@ function getSortedPackDefs() {
     return a.displayName.localeCompare(b.displayName);
   });
   return packs;
+}
+
+function getFidelityRank(label) {
+  if (label === "Exact") return 4;
+  if (label === "Official-slot") return 3;
+  if (label === "Estimated") return 2;
+  if (label === "Unknown") return 1;
+  return 0;
 }
 
 function getPackReleaseTimestamp(packKey) {
@@ -4592,7 +4852,7 @@ function getPackFidelity(packDef) {
   const hasLiveData = state.liveLoadedPackKeys.has(packDef.key) && Boolean(setData?.cards?.length);
   const profile = getPokemonCollationProfile(packDef);
   const hasStructuredSlots = Array.isArray(profile.slots) && profile.slots.length > 0;
-  const hasCommunitySources = (packDef.oddsSources || []).length > 0;
+  const hasCommunitySources = (packDef.oddsSources || packDef.sources || []).length > 0;
   const hasLockfile = hasPokemonLockfileSet(packDef.key);
   if (hasLiveData && hasStructuredSlots && hasCommunitySources && hasLockfile) {
     return { label: "Exact", level: "exact" };

@@ -34,10 +34,18 @@
                                              "pricecharting":  830,
                                              "tcgplayerSealed":  863.2
                                          },
+                       "paradox-rift":  {
+                                            "pricecharting":  7.89,
+                                            "tcgplayerSealed":  8.21
+                                        },
                        "skyridge":  {
                                         "pricecharting":  2087.5,
                                         "tcgplayerSealed":  2171
                                     },
+                       "scarlet-violet-base":  {
+                                                   "pricecharting":  7.42,
+                                                   "tcgplayerSealed":  7.72
+                                               },
                        "holon-phantoms":  {
                                               "pricecharting":  1231.62,
                                               "tcgplayerSealed":  1280.88
@@ -58,10 +66,18 @@
                                              "pricecharting":  303.04,
                                              "tcgplayerSealed":  315.16
                                          },
+                       "chilling-reign":  {
+                                              "pricecharting":  10.49,
+                                              "tcgplayerSealed":  10.91
+                                          },
                        "prismatic-evolutions":  {
                                                     "pricecharting":  11.58,
                                                     "tcgplayerSealed":  12.04
                                                 },
+                       "darkness-ablaze":  {
+                                               "pricecharting":  9.61,
+                                               "tcgplayerSealed":  9.99
+                                           },
                        "aquapolis":  {
                                          "pricecharting":  1099.05,
                                          "tcgplayerSealed":  1143.01
@@ -70,6 +86,10 @@
                                           "pricecharting":  272.67,
                                           "tcgplayerSealed":  283.58
                                       },
+                       "rebel-clash":  {
+                                           "pricecharting":  8.36,
+                                           "tcgplayerSealed":  8.69
+                                       },
                        "ruby-sapphire":  {
                                              "pricecharting":  375.36,
                                              "tcgplayerSealed":  390.37
@@ -114,6 +134,10 @@
                                              "pricecharting":  468,
                                              "tcgplayerSealed":  486.72
                                          },
+                       "battle-styles":  {
+                                             "pricecharting":  8.95,
+                                             "tcgplayerSealed":  9.31
+                                         },
                        "deoxys":  {
                                       "pricecharting":  1187.87,
                                       "tcgplayerSealed":  1235.38
@@ -130,6 +154,10 @@
                                                "pricecharting":  9.48,
                                                "tcgplayerSealed":  9.86
                                            },
+                       "paldea-evolved":  {
+                                              "pricecharting":  8.14,
+                                              "tcgplayerSealed":  8.47
+                                          },
                        "team-rocket":  {
                                            "pricecharting":  344.67,
                                            "tcgplayerSealed":  358.46
@@ -142,6 +170,10 @@
                                            "pricecharting":  479,
                                            "tcgplayerSealed":  498.16
                                        },
+                       "sword-shield-base":  {
+                                                 "pricecharting":  8.22,
+                                                 "tcgplayerSealed":  8.55
+                                             },
                        "base-set-1999":  {
                                              "pricecharting":  596.67,
                                              "tcgplayerSealed":  620.54

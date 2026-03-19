@@ -782,6 +782,110 @@ const MTG_SETS = [
       tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Innistrad+Crimson+Vow+set+booster" },
     },
   },
+  {
+    key: "innistrad-midnight-hunt",
+    scryfallCode: "mid",
+    displayName: "Innistrad: Midnight Hunt",
+    releaseLabel: "Recent Release",
+    releaseDate: "2021-09-24",
+    fallbackPackPrice: 4.69,
+    packImage: "https://svgs.scryfall.io/sets/mid.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/mid" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Innistrad+Midnight+Hunt+set+booster" },
+    },
+  },
+  {
+    key: "adventures-in-the-forgotten-realms",
+    scryfallCode: "afr",
+    displayName: "Adventures in the Forgotten Realms",
+    releaseLabel: "Recent Release",
+    releaseDate: "2021-07-23",
+    fallbackPackPrice: 4.89,
+    packImage: "https://svgs.scryfall.io/sets/afr.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/afr" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Adventures+in+the+Forgotten+Realms+set+booster" },
+    },
+  },
+  {
+    key: "strixhaven-school-of-mages",
+    scryfallCode: "stx",
+    displayName: "Strixhaven: School of Mages",
+    releaseLabel: "Recent Release",
+    releaseDate: "2021-04-23",
+    fallbackPackPrice: 5.39,
+    packImage: "https://svgs.scryfall.io/sets/stx.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/stx" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Strixhaven+set+booster" },
+    },
+  },
+  {
+    key: "kaldheim",
+    scryfallCode: "khm",
+    displayName: "Kaldheim",
+    releaseLabel: "Recent Release",
+    releaseDate: "2021-02-05",
+    fallbackPackPrice: 5.19,
+    packImage: "https://svgs.scryfall.io/sets/khm.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/khm" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Kaldheim+set+booster" },
+    },
+  },
+  {
+    key: "zendikar-rising",
+    scryfallCode: "znr",
+    displayName: "Zendikar Rising",
+    releaseLabel: "Recent Release",
+    releaseDate: "2020-09-25",
+    fallbackPackPrice: 5.29,
+    packImage: "https://svgs.scryfall.io/sets/znr.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/znr" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Zendikar+Rising+set+booster" },
+    },
+  },
+  {
+    key: "ikoria-lair-of-behemoths",
+    scryfallCode: "iko",
+    displayName: "Ikoria: Lair of Behemoths",
+    releaseLabel: "Recent Release",
+    releaseDate: "2020-05-15",
+    fallbackPackPrice: 6.19,
+    packImage: "https://svgs.scryfall.io/sets/iko.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/iko" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Ikoria+set+booster" },
+    },
+  },
+  {
+    key: "throne-of-eldraine",
+    scryfallCode: "eld",
+    displayName: "Throne of Eldraine",
+    releaseLabel: "Recent Release",
+    releaseDate: "2019-10-04",
+    fallbackPackPrice: 8.29,
+    packImage: "https://svgs.scryfall.io/sets/eld.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/eld" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Throne+of+Eldraine+booster" },
+    },
+  },
+  {
+    key: "modern-horizons-3",
+    scryfallCode: "mh3",
+    displayName: "Modern Horizons 3",
+    releaseLabel: "Recent Release",
+    releaseDate: "2024-06-14",
+    fallbackPackPrice: 11.49,
+    packImage: "https://svgs.scryfall.io/sets/mh3.svg",
+    priceSources: {
+      scryfall: { label: "Scryfall + public market blend", url: "https://scryfall.com/sets/mh3" },
+      tcgplayerSealed: { label: "TCGplayer sealed search", url: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Modern+Horizons+3+play+booster" },
+    },
+  },
 ];
 
 const state = {
@@ -1078,7 +1182,18 @@ function getSortedSets() {
   if (state.setSortMode === "value") {
     return sets.sort((a, b) => getPackPrice(b) - getPackPrice(a));
   }
+  if (state.setSortMode === "fidelity") {
+    return sets.sort((a, b) => getFidelityRank(getCollationFidelityLabel(b)) - getFidelityRank(getCollationFidelityLabel(a)) || a.displayName.localeCompare(b.displayName));
+  }
   return sets.sort((a, b) => getReleaseTimestamp(b.key) - getReleaseTimestamp(a.key));
+}
+
+function getFidelityRank(label) {
+  if (label === "Exact") return 4;
+  if (label === "Official-slot") return 3;
+  if (label === "Estimated") return 2;
+  if (label === "Unknown") return 1;
+  return 0;
 }
 
 function getReleaseTimestamp(setKey) {
