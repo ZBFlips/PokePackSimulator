@@ -492,6 +492,15 @@ select {
   padding: 9px 10px;
 }
 
+#pokemonRngSeed {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(128, 193, 255, 0.35);
+  background: rgba(6, 18, 36, 0.9);
+  color: #d8ecff;
+  padding: 9px 10px;
+}
+
 .odds-title {
   font-weight: 700;
   font-size: 0.98rem;
@@ -1756,6 +1765,8 @@ body {
 }
 
 .section-toggle-btn {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   display: flex;
   align-items: center;

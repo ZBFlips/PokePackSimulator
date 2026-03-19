@@ -4,6 +4,7 @@ const PROFILE_STORAGE_KEY = "pokemon-pack-sim-profile-v1";
 const CHASE_STORAGE_KEY = "pokemon-pack-sim-chase-v1";
 const SOUND_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-sound-v1";
 const PACK_PRICE_SOURCE_STORAGE_KEY = "pokemon-pack-sim-pack-price-source-v1";
+const RNG_SETTINGS_STORAGE_KEY = "pokemon-pack-sim-rng-v1";
 const LIVE_SET_CACHE_PREFIX = "pokemon-pack-sim-live-set-v3-";
 const LIVE_SET_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const REQUEST_TIMEOUT_MS = 20000;
@@ -14,6 +15,7 @@ const CHASE_SLOT_COUNT = 2;
 const CHASE_CANDIDATE_LIMIT = 40;
 const DEFAULT_PACK_PRICE = 4.99;
 const HISTORY_LIMIT = 30;
+const RNG_AUDIT_LIMIT = 120;
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
 const MARKET_PRICE_LAST_REFRESH_ISO = "2026-03-19";
 const PACK_MARKET_SOURCE_OVERRIDES = {
@@ -1802,6 +1804,7 @@ const state = {
     pendingIterations: 10000,
     resultByPackKey: {},
   },
+  rng: initializeRngState(),
   session: {
     packsOpened: 0,
     totalValue: 0,
@@ -1820,6 +1823,7 @@ const state = {
       sirPlus: 0,
     },
     chaseStats: {},
+    rngAuditTrail: [],
   },
   binder: loadBinderFromStorage(),
   audioContext: null,
@@ -1870,6 +1874,8 @@ const dom = {
   sessionStats: document.getElementById("sessionStats"),
   economyPanel: document.getElementById("economyPanel"),
   simulationLabPanel: document.getElementById("simulationLabPanel"),
+  rngAuditPanel: document.getElementById("rngAuditPanel"),
+  fidelityRegistryPanel: document.getElementById("fidelityRegistryPanel"),
   achievementPanel: document.getElementById("achievementPanel"),
   binderFilters: document.getElementById("binderFilters"),
   binderGrid: document.getElementById("binderGrid"),
@@ -1908,6 +1914,8 @@ async function init() {
   initSessionStatsCollapse();
   renderEconomyPanel();
   renderSimulationLab();
+  renderRngAuditPanel();
+  renderFidelityRegistryPanel();
   renderAchievements();
   renderBinder();
   renderBackgroundSyncStatus();
@@ -1933,6 +1941,7 @@ function wireControls() {
     state.packSortMode = dom.packSortMode.value;
     renderPackSelector();
     renderSimulationLab();
+    renderFidelityRegistryPanel();
   });
 
   dom.priceSourceMode?.addEventListener("change", () => {
@@ -1942,6 +1951,7 @@ function wireControls() {
     renderPackHeader();
     renderEconomyPanel();
     renderSimulationLab();
+    renderFidelityRegistryPanel();
   });
 
   dom.revealMode.addEventListener("change", () => {
@@ -1998,6 +2008,7 @@ function wireControls() {
         sirPlus: 0,
       },
       chaseStats: {},
+      rngAuditTrail: [],
     };
     state.analyticsOpen = false;
     closeInspectModal();
@@ -2005,6 +2016,7 @@ function wireControls() {
     renderSessionStats();
     renderEconomyPanel();
     renderSimulationLab();
+    renderRngAuditPanel();
     renderAchievements();
     renderHistoryTimeline();
     renderAnalyticsOverlay();
@@ -2021,6 +2033,7 @@ function wireControls() {
     renderSessionStats();
     renderEconomyPanel();
     renderSimulationLab();
+    renderFidelityRegistryPanel();
     renderAchievements();
     renderBinder();
   });
@@ -2408,6 +2421,8 @@ async function loadPackLiveData(packKey, options = {}) {
     renderSessionStats();
     renderEconomyPanel();
     renderSimulationLab();
+    renderRngAuditPanel();
+    renderFidelityRegistryPanel();
     renderAnalyticsOverlay();
     renderAchievements();
     renderBinder();
@@ -2925,6 +2940,8 @@ function renderPackSelector() {
     renderSessionStats();
     renderEconomyPanel();
     renderSimulationLab();
+    renderRngAuditPanel();
+    renderFidelityRegistryPanel();
     renderAchievements();
     updateButtons();
     loadPackLiveData(nextPack.key);
@@ -3347,6 +3364,8 @@ function replayHistoryPack(historyId) {
   renderSessionStats();
   renderEconomyPanel();
   renderSimulationLab();
+  renderRngAuditPanel();
+  renderFidelityRegistryPanel();
   renderAnalyticsOverlay();
   renderAchievements();
   renderBinder();
@@ -3510,6 +3529,7 @@ function openPack() {
   state.justRevealedInstanceId = "";
 
   registerOpenedPack(state.currentPack, packDef);
+  appendRngAuditEntry(packDef, state.currentPack);
 
   if (state.revealMode === "all") {
     const topCard = [...state.currentPack].sort((a, b) => b.value - a.value)[0];
@@ -3524,18 +3544,21 @@ function openPack() {
   renderHistoryTimeline();
   renderSessionStats();
   renderEconomyPanel();
+  renderSimulationLab();
+  renderRngAuditPanel();
   renderAnalyticsOverlay();
   renderAchievements();
   renderBinder();
   updateButtons();
 }
 
-function simulatePack(packDef, setData) {
+function simulatePack(packDef, setData, options = {}) {
   const usedIds = new Set();
   const result = [];
+  const rng = options.rng || getRng();
 
   const pushCard = (slotLabel, tier, variant = "") => {
-    const picked = pickCardFromTier(setData, tier, usedIds, variant);
+    const picked = pickCardFromTier(setData, tier, usedIds, variant, rng);
     const packPullOdds = setData.approxCardOdds.get(picked.id) || 0;
     result.push({
       ...picked,
@@ -3543,7 +3566,7 @@ function simulatePack(packDef, setData) {
       pulledTier: tier,
       pulledTierLabel: variant || TIER_LABEL[tier] || picked.rarity || "Hit",
       standardIndex: result.length + 1,
-      instanceId: `${picked.id}-${result.length}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      instanceId: `${picked.id}-${result.length}-${Date.now()}-${Math.floor(rng() * 1e9).toString(16)}`,
       value: picked.marketValue || 0,
       packPullOdds,
       setKey: packDef.key,
@@ -3557,17 +3580,17 @@ function simulatePack(packDef, setData) {
     pushCard(`Uncommon ${i + 1}`, "uncommon");
   }
 
-  pushCard("Reverse Slot A", rollSlot(packDef.slotOdds.reverseA));
-  pushCard("Reverse Slot B", rollSlot(packDef.slotOdds.reverseB));
-  pushCard("Rare Slot", rollSlot(packDef.slotOdds.rare));
+  pushCard("Reverse Slot A", rollSlot(packDef.slotOdds.reverseA, rng));
+  pushCard("Reverse Slot B", rollSlot(packDef.slotOdds.reverseB, rng));
+  pushCard("Rare Slot", rollSlot(packDef.slotOdds.rare, rng));
   pushCard("Energy", "energy");
 
   return result;
 }
 
-function rollSlot(slotConfig) {
+function rollSlot(slotConfig, rng = getRng()) {
   let cursor = 0;
-  const roll = Math.random();
+  const roll = rng();
   for (const option of slotConfig.options) {
     cursor += option.probability;
     if (roll <= cursor) {
@@ -3577,7 +3600,7 @@ function rollSlot(slotConfig) {
   return slotConfig.defaultTier;
 }
 
-function pickCardFromTier(setData, tier, usedIds, explicitVariant = "") {
+function pickCardFromTier(setData, tier, usedIds, explicitVariant = "", rng = getRng()) {
   let variant = explicitVariant;
 
   if (tier === "energy" && !setData.pools.energy.length) {
@@ -3594,13 +3617,13 @@ function pickCardFromTier(setData, tier, usedIds, explicitVariant = "") {
 
   const poolKey = resolvePoolKey(tier);
   const weightedPool = setData.weightedPools[poolKey];
-  let chosen = drawFromWeightedPool(weightedPool, usedIds);
+  let chosen = drawFromWeightedPool(weightedPool, usedIds, rng);
 
   if (!chosen) {
     const fallbackPool = setData.pools[poolKey] || setData.pools.reverseBase || setData.pools.all;
     const fallbackCandidates = fallbackPool.filter((card) => !usedIds.has(card.id));
     const pickFrom = fallbackCandidates.length ? fallbackCandidates : fallbackPool;
-    chosen = pickFrom[Math.floor(Math.random() * pickFrom.length)] ?? makeFallbackCard();
+    chosen = pickFrom[Math.floor(rng() * pickFrom.length)] ?? makeFallbackCard();
   }
 
   if (chosen.id) {
@@ -3614,7 +3637,7 @@ function pickCardFromTier(setData, tier, usedIds, explicitVariant = "") {
   };
 }
 
-function drawFromWeightedPool(weightedPool, usedIds) {
+function drawFromWeightedPool(weightedPool, usedIds, rng = getRng()) {
   if (!weightedPool || !weightedPool.entries.length) {
     return null;
   }
@@ -3627,10 +3650,10 @@ function drawFromWeightedPool(weightedPool, usedIds) {
     totalWeight += entry.weight;
   }
   if (totalWeight <= 0) {
-    return drawPool[Math.floor(Math.random() * drawPool.length)]?.card || null;
+    return drawPool[Math.floor(rng() * drawPool.length)]?.card || null;
   }
 
-  let roll = Math.random() * totalWeight;
+  let roll = rng() * totalWeight;
   for (const entry of drawPool) {
     roll -= entry.weight;
     if (roll <= 0) {
@@ -3872,9 +3895,10 @@ async function runPokemonSimulationLab(iterations) {
   let ultraPlusHits = 0;
   let sirPlusHits = 0;
   let value20Hits = 0;
+  const labRng = createDeterministicRng(`${state.rng.seed}:lab:${packDef.key}:${n}`, false);
 
   for (let i = 0; i < n; i += 1) {
-    const pack = simulatePack(packDef, setData);
+    const pack = simulatePack(packDef, setData, { rng: labRng });
     const packValue = pack.reduce((acc, card) => acc + (card.value || 0), 0);
     const hasUltraPlus = pack.some((card) => isUltraPlusTier(card.pulledTier || card.tier || ""));
     const hasSirPlus = pack.some((card) => isSirPlusTier(card.pulledTier || card.tier || ""));
@@ -3921,6 +3945,198 @@ function getRateConfidenceInterval(rate, sampleSize) {
     low: Math.max(0, rate - margin),
     high: Math.min(1, rate + margin),
   };
+}
+
+function initializeRngState() {
+  const saved = loadRngSettingsFromStorage();
+  const seed = saved.seed || `pokemon-${Date.now().toString(36)}`;
+  const mode = saved.mode || "seeded";
+  return {
+    mode,
+    seed,
+    drawCount: 0,
+    generator: mode === "random" ? randomGenerator() : createDeterministicRng(seed),
+  };
+}
+
+function randomGenerator() {
+  return () => {
+    state.rng.drawCount += 1;
+    return Math.random();
+  };
+}
+
+function createDeterministicRng(seedText, trackDraws = true) {
+  const hashed = hashString32(seedText || "pokemon-default");
+  let s = hashed >>> 0;
+  return () => {
+    s += 0x6d2b79f5;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const out = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    if (trackDraws) {
+      state.rng.drawCount += 1;
+    }
+    return out;
+  };
+}
+
+function hashString32(value) {
+  let h = 1779033703 ^ value.length;
+  for (let i = 0; i < value.length; i += 1) {
+    h = Math.imul(h ^ value.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return h ^ (h >>> 16);
+}
+
+function getRng() {
+  return state.rng.generator || randomGenerator();
+}
+
+function reseedRng(seed) {
+  const nextSeed = (seed || `pokemon-${Date.now().toString(36)}`).trim();
+  state.rng.seed = nextSeed;
+  state.rng.drawCount = 0;
+  state.rng.generator = state.rng.mode === "random" ? randomGenerator() : createDeterministicRng(nextSeed);
+  persistRngSettings();
+}
+
+function loadRngSettingsFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(RNG_SETTINGS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return {
+      mode: parsed.mode === "random" ? "random" : "seeded",
+      seed: typeof parsed.seed === "string" ? parsed.seed : "",
+    };
+  } catch {
+    return {};
+  }
+}
+
+function persistRngSettings() {
+  try {
+    window.localStorage.setItem(
+      RNG_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        mode: state.rng.mode,
+        seed: state.rng.seed,
+      }),
+    );
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function appendRngAuditEntry(packDef, cards) {
+  const top = cards.reduce((best, card) => (card.value > (best?.value || 0) ? card : best), null);
+  state.session.rngAuditTrail.unshift({
+    openedAt: new Date().toISOString(),
+    packKey: packDef.key,
+    packName: packDef.displayName,
+    seed: state.rng.seed,
+    mode: state.rng.mode,
+    draws: state.rng.drawCount,
+    topCard: top?.name || "None",
+    topValue: top?.value || 0,
+  });
+  state.session.rngAuditTrail = state.session.rngAuditTrail.slice(0, RNG_AUDIT_LIMIT);
+}
+
+function renderRngAuditPanel() {
+  if (!dom.rngAuditPanel) return;
+  const rows = (state.session.rngAuditTrail || [])
+    .slice(0, 5)
+    .map((entry) => `<li><span>${escapeHtml(formatDateLabel(entry.openedAt.slice(0, 10)))} - ${escapeHtml(entry.packName)}</span><strong>${escapeHtml(entry.topCard)} ${formatUsd(entry.topValue)}</strong></li>`)
+    .join("");
+  dom.rngAuditPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>RNG Audit</strong>
+      <span>Seeded replay controls for strict verification.</span>
+    </div>
+    <div class="control-group">
+      <label for="pokemonRngMode">RNG mode</label>
+      <select id="pokemonRngMode">
+        <option value="seeded" ${state.rng.mode === "seeded" ? "selected" : ""}>Deterministic (Seeded)</option>
+        <option value="random" ${state.rng.mode === "random" ? "selected" : ""}>Random (Non-replay)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="pokemonRngSeed">Audit seed</label>
+      <input id="pokemonRngSeed" type="text" value="${escapeHtml(state.rng.seed)}" />
+    </div>
+    <div class="button-row">
+      <button id="pokemonApplySeedBtn" class="btn">Apply Seed</button>
+      <button id="pokemonCopyAuditBtn" class="btn">Copy Audit</button>
+    </div>
+    <div class="qa-grid">
+      <article class="economy-stat"><strong>${state.rng.drawCount.toLocaleString()}</strong><span>RNG Draws</span></article>
+      <article class="economy-stat"><strong>${state.session.rngAuditTrail.length.toLocaleString()}</strong><span>Audit Entries</span></article>
+      <article class="economy-stat"><strong>${escapeHtml(state.rng.mode)}</strong><span>Mode</span></article>
+    </div>
+    <ul class="qa-slot-list">${rows || "<li><span>No audit entries yet.</span></li>"}</ul>
+  `;
+  dom.rngAuditPanel.querySelector("#pokemonRngMode")?.addEventListener("change", (event) => {
+    state.rng.mode = event.target.value === "random" ? "random" : "seeded";
+    reseedRng(state.rng.seed);
+    renderRngAuditPanel();
+  });
+  dom.rngAuditPanel.querySelector("#pokemonApplySeedBtn")?.addEventListener("click", () => {
+    const seed = dom.rngAuditPanel.querySelector("#pokemonRngSeed")?.value || `pokemon-${Date.now().toString(36)}`;
+    reseedRng(seed);
+    renderRngAuditPanel();
+  });
+  dom.rngAuditPanel.querySelector("#pokemonCopyAuditBtn")?.addEventListener("click", async () => {
+    const payload = {
+      seed: state.rng.seed,
+      mode: state.rng.mode,
+      draws: state.rng.drawCount,
+      recent: state.session.rngAuditTrail.slice(0, 25),
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setStatus("Copied RNG audit payload.", "ready");
+    } catch {
+      setStatus("Clipboard permission blocked.", "error");
+    }
+  });
+}
+
+function renderFidelityRegistryPanel() {
+  if (!dom.fidelityRegistryPanel) return;
+  const rows = getSortedPackDefs()
+    .map((packDef) => {
+      const fidelity = getPackFidelity(packDef);
+      return `<li><span>${escapeHtml(packDef.displayName)}</span><strong>${escapeHtml(fidelity.label)}</strong></li>`;
+    })
+    .join("");
+  dom.fidelityRegistryPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Fidelity Registry</strong>
+      <span>Set-by-set odds confidence labels and source links.</span>
+    </div>
+    <ul class="qa-slot-list">${rows}</ul>
+    <div class="pack-price-source"><span>Sources: <a href="https://api.pokemontcg.io/" target="_blank" rel="noreferrer">PokemonTCG API</a> | <a href="https://www.pokebeach.com/" target="_blank" rel="noreferrer">PokeBeach/PokePatch Pull Data</a></span></div>
+  `;
+}
+
+function getPackFidelity(packDef) {
+  const setData = state.setData[packDef.key];
+  const hasLiveData = state.liveLoadedPackKeys.has(packDef.key) && Boolean(setData?.cards?.length);
+  const hasStructuredSlots = Boolean(packDef.slotOdds?.reverseA?.options?.length && packDef.slotOdds?.rare?.options?.length);
+  const hasCommunitySources = (packDef.oddsSources || []).length > 0;
+  if (hasLiveData && hasStructuredSlots && hasCommunitySources) {
+    return { label: "Official-slot", level: "official-slot" };
+  }
+  if (hasStructuredSlots) {
+    return { label: "Estimated", level: "estimated" };
+  }
+  return { label: "Unknown", level: "unknown" };
 }
 
 function renderAchievements() {
@@ -5030,3 +5246,4 @@ function formatUsd(value) {
     maximumFractionDigits: 2,
   }).format(value || 0);
 }
+
