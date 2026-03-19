@@ -428,6 +428,12 @@ select {
   text-align: right;
 }
 
+.qa-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .qa-test-summary {
   border: 1px solid rgba(132, 202, 255, 0.2);
   border-radius: 10px;
@@ -455,6 +461,35 @@ select {
   justify-content: space-between;
   gap: 8px;
   color: var(--muted);
+}
+
+.mtg-hit-rare .card-frame {
+  box-shadow: 0 0 0 1px rgba(255, 205, 96, 0.65), 0 0 18px rgba(255, 181, 53, 0.35);
+}
+
+.mtg-hit-mythic .card-frame {
+  box-shadow: 0 0 0 1px rgba(255, 120, 90, 0.75), 0 0 22px rgba(255, 88, 88, 0.45);
+}
+
+.mtg-era-modern .btn-primary {
+  border-color: rgba(98, 255, 209, 0.8);
+}
+
+.mtg-era-future .btn-primary {
+  border-color: rgba(181, 142, 255, 0.9);
+}
+
+.mtg-era-classic .btn-primary {
+  border-color: rgba(255, 198, 84, 0.9);
+}
+
+#mtgRngSeed {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(128, 193, 255, 0.35);
+  background: rgba(6, 18, 36, 0.9);
+  color: #d8ecff;
+  padding: 9px 10px;
 }
 
 .odds-title {

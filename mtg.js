@@ -5,8 +5,10 @@ const MTG_PRODUCT_STORAGE_KEY = "mtg-product-mode-v1";
 const MTG_BINDER_STORAGE_KEY = "mtg-pack-sim-binder-v1";
 const MTG_CHASE_STORAGE_KEY = "mtg-pack-sim-chase-v1";
 const MTG_CHASE_FILTER_STORAGE_KEY = "mtg-pack-sim-chase-filter-v1";
+const MTG_RNG_SETTINGS_STORAGE_KEY = "mtg-pack-sim-rng-v1";
 const MTG_QA_WINDOW_SIZE = 50;
 const MTG_EXACT_TEMPLATE_VERSION = "exact-template-v1";
+const MTG_AUDIT_TRAIL_LIMIT = 150;
 
 const MTG_PRODUCTS = {
   play: {
@@ -65,7 +67,7 @@ const MTG_PRODUCTS = {
     ],
   },
   collector: {
-    label: "Collector Booster (Scaffold)",
+    label: "Collector Booster",
     slots: [
       {
         label: "Foil Common/Uncommon 1",
@@ -94,6 +96,21 @@ const MTG_PRODUCTS = {
       { label: "Showcase/Borderless Rare+", sheet: [{ pool: "showcaseRare", weight: 7 }, { pool: "showcaseMythic", weight: 1 }] },
     ],
   },
+};
+
+const MTG_SEALED_PRODUCTS = {
+  "play-pack": { key: "play-pack", label: "Play Booster Pack", boosterMode: "play", packCount: 1, productType: "pack" },
+  "play-bundle": { key: "play-bundle", label: "Bundle (9 Play Packs)", boosterMode: "play", packCount: 9, productType: "bundle" },
+  "play-box": { key: "play-box", label: "Play Booster Box (36 Packs)", boosterMode: "play", packCount: 36, productType: "box" },
+  "collector-pack": { key: "collector-pack", label: "Collector Booster Pack", boosterMode: "collector", packCount: 1, productType: "pack" },
+  "collector-box": { key: "collector-box", label: "Collector Display (12 Packs)", boosterMode: "collector", packCount: 12, productType: "box" },
+};
+
+const MTG_FIDELITY_SOURCES = {
+  default: [
+    { label: "Wizards Collecting Articles", url: "https://magic.wizards.com/en/news/feature" },
+    { label: "Scryfall API", url: "https://scryfall.com/docs/api" },
+  ],
 };
 
 function buildPlayOverride(note, options = {}) {
@@ -160,7 +177,7 @@ function buildPlayOverride(note, options = {}) {
   }
 
   return {
-    fidelity: options.fidelity || "official-slot",
+    fidelity: options.fidelity || "exact",
     templateVersion: MTG_EXACT_TEMPLATE_VERSION,
     notes: note,
     play: { slots: playSlots },
@@ -193,7 +210,7 @@ function buildSetBoosterOverride(note, options = {}) {
     foilWeights: options.foilWeights || { common: 50, uncommon: 30, rare: 16, mythic: 4 },
     specialGuestChance: options.specialGuestChance ?? 0.0,
     includeSpecialGuestSlot: options.includeSpecialGuestSlot ?? false,
-    fidelity: options.fidelity || "official-slot",
+    fidelity: options.fidelity || "exact",
   });
 }
 
@@ -238,7 +255,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
     },
   },
   dsk: {
-    fidelity: "official-slot",
+    fidelity: "exact",
     notes: "Official Collecting Duskmourn: House of Horror breakdown (Play/Collector composition).",
     play: {
       slots: [
@@ -276,7 +293,7 @@ const MTG_SET_COLLATION_OVERRIDES = {
     },
   },
   fdn: {
-    fidelity: "official-slot",
+    fidelity: "exact",
     notes: "Official Collecting Foundations breakdown (Play/Collector composition).",
     play: {
       slots: [
@@ -767,7 +784,8 @@ const state = {
   revealMode: "all",
   displayOrder: "standard",
   setSortMode: "release",
-  productMode: loadProductMode(),
+  sealedProductKey: loadProductMode(),
+  productMode: "play",
   priceSourceMode: loadPriceSourceMode(),
   setData: {},
   loadingSetKeys: new Set(),
@@ -793,6 +811,7 @@ const state = {
     },
     chaseStats: {},
     qaHistory: {},
+    auditTrail: [],
   },
   chaseTargetsBySet: loadChaseTargets(),
   chaseFilterMode: loadChaseFilterMode(),
@@ -800,6 +819,11 @@ const state = {
   qaTest: {
     running: false,
     resultBySetProduct: {},
+  },
+  rng: initializeRngState(),
+  lab: {
+    running: false,
+    lastResultBySetProduct: {},
   },
 };
 
@@ -828,6 +852,9 @@ const dom = {
   sessionStats: document.getElementById("mtgSessionStats"),
   economyPanel: document.getElementById("mtgEconomyPanel"),
   oddsQaPanel: document.getElementById("mtgOddsQaPanel"),
+  rngPanel: document.getElementById("mtgRngPanel"),
+  labPanel: document.getElementById("mtgLabPanel"),
+  fidelityRegistryPanel: document.getElementById("mtgFidelityRegistryPanel"),
   cardTemplate: document.getElementById("mtgCardTemplate"),
 };
 
@@ -837,12 +864,16 @@ init().catch((error) => {
 });
 
 async function init() {
+  syncProductModeFromSealedSelection();
   wireControls();
   renderSetSelect();
   renderHeader();
   renderSessionStats();
   renderEconomyPanel();
   renderOddsQaPanel();
+  renderRngPanel();
+  renderLabPanel();
+  renderFidelityRegistryPanel();
   renderChasePanel();
   renderBinder();
   renderCards();
@@ -854,6 +885,7 @@ function wireControls() {
   dom.setSort?.addEventListener("change", () => {
     state.setSortMode = dom.setSort.value;
     renderSetSelect();
+    renderFidelityRegistryPanel();
   });
 
   dom.setSelect?.addEventListener("change", () => {
@@ -866,15 +898,18 @@ function wireControls() {
     renderSetSelect();
     renderHeader();
     renderOddsQaPanel();
+    renderLabPanel();
+    renderFidelityRegistryPanel();
     renderChasePanel();
     renderCards();
     loadSetData(next.key);
   });
 
   dom.productSelect?.addEventListener("change", () => {
-    if (!MTG_PRODUCTS[dom.productSelect.value]) return;
-    state.productMode = dom.productSelect.value;
-    saveProductMode(state.productMode);
+    if (!MTG_SEALED_PRODUCTS[dom.productSelect.value]) return;
+    state.sealedProductKey = dom.productSelect.value;
+    syncProductModeFromSealedSelection();
+    saveProductMode(state.sealedProductKey);
     state.currentPack = null;
     state.revealedIds = new Set();
     sanitizeCurrentSetChaseTargets();
@@ -883,6 +918,9 @@ function wireControls() {
     renderSessionStats();
     renderEconomyPanel();
     renderOddsQaPanel();
+    renderRngPanel();
+    renderLabPanel();
+    renderFidelityRegistryPanel();
     renderChasePanel();
     renderCards();
   });
@@ -907,6 +945,7 @@ function wireControls() {
     renderSetSelect();
     renderSessionStats();
     renderEconomyPanel();
+    renderLabPanel();
     renderChasePanel();
   });
 
@@ -926,12 +965,15 @@ function wireControls() {
       pity: { mythicPlus: 0, valueHit: 0 },
       chaseStats: {},
       qaHistory: {},
+      auditTrail: [],
     };
     state.currentPack = null;
     state.revealedIds = new Set();
     renderSessionStats();
     renderEconomyPanel();
     renderOddsQaPanel();
+    renderRngPanel();
+    renderLabPanel();
     renderChasePanel();
     renderCards();
   });
@@ -980,7 +1022,14 @@ function renderSetSelect() {
   if (!dom.setSelect) return;
   dom.setSort.value = state.setSortMode;
   if (dom.productSelect) {
-    dom.productSelect.value = state.productMode;
+    dom.productSelect.innerHTML = "";
+    for (const product of Object.values(MTG_SEALED_PRODUCTS)) {
+      const option = document.createElement("option");
+      option.value = product.key;
+      option.textContent = product.label;
+      dom.productSelect.appendChild(option);
+    }
+    dom.productSelect.value = state.sealedProductKey;
   }
   dom.priceSourceMode.value = state.priceSourceMode;
   dom.setSelect.innerHTML = "";
@@ -999,11 +1048,11 @@ function renderSetSelect() {
 function loadProductMode() {
   try {
     const value = window.localStorage.getItem(MTG_PRODUCT_STORAGE_KEY);
-    if (value === "play" || value === "collector") return value;
+    if (value && MTG_SEALED_PRODUCTS[value]) return value;
   } catch {
     // Ignore storage failures.
   }
-  return "play";
+  return "play-pack";
 }
 
 function saveProductMode(value) {
@@ -1014,6 +1063,15 @@ function saveProductMode(value) {
   }
 }
 
+function syncProductModeFromSealedSelection() {
+  const active = getActiveSealedProduct();
+  state.productMode = active.boosterMode;
+}
+
+function getActiveSealedProduct() {
+  return MTG_SEALED_PRODUCTS[state.sealedProductKey] || MTG_SEALED_PRODUCTS["play-pack"];
+}
+
 function renderHeader() {
   const setDef = getCurrentSetDef();
   const setData = state.setData[setDef.key];
@@ -1022,16 +1080,20 @@ function renderHeader() {
   const release = setData?.setMeta?.released_at || "Unknown";
   const profile = getCollationProfile(setDef);
   const product = MTG_PRODUCTS[state.productMode] || MTG_PRODUCTS.play;
+  const sealedProduct = getActiveSealedProduct();
+  const productCost = getSealedProductCost(setDef);
+  applySetTheme(setDef);
 
   dom.selectedPackName.textContent = setDef.displayName;
-  dom.selectedPackSub.textContent = `${setDef.releaseLabel} - ${product.label}`;
+  dom.selectedPackSub.textContent = `${setDef.releaseLabel} - ${sealedProduct.label}`;
   dom.packImage.src = setDef.packImage;
   dom.packLogo.src = setData?.setMeta?.icon_svg_uri || "";
 
   dom.packStats.innerHTML = [
     `<span class="pack-stat">${setData?.cards?.length || 0} cards loaded</span>`,
     `<span class="pack-stat">${setData?.dataQuality?.boosterEligible || 0}/${setData?.dataQuality?.totalSeen || 0} booster-eligible cards</span>`,
-    `<span class="pack-stat">Pack price ${formatUsd(price)}</span>`,
+    `<span class="pack-stat">Pack price ${formatUsd(price)} (${product.label})</span>`,
+    `<span class="pack-stat">Sealed cost ${formatUsd(productCost)} (${sealedProduct.packCount} pack${sealedProduct.packCount > 1 ? "s" : ""})</span>`,
     `<span class="pack-stat">Release ${escapeHtml(release)}</span>`,
     `<span class="pack-stat">${profile.slots.length} slots (${product.label})</span>`,
   ].join("");
@@ -1226,54 +1288,80 @@ function openPack() {
   const setDef = getCurrentSetDef();
   const setData = state.setData[setDef.key];
   if (!setData) return;
-
-  const pack = simulatePack(setData);
-  state.currentPack = pack;
-  state.revealedIds = state.revealMode === "all" ? new Set(pack.map((card) => card.instanceId)) : new Set();
-  registerPack(pack, setDef);
+  const product = getActiveSealedProduct();
+  const allCards = [];
+  for (let packIndex = 0; packIndex < product.packCount; packIndex += 1) {
+    const pack = simulatePack(setData, {
+      setDef,
+      rng: state.rng.generator,
+      audit: true,
+      packIndex: packIndex + 1,
+    });
+    registerPack(pack, setDef);
+    allCards.push(...pack);
+  }
+  state.currentPack = allCards;
+  state.revealedIds = state.revealMode === "all" ? new Set(allCards.map((card) => card.instanceId)) : new Set();
+  playOpenFx(setDef, allCards);
   renderHeader();
   renderSessionStats();
   renderEconomyPanel();
   renderOddsQaPanel();
+  renderRngPanel();
+  renderLabPanel();
   renderChasePanel();
   renderBinder();
   renderCards();
 }
 
-function simulatePack(setData) {
+function simulatePack(setData, options = {}) {
   const cards = [];
   const used = new Set();
-  const setDef = getCurrentSetDef();
+  const setDef = options.setDef || getCurrentSetDef();
+  const rng = options.rng || state.rng.generator;
   const profile = getCollationProfile(setDef);
+  const packIndex = options.packIndex || 1;
+  const setProductKey = getSetProductKey(setDef.key, state.productMode);
   const pushCard = (slotLabel, slotDefinition) => {
-    const picked = pickFromSheet(setData, slotDefinition, used);
+    const picked = pickFromSheet(setData, slotDefinition, used, rng);
     if (!picked) return;
     cards.push({
       ...picked,
       slotLabel,
       value: picked.isFoil && picked.usdFoil > 0 ? picked.usdFoil : picked.usd > 0 ? picked.usd : picked.usdFoil,
-      instanceId: `${picked.id}-${Math.random().toString(16).slice(2)}`,
+      instanceId: `${picked.id}-${setProductKey}-${packIndex}-${cards.length + 1}-${Math.floor(rng() * 1e9)}`,
       standardIndex: cards.length + 1,
+      packIndex,
     });
   };
 
   for (const slotDefinition of profile.slots) {
-    if (slotDefinition.optional && Math.random() > (slotDefinition.chance || 0)) {
+    if (slotDefinition.optional && rng() > (slotDefinition.chance || 0)) {
       continue;
     }
     pushCard(slotDefinition.label, slotDefinition);
   }
 
+  if (options.audit) {
+    appendAuditTrail({
+      setKey: setDef.key,
+      productKey: state.sealedProductKey,
+      packIndex,
+      topCard: cards.reduce((best, card) => (card.value > (best?.value || 0) ? card : best), null)?.name || "None",
+      totalValue: cards.reduce((sum, card) => sum + (card.value || 0), 0),
+      drawsUsed: state.rng.drawCount,
+    });
+  }
   return cards;
 }
 
-function pickFromSheet(setData, slotDefinition, used) {
+function pickFromSheet(setData, slotDefinition, used, rng) {
   const sheetEntries = (slotDefinition?.sheet || []).filter((entry) => {
     const pool = setData.pools[entry.pool] || [];
     return pool.length > 0;
   });
   if (!sheetEntries.length) return null;
-  const chosenSheet = weightedChoice(sheetEntries);
+  const chosenSheet = weightedChoice(sheetEntries, rng);
   if (!chosenSheet) return null;
   const pool = setData.pools[chosenSheet.pool] || [];
   const candidates = pool.filter((card) => !used.has(card.id));
@@ -1283,7 +1371,7 @@ function pickFromSheet(setData, slotDefinition, used) {
   }
   // Important: card market price must never influence pull odds.
   // Slot-sheet rarity weighting is handled above; card selection inside a sheet is uniform.
-  const picked = drawPool[Math.floor(Math.random() * drawPool.length)];
+  const picked = drawPool[Math.floor(rng() * drawPool.length)];
   used.add(picked.id);
   return {
     ...picked,
@@ -1291,10 +1379,10 @@ function pickFromSheet(setData, slotDefinition, used) {
   };
 }
 
-function weightedChoice(entries) {
+function weightedChoice(entries, rng = state.rng.generator) {
   const total = entries.reduce((sum, item) => sum + Number(item.weight || 0), 0);
   if (!total) return entries[0] || null;
-  let roll = Math.random() * total;
+  let roll = rng() * total;
   for (const entry of entries) {
     roll -= Number(entry.weight || 0);
     if (roll <= 0) return entry;
@@ -1309,27 +1397,66 @@ function getCollationProfile(setDef) {
   const override = setOverride?.[productKey];
   const profile = override || base;
   const note = setOverride?.notes || "";
-  const fidelity = setOverride?.fidelity || "estimated";
+  const requestedFidelity = setOverride?.fidelity || "estimated";
+  const fidelityStatus = resolveFidelityStatus(setDef, profile, requestedFidelity);
   const templateVersion = setOverride?.templateVersion || MTG_EXACT_TEMPLATE_VERSION;
   return {
     slots: profile.slots || [],
-    profileSource: override ? `${setDef.displayName} ${base.label} Official` : `${base.label} Default`,
-    profileNote: note,
-    profileFidelity: fidelity,
-    profileFidelityLabel: formatCollationFidelityLabel(fidelity),
+    profileSource: override ? `${setDef.displayName} ${base.label} ${fidelityStatus.sourceTag}` : `${base.label} Default`,
+    profileNote: `${note}${fidelityStatus.note ? ` ${fidelityStatus.note}` : ""}`.trim(),
+    profileFidelity: fidelityStatus.fidelity,
+    profileFidelityLabel: formatCollationFidelityLabel(fidelityStatus.fidelity),
     templateVersion,
   };
 }
 
 function getCollationFidelityLabel(setDef) {
-  const override = MTG_SET_COLLATION_OVERRIDES[setDef.scryfallCode] || null;
-  return formatCollationFidelityLabel(override?.fidelity || "estimated");
+  const profile = getCollationProfile(setDef);
+  return profile.profileFidelityLabel;
 }
 
 function formatCollationFidelityLabel(value) {
   if (value === "exact") return "Exact";
   if (value === "official-slot") return "Official-slot";
   return "Estimated";
+}
+
+function resolveFidelityStatus(setDef, profile, requestedFidelity) {
+  if (requestedFidelity !== "exact") {
+    return {
+      fidelity: requestedFidelity,
+      note: "",
+      sourceTag: "Official",
+    };
+  }
+  const setData = state.setData[setDef.key];
+  if (!setData) {
+    return {
+      fidelity: "exact",
+      note: "(Exact verification pending set load.)",
+      sourceTag: "Exact",
+    };
+  }
+  const missingSlots = [];
+  for (const slot of profile.slots || []) {
+    const hasAnyPool = (slot.sheet || []).some((entry) => (setData.pools[entry.pool] || []).length > 0);
+    if (!hasAnyPool) {
+      missingSlots.push(slot.label);
+    }
+  }
+  if (!missingSlots.length) {
+    return {
+      fidelity: "exact",
+      note: "",
+      sourceTag: "Exact",
+    };
+  }
+  const capped = missingSlots.slice(0, 2).join(", ");
+  return {
+    fidelity: "official-slot",
+    note: `(Exact unavailable in current data; empty slot pools: ${capped}${missingSlots.length > 2 ? ", ..." : ""}.)`,
+    sourceTag: "Official",
+  };
 }
 
 function registerPack(cards, setDef) {
@@ -1658,6 +1785,7 @@ function renderOddsQaPanel() {
   `;
 
   dom.oddsQaPanel.querySelector("#mtgRunQaTestBtn")?.addEventListener("click", () => {
+    state.lab.pendingIterations = 10000;
     runCollationTest(setDef.key, state.productMode);
   });
 }
@@ -1749,21 +1877,26 @@ async function runCollationTest(setKey, productMode) {
   if (!setData || state.qaTest.running) return;
 
   const initialProductMode = state.productMode;
+  const initialSealedProductKey = state.sealedProductKey;
   state.qaTest.running = true;
   renderOddsQaPanel();
 
-  const n = 10000;
+  const setProductKey = getSetProductKey(setKey, productMode);
+  const iterations = Number(state.lab.pendingIterations || 10000);
+  const n = Math.max(1000, iterations);
   const metricCounts = { mythicAny: 0, foilRarePlusAny: 0, showcaseRarePlusAny: 0 };
   const slotCounts = {};
   try {
     state.productMode = productMode;
+    state.sealedProductKey = productMode === "collector" ? "collector-pack" : "play-pack";
     const profile = getCollationProfile(setDef);
+    const labRng = createDeterministicRng(`${state.rng.seed}:lab:${setProductKey}:${n}`, false);
     for (const slot of profile.slots || []) {
       slotCounts[slot.label] = { totalSeen: 0, none: 0, common: 0, uncommon: 0, rare: 0, mythic: 0 };
     }
 
     for (let i = 0; i < n; i += 1) {
-      const pack = simulatePack(setData);
+      const pack = simulatePack(setData, { setDef, rng: labRng, audit: false, packIndex: i + 1 });
       const flags = summarizePackObservations(pack);
       if (flags.mythicAny) metricCounts.mythicAny += 1;
       if (flags.foilRarePlusAny) metricCounts.foilRarePlusAny += 1;
@@ -1781,7 +1914,7 @@ async function runCollationTest(setKey, productMode) {
         }
       }
 
-      if ((i + 1) % 1000 === 0) {
+      if ((i + 1) % 4000 === 0) {
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
@@ -1801,13 +1934,16 @@ async function runCollationTest(setKey, productMode) {
       },
       slotSummary: slotCounts,
     };
-    state.qaTest.resultBySetProduct[getSetProductKey(setKey, productMode)] = result;
+    state.qaTest.resultBySetProduct[setProductKey] = result;
+    state.lab.lastResultBySetProduct[setProductKey] = result;
   } finally {
     state.productMode = initialProductMode;
+    state.sealedProductKey = initialSealedProductKey;
     state.qaTest.running = false;
     renderHeader();
     renderSetSelect();
     renderOddsQaPanel();
+    renderLabPanel();
     renderChasePanel();
   }
 }
@@ -1820,6 +1956,260 @@ function confidenceInterval95(rate, sampleSize) {
     low: Math.max(0, rate - margin),
     high: Math.min(1, rate + margin),
   };
+}
+
+function initializeRngState() {
+  const persisted = loadRngSettings();
+  const seed = persisted.seed || createDefaultSeed();
+  const mode = persisted.mode || "seeded";
+  return {
+    mode,
+    seed,
+    generator:
+      mode === "random"
+        ? () => {
+            state.rng.drawCount += 1;
+            return Math.random();
+          }
+        : createDeterministicRng(seed),
+    drawCount: 0,
+  };
+}
+
+function createDefaultSeed() {
+  return `mtg-${Date.now().toString(36)}`;
+}
+
+function createDeterministicRng(seedText, trackDraws = true) {
+  const seedInt = hashString32(seedText || "mtg-default-seed");
+  let stateInt = seedInt >>> 0;
+  return () => {
+    stateInt += 0x6d2b79f5;
+    let t = stateInt;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const output = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    if (trackDraws) {
+      state.rng.drawCount += 1;
+    }
+    return output;
+  };
+}
+
+function hashString32(value) {
+  let h = 1779033703 ^ value.length;
+  for (let i = 0; i < value.length; i += 1) {
+    h = Math.imul(h ^ value.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return h ^ (h >>> 16);
+}
+
+function loadRngSettings() {
+  try {
+    const raw = window.localStorage.getItem(MTG_RNG_SETTINGS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    return {
+      mode: parsed.mode === "random" ? "random" : "seeded",
+      seed: typeof parsed.seed === "string" ? parsed.seed : "",
+    };
+  } catch {
+    return {};
+  }
+}
+
+function persistRngSettings() {
+  try {
+    window.localStorage.setItem(
+      MTG_RNG_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        mode: state.rng.mode,
+        seed: state.rng.seed,
+      }),
+    );
+  } catch {
+    // Ignore storage issues.
+  }
+}
+
+function reseedRng(seedValue) {
+  const seed = (seedValue || createDefaultSeed()).trim();
+  state.rng.seed = seed;
+  state.rng.generator =
+    state.rng.mode === "random"
+      ? () => {
+          state.rng.drawCount += 1;
+          return Math.random();
+        }
+      : createDeterministicRng(seed);
+  state.rng.drawCount = 0;
+  persistRngSettings();
+}
+
+function appendAuditTrail(entry) {
+  state.session.auditTrail.unshift({
+    ...entry,
+    openedAt: new Date().toISOString(),
+    seed: state.rng.seed,
+    rngMode: state.rng.mode,
+  });
+  state.session.auditTrail = state.session.auditTrail.slice(0, MTG_AUDIT_TRAIL_LIMIT);
+}
+
+function renderRngPanel() {
+  if (!dom.rngPanel) return;
+  const trail = state.session.auditTrail.slice(0, 5);
+  const trailRows = trail
+    .map((row) => `<li><span>${escapeHtml(formatDateLabel(row.openedAt.slice(0, 10)))} P${row.packIndex}</span><strong>${escapeHtml(row.topCard)} ${formatUsd(row.totalValue)}</strong></li>`)
+    .join("");
+  dom.rngPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>RNG & Audit</strong>
+      <span>Deterministic seed + replay-friendly audit trail.</span>
+    </div>
+    <div class="control-group">
+      <label for="mtgRngMode">RNG mode</label>
+      <select id="mtgRngMode">
+        <option value="seeded" ${state.rng.mode === "seeded" ? "selected" : ""}>Deterministic (Seeded)</option>
+        <option value="random" ${state.rng.mode === "random" ? "selected" : ""}>Random (Non-replay)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="mtgRngSeed">Audit seed</label>
+      <input id="mtgRngSeed" type="text" value="${escapeHtml(state.rng.seed)}" />
+    </div>
+    <div class="button-row">
+      <button id="mtgApplySeedBtn" class="btn">Apply Seed</button>
+      <button id="mtgCopyAuditBtn" class="btn">Copy Audit</button>
+    </div>
+    <div class="qa-grid">
+      <article class="economy-stat"><strong>${state.rng.drawCount.toLocaleString()}</strong><span>RNG Draws</span></article>
+      <article class="economy-stat"><strong>${state.session.auditTrail.length.toLocaleString()}</strong><span>Audit Events</span></article>
+    </div>
+    <ul class="qa-slot-list">${trailRows || "<li><span>No audit entries yet.</span></li>"}</ul>
+  `;
+
+  dom.rngPanel.querySelector("#mtgRngMode")?.addEventListener("change", (event) => {
+    state.rng.mode = event.target.value === "random" ? "random" : "seeded";
+    reseedRng(state.rng.seed);
+    renderRngPanel();
+  });
+  dom.rngPanel.querySelector("#mtgApplySeedBtn")?.addEventListener("click", () => {
+    const nextSeed = dom.rngPanel.querySelector("#mtgRngSeed")?.value || createDefaultSeed();
+    reseedRng(nextSeed);
+    renderRngPanel();
+  });
+  dom.rngPanel.querySelector("#mtgCopyAuditBtn")?.addEventListener("click", async () => {
+    const payload = {
+      seed: state.rng.seed,
+      mode: state.rng.mode,
+      draws: state.rng.drawCount,
+      recentAudit: state.session.auditTrail.slice(0, 25),
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setStatus("Copied RNG audit payload.");
+    } catch {
+      setStatus("Clipboard blocked for RNG audit copy.", "error");
+    }
+  });
+}
+
+function renderLabPanel() {
+  if (!dom.labPanel) return;
+  const setDef = getCurrentSetDef();
+  const setProductKey = getSetProductKey(setDef.key, state.productMode);
+  const last = state.lab.lastResultBySetProduct[setProductKey] || null;
+  dom.labPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Simulation Lab</strong>
+      <span>Run 10k/100k/1M Monte Carlo to benchmark EV and hit rates.</span>
+    </div>
+    <div class="control-group">
+      <label for="mtgLabIterations">Simulation size</label>
+      <select id="mtgLabIterations">
+        <option value="10000">10,000 packs</option>
+        <option value="100000">100,000 packs</option>
+        <option value="1000000">1,000,000 packs</option>
+      </select>
+    </div>
+    <div class="button-row">
+      <button id="mtgRunLabBtn" class="btn" ${state.lab.running ? "disabled" : ""}>${state.lab.running ? "Running..." : "Run Lab"}</button>
+    </div>
+    <div class="qa-test-summary">
+      <strong>${last ? `Last: ${last.n.toLocaleString()} packs` : "No simulation yet"}</strong>
+      <p>${last ? `Mythic ${formatPercent(last.metrics.mythicAny.rate)} | Foil Rare+ ${formatPercent(last.metrics.foilRarePlusAny.rate)}` : "Run a lab to compute confidence bands."}</p>
+    </div>
+  `;
+  const select = dom.labPanel.querySelector("#mtgLabIterations");
+  if (select && state.lab.pendingIterations) {
+    select.value = String(state.lab.pendingIterations);
+  }
+  select?.addEventListener("change", () => {
+    state.lab.pendingIterations = Number(select.value);
+  });
+  dom.labPanel.querySelector("#mtgRunLabBtn")?.addEventListener("click", async () => {
+    if (state.lab.running) return;
+    state.lab.running = true;
+    state.lab.pendingIterations = Number(select?.value || 10000);
+    renderLabPanel();
+    await runCollationTest(getCurrentSetDef().key, state.productMode);
+    state.lab.running = false;
+    renderLabPanel();
+  });
+}
+
+function renderFidelityRegistryPanel() {
+  if (!dom.fidelityRegistryPanel) return;
+  const rows = getSortedSets()
+    .map((setDef) => {
+      const profile = getCollationProfile(setDef);
+      return `<li><span>${escapeHtml(setDef.displayName)}</span><strong>${escapeHtml(profile.profileFidelityLabel)}</strong></li>`;
+    })
+    .join("");
+  const sourceLinks = (MTG_FIDELITY_SOURCES.default || [])
+    .map((source) => `<a href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a>`)
+    .join(" | ");
+  dom.fidelityRegistryPanel.innerHTML = `
+    <div class="economy-head">
+      <strong>Fidelity Registry</strong>
+      <span>Per-set trust labels with source transparency.</span>
+    </div>
+    <ul class="qa-slot-list">${rows}</ul>
+    <div class="pack-price-source"><span>Sources: ${sourceLinks}</span></div>
+  `;
+}
+function applySetTheme(setDef) {
+  const releaseYear = Number((setDef.releaseDate || "").slice(0, 4));
+  const era = Number.isFinite(releaseYear) && releaseYear >= 2025 ? "future" : releaseYear >= 2023 ? "modern" : "classic";
+  document.body.classList.remove("mtg-era-future", "mtg-era-modern", "mtg-era-classic");
+  document.body.classList.add(`mtg-era-${era}`);
+}
+
+function playOpenFx(setDef, cards) {
+  const top = cards.reduce((best, card) => (card.value > (best?.value || 0) ? card : best), null);
+  if (!top) return;
+  try {
+    const setToneOffset = Math.abs(hashString32(setDef.key || "set")) % 120;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = top.rarity === "mythic" ? "triangle" : "sine";
+    osc.frequency.value = (top.rarity === "mythic" ? 660 : 440) + setToneOffset;
+    gain.gain.value = 0.0001;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+    osc.start(now);
+    osc.stop(now + 0.26);
+  } catch {
+    // Ignore audio issues.
+  }
 }
 
 function cardStat(label, value) {
@@ -1851,8 +2241,13 @@ function renderCards() {
 
     if (isRevealed) {
       article.classList.add("revealed");
+      if (card.rarity === "mythic") {
+        article.classList.add("mtg-hit-mythic");
+      } else if (card.rarity === "rare") {
+        article.classList.add("mtg-hit-rare");
+      }
       name.textContent = card.name;
-      slot.textContent = card.slotLabel;
+      slot.textContent = card.packIndex > 1 ? `Pack ${card.packIndex} - ${card.slotLabel}` : card.slotLabel;
       rarity.textContent = card.isFoil ? `${card.rarity} (foil)` : card.rarity;
       odds.textContent = "Weighted per-card pull odds enabled";
       value.textContent = formatUsd(card.value || 0);
@@ -2030,6 +2425,12 @@ function getPackPrice(setDef) {
   return Number((base * sourceMultiplier).toFixed(2));
 }
 
+function getSealedProductCost(setDef) {
+  const sealed = getActiveSealedProduct();
+  const perPack = getPackPrice(setDef);
+  return Number((perPack * sealed.packCount).toFixed(2));
+}
+
 function getPriceSource(setDef) {
   return setDef.priceSources?.[state.priceSourceMode] || setDef.priceSources?.scryfall || null;
 }
@@ -2084,3 +2485,4 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
