@@ -1020,6 +1020,7 @@ async function loadSetData(setKey) {
     state.setData[setKey] = {
       setMeta,
       cards: activeCards,
+      allCards: normalized,
       pools,
       dataQuality: {
         totalSeen: normalized.length,
@@ -1318,7 +1319,11 @@ function renderChasePanel() {
     const selectedId = targets[i] || "";
     const options = [
       `<option value="">No chase selected</option>`,
-      ...candidates.map((card) => `<option value="${card.id}"${card.id === selectedId ? " selected" : ""}>${escapeHtml(card.name)} (${formatUsd(card.usd || card.usdFoil || 0)})</option>`),
+      ...candidates.map((card) => {
+        const isPullable = isCardPullableForCurrentProduct(card.id, setData, setDef);
+        const suffix = isPullable ? "" : " [not in current product pool]";
+        return `<option value="${card.id}"${card.id === selectedId ? " selected" : ""}>${escapeHtml(card.name)} (${formatUsd(card.usd || card.usdFoil || 0)})${suffix}</option>`;
+      }),
     ].join("");
     selectMarkup.push(`
       <div class="control-group">
@@ -1331,13 +1336,16 @@ function renderChasePanel() {
   }
 
   const trackerRows = targets
-    .map((id) => setData?.cards?.find((card) => card.id === id))
+    .map((id) => (setData?.allCards || setData?.cards || []).find((card) => card.id === id))
     .filter(Boolean)
     .map((card) => {
       const key = `${setDef.key}:${card.id}`;
       const stats = state.session.chaseStats[key] || { hits: 0, lastHitPack: 0 };
       const ago = stats.lastHitPack > 0 ? Math.max(0, state.session.packsOpened - stats.lastHitPack) : state.session.packsOpened;
-      return `<li><strong>${escapeHtml(card.name)}</strong><span>Hits: ${stats.hits}</span><em>Packs since hit: ${ago}</em></li>`;
+      const availability = isCardPullableForCurrentProduct(card.id, setData, setDef)
+        ? ""
+        : `<em>Not in ${escapeHtml((MTG_PRODUCTS[state.productMode] || MTG_PRODUCTS.play).label)} pool</em>`;
+      return `<li><strong>${escapeHtml(card.name)}</strong><span>Hits: ${stats.hits}</span><em>Packs since hit: ${ago}</em>${availability}</li>`;
     })
     .join("");
 
@@ -1374,11 +1382,26 @@ function renderChasePanel() {
 }
 
 function getChaseCandidates(setData) {
-  if (!setData?.cards?.length) return [];
-  return [...setData.cards]
+  const sourceCards = setData?.allCards || setData?.cards || [];
+  if (!sourceCards.length) return [];
+  return [...sourceCards]
     .filter((card) => Math.max(card.usd || 0, card.usdFoil || 0) > 0)
     .sort((a, b) => Math.max(b.usd || 0, b.usdFoil || 0) - Math.max(a.usd || 0, a.usdFoil || 0))
     .slice(0, 40);
+}
+
+function isCardPullableForCurrentProduct(cardId, setData, setDef) {
+  if (!setData || !cardId) return false;
+  const profile = getCollationProfile(setDef);
+  for (const slot of profile.slots || []) {
+    for (const sheetEntry of slot.sheet || []) {
+      const poolCards = setData.pools[sheetEntry.pool] || [];
+      if (poolCards.some((card) => card.id === cardId)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function getPityHeat(value, warmThreshold) {
