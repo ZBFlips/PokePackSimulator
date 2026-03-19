@@ -3735,7 +3735,7 @@ function renderPackHeader() {
         ? `<span class="pack-source-badge warn">Fallback: PriceCharting</span>`
         : `<span class="pack-source-badge">${escapeHtml(priceData.sourceModeLabel)}</span>`;
       dom.packPriceSource.innerHTML = `
-        <span>Pack market source: <a href="${pricingSource.url}" target="_blank" rel="noreferrer">${escapeHtml(pricingSource.label)}</a></span>
+        <span>Pack market source: <a href="${escapeHtml(sanitizeHttpUrl(pricingSource.url))}" target="_blank" rel="noreferrer">${escapeHtml(pricingSource.label)}</a></span>
         <span class="pack-source-meta">Last updated: ${updatedLabel}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>
         ${fallbackBadge}
       `;
@@ -3988,7 +3988,7 @@ function renderOddsPanel() {
   }
 
   const sourceLinks = packDef.sources
-    .map((source) => `<a href="${source.url}" target="_blank" rel="noreferrer">${source.label}</a>`)
+    .map((source) => `<a href="${escapeHtml(sanitizeHttpUrl(source.url))}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a>`)
     .join(" | ");
 
   dom.oddsPanel.innerHTML = `
@@ -5578,7 +5578,7 @@ function renderCards() {
   dom.openedPackSummary.innerHTML = `
     <span>Revealed ${revealedCount}/${cards.length} cards</span>
     <span>Total Revealed Value: <strong>${formatUsd(totalValue)}</strong></span>
-    <span>${chase ? `Top Pull: ${chase.name} (${formatUsd(chase.value)})` : "Top Pull: ???"}</span>
+    <span>${chase ? `Top Pull: ${escapeHtml(chase.name)} (${formatUsd(chase.value)})` : "Top Pull: ???"}</span>
   `;
 }
 
@@ -5867,6 +5867,20 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function sanitizeHttpUrl(urlValue) {
+  const value = String(urlValue || "").trim();
+  if (!value) return "#";
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+  } catch {
+    // Ignore parse errors and fall back to an inert URL.
+  }
+  return "#";
 }
 
 function hydrateLiveSetCache() {

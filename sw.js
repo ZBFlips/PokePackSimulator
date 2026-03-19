@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v20260319-9";
+const CACHE_VERSION = "v20260319-10";
 const STATIC_CACHE = `pack-sim-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `pack-sim-runtime-${CACHE_VERSION}`;
 const API_CACHE = `pack-sim-api-${CACHE_VERSION}`;
@@ -26,7 +26,14 @@ const STATIC_ASSETS = [
   "./assets/packs/twilight-masquerade.png",
   "./assets/packs/evolving-skies.jpg",
   "./assets/packs/brilliant-stars.jpg",
-  "./assets/packs/lost-origin.jpg"
+  "./assets/packs/lost-origin.jpg",
+  "./assets/packs/astral-radiance.png",
+  "./assets/packs/silver-tempest.png",
+  "./assets/packs/crown-zenith.png",
+  "./assets/packs/ascended-heroes.png",
+  "./assets/packs/base-set-1999.png",
+  "./assets/packs/jungle-1999.png",
+  "./assets/packs/fossil-1999.png"
 ];
 
 self.addEventListener("install", (event) => {

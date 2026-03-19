@@ -994,6 +994,7 @@ init().catch((error) => {
 
 async function init() {
   syncProductModeFromSealedSelection();
+  registerServiceWorker();
   await loadMtgQaLockfile();
   await loadMtgMarketSnapshot();
   wireControls();
@@ -1330,7 +1331,7 @@ function renderHeader() {
   }
 
   dom.packPriceSource.innerHTML = source
-    ? `<span>Pack market source: <a href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a></span>
+    ? `<span>Pack market source: <a href="${escapeHtml(sanitizeHttpUrl(source.url))}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a></span>
        <span class="pack-source-meta">Last updated: ${formatDateLabel(state.marketSnapshot.updatedAt || new Date().toISOString().slice(0, 10))}${state.marketSnapshot.loaded ? " | Authoritative snapshot" : ""}</span>`
     : "<span>Pack market source unavailable.</span>";
 
@@ -2535,7 +2536,7 @@ function renderFidelityRegistryPanel() {
     })
     .join("");
   const sourceLinks = (MTG_FIDELITY_SOURCES.default || [])
-    .map((source) => `<a href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a>`)
+    .map((source) => `<a href="${escapeHtml(sanitizeHttpUrl(source.url))}" target="_blank" rel="noreferrer">${escapeHtml(source.label)}</a>`)
     .join(" | ");
   dom.fidelityRegistryPanel.innerHTML = `
     <div class="economy-head">
@@ -3139,6 +3140,13 @@ function formatDateLabel(isoDate) {
   return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("./sw.js").catch(() => {
+    // Service worker support is optional.
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -3146,5 +3154,19 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function sanitizeHttpUrl(urlValue) {
+  const value = String(urlValue || "").trim();
+  if (!value) return "#";
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+  } catch {
+    // Ignore parse errors and fall back to an inert URL.
+  }
+  return "#";
 }
 
