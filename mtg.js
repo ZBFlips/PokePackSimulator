@@ -1349,11 +1349,11 @@ function renderSetVault() {
   const loadedCount = sets.filter((setDef) => Boolean(state.setData[setDef.key])).length;
   const liveCount = sets.filter((setDef) => Boolean(state.setData[setDef.key]?.cards?.length)).length;
   dom.setVaultSummary.innerHTML = `
-    <span class="pack-source-badge">${sets.length} matched</span>
-    <span class="pack-source-badge">${pinnedSets.length} pinned</span>
-    <span class="pack-source-badge">${recentSets.length} recent</span>
-    <span class="pack-source-badge">${loadedCount} loaded</span>
-    <span class="pack-source-badge">${liveCount} ready</span>
+    <span class="pack-source-badge vault-badge vault-badge--vault">${sets.length} matched</span>
+    <span class="pack-source-badge vault-badge vault-badge--pinned">${pinnedSets.length} pinned</span>
+    <span class="pack-source-badge vault-badge vault-badge--recent">${recentSets.length} recent</span>
+    <span class="pack-source-badge vault-badge vault-badge--ready">${loadedCount} loaded</span>
+    <span class="pack-source-badge vault-badge vault-badge--live">${liveCount} ready</span>
   `;
 
   const buildOption = (setDef) => {

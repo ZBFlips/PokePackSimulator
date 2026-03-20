@@ -3835,12 +3835,12 @@ function renderPackVault() {
   const fallbackCount = packs.length - liveCount;
 
   dom.packVaultSummary.innerHTML = `
-    <span class="pack-source-badge">Pokedex ${packs.length}</span>
-    <span class="pack-source-badge">${pinnedPacks.length} pinned</span>
-    <span class="pack-source-badge">${recentPacks.length} recent</span>
-    <span class="pack-source-badge">${readyCount} ready</span>
-    <span class="pack-source-badge">${liveCount} live</span>
-    <span class="pack-source-badge">${fallbackCount} fallback</span>
+    <span class="pack-source-badge vault-badge vault-badge--vault">Pokedex ${packs.length}</span>
+    <span class="pack-source-badge vault-badge vault-badge--pinned">${pinnedPacks.length} pinned</span>
+    <span class="pack-source-badge vault-badge vault-badge--recent">${recentPacks.length} recent</span>
+    <span class="pack-source-badge vault-badge vault-badge--ready">${readyCount} ready</span>
+    <span class="pack-source-badge vault-badge vault-badge--live">${liveCount} live</span>
+    <span class="pack-source-badge vault-badge vault-badge--fallback">${fallbackCount} fallback</span>
   `;
 
   const buildOption = (packDef) => {
