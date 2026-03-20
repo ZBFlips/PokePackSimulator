@@ -59,6 +59,81 @@
     });
   }
 
+  function createCollapsibleSection(sectionEl, options = {}) {
+    if (!sectionEl || sectionEl.dataset.collapsibleWired === "1") return null;
+
+    const storageKey = options.storageKey || "";
+    const defaultExpanded = options.defaultExpanded !== false;
+    const titleText =
+      options.title ||
+      sectionEl.getAttribute("data-collapse-title") ||
+      sectionEl.querySelector("h2, h3")?.textContent?.trim() ||
+      "Section";
+    const buttonClass = options.buttonClass ? ` ${options.buttonClass}` : "";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `hud-collapse-btn${buttonClass}`;
+    button.setAttribute("aria-expanded", "true");
+
+    const icon = document.createElement("span");
+    icon.className = "hud-collapse-icon";
+    icon.textContent = "-";
+
+    const title = document.createElement("span");
+    title.className = "hud-collapse-title";
+    title.textContent = titleText;
+
+    const state = document.createElement("span");
+    state.className = "hud-collapse-state";
+    state.textContent = "Hide";
+
+    button.append(icon, title, state);
+    sectionEl.before(button);
+    sectionEl.dataset.collapsibleWired = "1";
+
+    const sync = (expanded) => {
+      sectionEl.hidden = !expanded;
+      sectionEl.classList.toggle("is-collapsed", !expanded);
+      button.setAttribute("aria-expanded", String(expanded));
+      icon.textContent = expanded ? "-" : "+";
+      state.textContent = expanded ? "Hide" : "Show";
+      if (storageKey) {
+        try {
+          window.localStorage.setItem(storageKey, expanded ? "1" : "0");
+        } catch {
+          // Ignore storage errors.
+        }
+      }
+    };
+
+    let expanded = defaultExpanded;
+    if (storageKey) {
+      try {
+        const saved = window.localStorage.getItem(storageKey);
+        if (saved !== null) {
+          expanded = saved !== "0";
+        }
+      } catch {
+        // Ignore storage errors.
+      }
+    }
+
+    sync(expanded);
+    button.addEventListener("click", () => {
+      const nextExpanded = button.getAttribute("aria-expanded") !== "true";
+      sync(nextExpanded);
+    });
+
+    return {
+      button,
+      sectionEl,
+      expand: () => sync(true),
+      collapse: () => sync(false),
+      toggle: () => sync(button.getAttribute("aria-expanded") !== "true"),
+      isExpanded: () => button.getAttribute("aria-expanded") === "true",
+    };
+  }
+
   function mergeSetDefinitions(baseSets, importedSets) {
     const merged = new Map();
     for (const setDef of Array.isArray(baseSets) ? baseSets : []) {
@@ -134,6 +209,7 @@
     isSnapshotStale,
     getSnapshotFreshnessLabel,
     registerServiceWorker,
+    createCollapsibleSection,
     mergeSetDefinitions,
     buildSparklineSvg,
   });

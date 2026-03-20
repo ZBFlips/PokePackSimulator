@@ -2372,12 +2372,63 @@ label {
   padding: 12px;
   display: grid;
   gap: 6px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   min-height: 0;
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+.hud-collapse-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hud-collapse-toolbar .btn {
+  flex: 1 1 132px;
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.74rem;
+}
+
+.hud-collapse-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid rgba(129, 149, 193, 0.34);
+  border-radius: 12px;
+  background: rgba(10, 19, 42, 0.8);
+  color: #edf3ff;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-family: Orbitron, Rajdhani, sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.hud-collapse-btn:hover {
+  border-color: rgba(188, 203, 241, 0.6);
+  background: rgba(14, 25, 50, 0.92);
+}
+
+.hud-collapse-btn .hud-collapse-title {
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.hud-collapse-btn .hud-collapse-state {
+  color: #b8c8ec;
+  font-size: 0.7rem;
+}
+
+.hud-collapse-btn .hud-collapse-icon {
+  color: #ffe27a;
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .sidebar-section {
@@ -2392,11 +2443,6 @@ label {
 
 .sidebar-section h2 {
   font-size: 1.02rem;
-}
-
-.sidebar-panel > section:first-child,
-.sidebar-panel > .info-panel {
-  grid-column: 1 / -1;
 }
 
 .session-stats {

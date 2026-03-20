@@ -2407,6 +2407,7 @@ init().catch((error) => {
 
 async function init() {
   wireControls();
+  wireFeatureCollapsibles();
   await loadPokemonQaLockfile();
   await loadPokemonMarketSnapshot();
   syncSoundControlState();
@@ -2674,18 +2675,85 @@ function wireCollapsibleSection(toggleBtn, contentEl) {
   if (!toggleBtn || !contentEl) return;
 
   const icon = toggleBtn.querySelector(".section-toggle-icon");
+  const storageKey = toggleBtn.id ? `${toggleBtn.id}-collapsed-v1` : "";
   const sync = (expanded) => {
     toggleBtn.setAttribute("aria-expanded", String(expanded));
     contentEl.hidden = !expanded;
     if (icon) {
       icon.textContent = expanded ? "-" : "+";
     }
+    if (storageKey) {
+      try {
+        window.localStorage.setItem(storageKey, expanded ? "1" : "0");
+      } catch {
+        // Ignore storage errors.
+      }
+    }
   };
 
-  sync(true);
+  let expanded = true;
+  if (storageKey) {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved !== null) {
+        expanded = saved !== "0";
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
+  sync(expanded);
   toggleBtn.addEventListener("click", () => {
     const expanded = toggleBtn.getAttribute("aria-expanded") !== "false";
     sync(!expanded);
+  });
+}
+
+function wireFeatureCollapsibles() {
+  const sidebarPanel = document.querySelector(".sidebar-panel");
+  const controllers = [];
+
+  if (sidebarPanel && !sidebarPanel.querySelector(".hud-collapse-toolbar")) {
+    const toolbar = document.createElement("div");
+    toolbar.className = "hud-collapse-toolbar";
+    toolbar.innerHTML = `
+      <button id="pokemonCollapseAllBtn" class="btn" type="button">Collapse All</button>
+      <button id="pokemonExpandAllBtn" class="btn" type="button">Expand All</button>
+    `;
+    sidebarPanel.prepend(toolbar);
+  }
+
+  const addController = (sectionEl, title, storageKey, defaultExpanded = true) => {
+    const controller = COMMON.createCollapsibleSection(sectionEl, {
+      title,
+      storageKey,
+      defaultExpanded,
+    });
+    if (controller) {
+      controllers.push(controller);
+    }
+  };
+
+  addController(document.querySelector(".history-section"), "Opening History", "pokemon-collapse-history-v1", false);
+  addController(document.querySelector(".binder-section"), "Collection Binder + Progress", "pokemon-collapse-binder-v1", false);
+  addController(document.querySelector(".sidebar-panel > .sidebar-section"), "Main Stats", "pokemon-collapse-main-stats-v1", true);
+  addController(dom.chasePanel, "Chase Tracker + Pity", "pokemon-collapse-chase-v1", false);
+  addController(dom.oddsPanel, "Rarity Slot Odds", "pokemon-collapse-odds-v1", false);
+  addController(dom.economyPanel, "Economy Dashboard + ROI", "pokemon-collapse-economy-v1", true);
+  addController(dom.simulationLabPanel, "Simulation Lab", "pokemon-collapse-lab-v1", false);
+  addController(dom.rngAuditPanel, "RNG & Audit", "pokemon-collapse-rng-v1", false);
+  addController(dom.fidelityRegistryPanel, "Fidelity Registry", "pokemon-collapse-fidelity-v1", false);
+  addController(dom.profileDataPanel, "Profile Data", "pokemon-collapse-profile-v1", false);
+  addController(dom.achievementPanel, "Achievement Deck", "pokemon-collapse-achievements-v1", false);
+  addController(document.querySelector(".info-panel"), "About This Simulator", "pokemon-collapse-about-v1", false);
+
+  document.getElementById("pokemonCollapseAllBtn")?.addEventListener("click", () => {
+    controllers.forEach((controller) => controller.collapse());
+  });
+
+  document.getElementById("pokemonExpandAllBtn")?.addEventListener("click", () => {
+    controllers.forEach((controller) => controller.expand());
   });
 }
 

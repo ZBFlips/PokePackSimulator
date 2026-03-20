@@ -1013,6 +1013,7 @@ async function init() {
   await loadMtgQaLockfile();
   await loadMtgMarketSnapshot();
   wireControls();
+  wireFeatureCollapsibles();
   renderSetSelect();
   renderHeader();
   renderSessionStats();
@@ -1182,6 +1183,50 @@ function wireControls() {
     state.binderVisibleCount = MTG_BINDER_RENDER_BATCH;
     persistBinder();
     renderBinder();
+  });
+}
+
+function wireFeatureCollapsibles() {
+  const sidebarPanel = document.querySelector(".sidebar-panel");
+  const controllers = [];
+
+  if (sidebarPanel && !sidebarPanel.querySelector(".hud-collapse-toolbar")) {
+    const toolbar = document.createElement("div");
+    toolbar.className = "hud-collapse-toolbar";
+    toolbar.innerHTML = `
+      <button id="mtgCollapseAllBtn" class="btn" type="button">Collapse All</button>
+      <button id="mtgExpandAllBtn" class="btn" type="button">Expand All</button>
+    `;
+    sidebarPanel.prepend(toolbar);
+  }
+
+  const addController = (sectionEl, title, storageKey, defaultExpanded = true) => {
+    const controller = COMMON.createCollapsibleSection(sectionEl, {
+      title,
+      storageKey,
+      defaultExpanded,
+    });
+    if (controller) controllers.push(controller);
+  };
+
+  addController(document.querySelector(".controls-panel > .control-section:nth-of-type(1)"), "Choose a Set", "mtg-collapse-choose-set-v1", true);
+  addController(document.querySelector(".controls-panel > .control-section:nth-of-type(2)"), "Open Settings", "mtg-collapse-open-settings-v1", true);
+  addController(dom.chasePanel, "Chase Tracker", "mtg-collapse-chase-v1", false);
+  addController(dom.economyPanel, "Economy Dashboard + ROI", "mtg-collapse-economy-v1", true);
+  addController(dom.oddsQaPanel, "Odds QA", "mtg-collapse-odds-qa-v1", false);
+  addController(dom.rngPanel, "RNG & Audit", "mtg-collapse-rng-v1", false);
+  addController(dom.labPanel, "Simulation Lab", "mtg-collapse-lab-v1", false);
+  addController(dom.fidelityRegistryPanel, "Fidelity Registry", "mtg-collapse-fidelity-v1", false);
+  addController(dom.profileDataPanel, "Profile Data", "mtg-collapse-profile-v1", false);
+  addController(document.querySelector(".binder-section"), "Collection Binder", "mtg-collapse-binder-v1", false);
+  addController(document.querySelector(".sidebar-panel > .sidebar-section"), "Main Stats", "mtg-collapse-main-stats-v1", true);
+
+  document.getElementById("mtgCollapseAllBtn")?.addEventListener("click", () => {
+    controllers.forEach((controller) => controller.collapse());
+  });
+
+  document.getElementById("mtgExpandAllBtn")?.addEventListener("click", () => {
+    controllers.forEach((controller) => controller.expand());
   });
 }
 
